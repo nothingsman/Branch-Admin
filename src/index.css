@@ -1,0 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Ethiopic:wght@400;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-amharic: "Noto Sans Ethiopic", sans-serif;
+  
+  --color-primary: #1A237E;
+  --color-accent: #8E99FF;
+  --color-surface: #FBF8FF;
+  --color-border-soft: #DBD9E1;
+  --color-alert-soft: #FEE2E2;
+  --color-alert-text: #991B1B;
+
+  --radius-edugov: 8px;
+}
+
+@layer base {
+  body {
+    @apply bg-surface text-[#1A237E] font-sans;
+  }
+}
+
+@layer components {
+  .sidebar-link-active {
+    @apply bg-accent/40 text-primary font-bold rounded-full;
+  }
+  
+  .card-base {
+    @apply bg-white border border-border-soft rounded-lg p-6;
+  }
+  
+  .btn-primary {
+    @apply bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-all font-bold;
+  }
+
+  .input-base {
+    @apply border border-border-soft rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent/50 bg-white;
+  }
+
+  .select-base {
+    @apply bg-white border border-border-soft rounded-lg py-2 pl-3 pr-10 text-sm font-semibold text-primary focus:outline-none focus:ring-2 focus:ring-primary/10 appearance-none cursor-pointer hover:border-primary/40 hover:bg-slate-50 transition-all shadow-sm;
+  }
+
+  .dropdown-menu {
+    @apply absolute top-full left-0 mt-1 w-full bg-white border border-border-soft rounded-lg shadow-xl overflow-hidden z-[100] py-1;
+  }
+
+  .dropdown-item {
+    @apply px-4 py-2 text-xs font-bold text-slate-600 hover:bg-accent/10 hover:text-primary transition-colors cursor-pointer;
+  }
+}
