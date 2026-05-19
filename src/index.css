@@ -1,52 +1,153 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Ethiopic:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Noto+Sans+Ethiopic:wght@400;700&display=swap');
 @import "tailwindcss";
 
-@theme {
-  --font-sans: "Inter", "Helvetica Neue", Arial, sans-serif;
-  --font-amharic: "Noto Sans Ethiopic", sans-serif;
-  
-  --color-primary: #1A237E;
-  --color-accent: #8E99FF;
-  --color-surface: #FBF8FF;
-  --color-border-soft: #DBD9E1;
-  --color-alert-soft: #FEE2E2;
-  --color-alert-text: #991B1B;
+@custom-variant dark (&:is(.dark *));
 
-  --radius-edugov: 8px;
+:root {
+  /* ── Background & Foreground ── */
+  --background: hsl(210 40% 98%);
+  --foreground: hsl(222 47% 6%);
+
+  /* ── Card ── */
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(222 47% 6%);
+
+  /* ── Popover ── */
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(222 47% 6%);
+
+  /* ── Primary — Deep Navy ── */
+  --primary: hsl(231 66% 30%);
+  --primary-foreground: hsl(0 0% 100%);
+
+  /* ── Secondary — Light Navy Surface ── */
+  --secondary: hsl(240 33% 95%);
+  --secondary-foreground: hsl(231 66% 30%);
+
+  /* ── Muted ── */
+  --muted: hsl(210 40% 96%);
+  --muted-foreground: hsl(215 16% 47%);
+
+  /* ── Accent — Active Blue ── */
+  --accent: hsl(221 83% 53%);
+  --accent-foreground: hsl(0 0% 100%);
+
+  /* ── Destructive ── */
+  --destructive: hsl(0 84% 60%);
+  --destructive-foreground: hsl(0 0% 100%);
+
+  /* ── Border & Input ── */
+  --border: hsl(240 8% 87%);
+  --input: hsl(240 8% 87%);
+  --ring: hsl(231 66% 30%);
+
+  /* ── Chart Colors ── */
+  --chart-1: hsl(231 66% 30%);
+  --chart-2: hsl(221 83% 53%);
+  --chart-3: hsl(160 84% 39%);
+  --chart-4: hsl(38 92% 50%);
+  --chart-5: hsl(0 84% 60%);
+
+  /* ── Sidebar ── */
+  --sidebar: hsl(210 40% 98%);
+  --sidebar-foreground: hsl(222 47% 6%);
+  --sidebar-primary: hsl(231 66% 30%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(210 40% 96%);
+  --sidebar-accent-foreground: hsl(222 47% 6%);
+  --sidebar-border: hsl(240 8% 87%);
+  --sidebar-ring: hsl(231 66% 30%);
+
+  /* ── Radius ── */
+  --radius: 0.75rem;
+
+  /* ── Fonts & Shadows ── */
+  --font-sans: 'Outfit', sans-serif;
+  --font-amharic: 'Noto Sans Ethiopic', sans-serif;
+  
+  --shadow-sm: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 1px 2px -1px hsl(0 0% 0% / 0.17);
+  --shadow: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 1px 2px -1px hsl(0 0% 0% / 0.17);
+  --shadow-md: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 2px 4px -1px hsl(0 0% 0% / 0.17);
+  --shadow-lg: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 4px 6px -1px hsl(0 0% 0% / 0.17);
+  --tracking-normal: 0.025em;
+}
+
+.dark {
+  --background: hsl(231 39% 8%);
+  --foreground: hsl(210 40% 96%);
+  --card: hsl(231 39% 11%);
+  --card-foreground: hsl(210 40% 96%);
+  --popover: hsl(231 39% 11%);
+  --popover-foreground: hsl(210 40% 96%);
+  --primary: hsl(221 83% 65%);
+  --primary-foreground: hsl(231 66% 10%);
+  --secondary: hsl(231 39% 16%);
+  --secondary-foreground: hsl(210 40% 96%);
+  --muted: hsl(231 39% 16%);
+  --muted-foreground: hsl(215 20% 60%);
+  --accent: hsl(221 83% 65%);
+  --accent-foreground: hsl(231 66% 10%);
+  --destructive: hsl(0 72% 51%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(231 39% 20%);
+  --input: hsl(231 39% 20%);
+  --ring: hsl(221 83% 65%);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --font-sans: var(--font-sans);
+  --font-amharic: var(--font-amharic);
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow: var(--shadow);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
 }
 
 @layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
   body {
-    @apply bg-surface text-[#1A237E] font-sans;
+    @apply bg-background text-foreground font-sans;
+    letter-spacing: var(--tracking-normal);
   }
 }
 
 @layer components {
-  .sidebar-link-active {
-    @apply bg-accent/40 text-primary font-bold rounded-full;
+  .card-elevated {
+    @apply bg-white rounded-xl shadow-md border border-border p-6;
   }
-  
-  .card-base {
-    @apply bg-white border border-border-soft rounded-lg p-6;
-  }
-  
+
   .btn-primary {
-    @apply bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-all font-bold;
+    @apply bg-primary text-primary-foreground px-6 py-2 rounded-full font-bold transition-all hover:opacity-90 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2;
   }
 
-  .input-base {
-    @apply border border-border-soft rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent/50 bg-white;
-  }
-
-  .select-base {
-    @apply bg-white border border-border-soft rounded-lg py-2 pl-3 pr-10 text-sm font-semibold text-primary focus:outline-none focus:ring-2 focus:ring-primary/10 appearance-none cursor-pointer hover:border-primary/40 hover:bg-slate-50 transition-all shadow-sm;
-  }
-
-  .dropdown-menu {
-    @apply absolute top-full left-0 mt-1 w-full bg-white border border-border-soft rounded-lg shadow-xl overflow-hidden z-[100] py-1;
-  }
-
-  .dropdown-item {
-    @apply px-4 py-2 text-xs font-bold text-slate-600 hover:bg-accent/10 hover:text-primary transition-colors cursor-pointer;
+  .input-field {
+    @apply w-full px-4 py-2 rounded-lg border border-input bg-background focus:ring-2 focus:ring-ring focus:border-transparent outline-none transition-all placeholder:text-muted-foreground;
   }
 }

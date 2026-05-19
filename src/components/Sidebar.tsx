@@ -12,10 +12,12 @@ import {
   FileUp,
   UserRound,
   Edit3,
+  LogOut,
   X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ModuleId } from '../types';
+import { ApiUser } from '../lib/api';
 
 interface SidebarProps {
   activeModule: ModuleId;
@@ -24,6 +26,8 @@ interface SidebarProps {
   setAcademicYear: (year: string) => void;
   isOpen?: boolean;
   onClose?: () => void;
+  user: ApiUser;
+  onLogout: () => void;
 }
 
 const modules = [
@@ -44,15 +48,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
   academicYear,
   setAcademicYear,
   isOpen,
-  onClose
+  onClose,
+  user,
+  onLogout
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profile, setProfile] = useState({ 
-    name: 'Admin User', 
+    name: user.name || 'Admin User', 
     role: 'Branch Administrator',
-    email: 'admin@edugov.academy',
-    phone: '+251 911 223 344',
+    email: user.email || 'admin@edugov.academy',
+    phone: user.phone_number || '+251 911 223 344',
     avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=100&h=100&auto=format&fit=crop'
   });
   const academicYears = ["AY 2024-25", "AY 2023-24", "AY 2022-23"];
@@ -190,6 +196,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
           })}
         </div>
       </nav>
+      
+      {/* Logout Action */}
+      <div className="p-4 border-t border-border-soft shrink-0">
+        <button
+          onClick={onLogout}
+          className="w-full flex items-center gap-4 px-5 py-3 text-red-600 hover:bg-red-50 rounded-xl transition-all font-bold text-sm group cursor-pointer active:scale-95"
+        >
+          <LogOut className="w-5 h-5 text-red-500 group-hover:translate-x-0.5 transition-transform" />
+          <span>Sign Out</span>
+        </button>
+      </div>
     </div>
 
     {/* Profile Edit Modal - Moved outside sidebar div for better stacking context */}

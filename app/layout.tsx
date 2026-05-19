@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import '../src/index.css';
 
 export const metadata: Metadata = {
-  title: 'EduGov Branch Admin',
+  title: 'kelem.co Branch admin',
   description: 'Branch administration dashboard for EduGov Academy',
 };
 

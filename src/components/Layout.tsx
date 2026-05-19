@@ -4,12 +4,15 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { ModuleId } from '../types';
+import { ApiUser } from '../lib/api';
 
 interface LayoutProps {
   activeModule: ModuleId;
   setActiveModule: (module: ModuleId) => void;
   academicYear: string;
   setAcademicYear: (year: string) => void;
+  user: ApiUser;
+  onLogout: () => void;
   children: React.ReactNode;
 }
 
@@ -18,6 +21,8 @@ export const Layout: React.FC<LayoutProps> = ({
   setActiveModule, 
   academicYear,
   setAcademicYear,
+  user,
+  onLogout,
   children 
 }) => {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
@@ -31,6 +36,8 @@ export const Layout: React.FC<LayoutProps> = ({
         setAcademicYear={setAcademicYear}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        user={user}
+        onLogout={onLogout}
       />
       <main className="flex-1 flex flex-col h-screen overflow-hidden lg:ml-64 transition-all duration-300">
         <Header 
