@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { 
   BookOpen, 
   Plus, 
@@ -17,21 +17,166 @@ import {
   MoreVertical,
   Settings,
   Trash2,
-  ArrowLeft
+  ArrowLeft,
+  Loader2,
+  RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Grade, Section, Subject, Assignment, Teacher } from '../types';
 import { mockGrades, mockSections, mockSubjects, mockTeachers, mockAssignments } from '../constants/mockData';
+import { academiaApi } from '../lib/api';
 
 const getPrimarySubject = (teacher: Teacher) => teacher.subjects[0] || 'Unassigned';
 
-export const Academia: React.FC<{ academicYear: string }> = ({ academicYear }) => {
+function extractApiError(err: unknown): string {
+  if (!err) return 'An unexpected error occurred.';
+  const e = err as any;
+  if (e?.data?.errors?.length) {
+    return e.data.errors
+      .map((x: any) => (x.field ? `${x.field}: ${x.detail}` : x.detail))
+      .join(' · ');
+  }
+  if (e?.data?.detail) return e.data.detail;
+  if (e?.message) return e.message;
+  return 'An unexpected error occurred.';
+}
+
+interface ConfirmDeleteProps {
+  label: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  isLoading: boolean;
+}
+
+const ConfirmDelete: React.FC<ConfirmDeleteProps> = ({ label, onConfirm, onCancel, isLoading }) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.95 }}
+    animate={{ opacity: 1, scale: 1 }}
+    exit={{ opacity: 0, scale: 0.95 }}
+    className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md"
+  >
+    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl p-8 space-y-6">
+      <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center mx-auto">
+        <Trash2 className="w-6 h-6 text-red-500" />
+      </div>
+      <div className="text-center space-y-1">
+        <h3 className="text-base font-black text-slate-900">Delete {label}?</h3>
+        <p className="text-xs text-slate-400 font-medium">This action cannot be undone.</p>
+      </div>
+      <div className="flex gap-3">
+        <button
+          onClick={onCancel}
+          className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-200 transition-all"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={onConfirm}
+          disabled={isLoading}
+          className="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold text-sm hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+        >
+          {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+          Delete
+        </button>
+      </div>
+    </div>
+  </motion.div>
+);
+
+interface AcademiaProps {
+  academicYearLabel: string;
+  academicYearId: string | null;
+  organizationId: string | null;
+  branchId: string | null;
+  AcademicYearPicker: React.ComponentType | (() => React.JSX.Element);
+}
+
+export const Academia: React.FC<AcademiaProps> = ({
+  academicYearLabel,
+  academicYearId,
+  organizationId,
+  branchId,
+  AcademicYearPicker
+}) => {
+  const academicYear = academicYearLabel;
   const [activeTab, setActiveTab] = useState<'sections' | 'subjects' | 'roles'>('sections');
-  const [grades, setGrades] = useState<Grade[]>(mockGrades);
-  const [sections, setSections] = useState<Section[]>(mockSections);
-  const [subjects, setSubjects] = useState<Subject[]>(mockSubjects);
+  const [grades, setGrades] = useState<Grade[]>([]);
+  const [sections, setSections] = useState<Section[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>(mockAssignments);
   const [sectionSubjectLinks, setSectionSubjectLinks] = useState<Record<string, string[]>>({});
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isMutating, setIsMutating] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'grade' | 'section' | 'subject'; id: string; label: string } | null>(null);
+
+  const fetchData = useCallback(async () => {
+    if (!branchId) return;
+    setIsLoading(true);
+    setError(null);
+    try {
+      const [fetchedGrades, fetchedSections, fetchedSubjects] = await Promise.all([
+        academiaApi.getGrades(branchId),
+        academiaApi.getSections(branchId, academicYearId || undefined),
+        academiaApi.getSubjects(branchId),
+      ]);
+
+      setGrades(fetchedGrades.map(g => ({ id: g.id, name: g.name })));
+      
+      setSections(fetchedSections.map(s => ({
+        id: s.id,
+        gradeId: s.grade,
+        name: s.name,
+        homeroomTeacherId: undefined,
+        studentCount: 40,
+      })));
+
+      setSubjects(fetchedSubjects.map(s => {
+        const gradeObj = fetchedGrades.find(g => g.id === s.grade);
+        return {
+          id: s.id,
+          nameEn: s.name,
+          nameAm: '',
+          code: s.code,
+          applicableGrades: gradeObj ? [gradeObj.name] : [],
+        };
+      }));
+    } catch (err) {
+      console.error(err);
+      setError(extractApiError(err));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [branchId, academicYearId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setIsMutating(true);
+    setError(null);
+    try {
+      if (deleteTarget.type === 'grade') {
+        await academiaApi.deleteGrade(deleteTarget.id);
+      } else if (deleteTarget.type === 'section') {
+        await academiaApi.deleteSection(deleteTarget.id);
+        setActiveSidebarSectionId(null);
+      } else if (deleteTarget.type === 'subject') {
+        await academiaApi.deleteSubject(deleteTarget.id);
+        setActiveSidebarSubjectId(null);
+      }
+      await fetchData();
+      setDeleteTarget(null);
+    } catch (err) {
+      console.error(err);
+      setError(extractApiError(err));
+    } finally {
+      setIsMutating(false);
+    }
+  };
   
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const [showSubjectModal, setShowSubjectModal] = useState(false);
@@ -73,15 +218,45 @@ export const Academia: React.FC<{ academicYear: string }> = ({ academicYear }) =
     { label: 'Unassigned Sections', value: sections.filter(s => !s.homeroomTeacherId).length, icon: AlertCircle, color: 'text-red-500' },
   ];
 
+  if (isLoading) {
+    return (
+      <div className="min-h-full bg-slate-50 flex flex-col p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="h-6 w-32 bg-slate-200 rounded animate-pulse" />
+          <div className="h-10 w-48 bg-slate-200 rounded animate-pulse" />
+        </div>
+        <div className="h-10 w-96 bg-slate-200 rounded animate-pulse" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 animate-pulse">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="h-16 bg-slate-100 border border-slate-200 rounded-2xl" />
+          ))}
+        </div>
+        <div className="space-y-4 animate-pulse">
+          {[1, 2].map(i => (
+            <div key={i} className="p-6 bg-white rounded-2xl border border-slate-100 space-y-4">
+              <div className="h-4 w-32 bg-slate-100 rounded" />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {[1, 2, 3].map(j => (
+                  <div key={j} className="h-24 bg-slate-50 rounded-xl" />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-full bg-slate-50 flex flex-col">
       {/* Header */}
       <div className="bg-white border-b border-slate-100 p-6 sticky top-0 z-40 space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
+          <div className="flex items-center gap-3">
             <div className="px-4 py-1.5 bg-primary text-white text-sm font-bold rounded-xl shadow-md">
               Academic year {academicYear}
             </div>
+            <AcademicYearPicker />
           </div>
           <div className="flex items-center gap-3">
              <button 
@@ -152,6 +327,12 @@ export const Academia: React.FC<{ academicYear: string }> = ({ academicYear }) =
 
       {/* Main Content Area */}
       <div className="flex-1 p-4 md:p-6 space-y-6">
+        {error && (
+          <div className="p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-xs font-bold flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{error}</span>
+          </div>
+        )}
         <AnimatePresence mode="wait">
           {activeTab === 'sections' && (
             <motion.div
@@ -193,9 +374,16 @@ export const Academia: React.FC<{ academicYear: string }> = ({ academicYear }) =
                         </div>
                         <h2 className="text-sm font-black text-slate-800 tracking-tight uppercase tracking-widest">{grade.name}</h2>
                         <div className="h-px flex-1 bg-slate-100/50" />
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-2">
                           {sections.filter(s => s.gradeId === grade.id).length} Sections
                         </span>
+                        <button
+                          onClick={() => setDeleteTarget({ type: 'grade', id: grade.id, label: grade.name })}
+                          className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
+                          title={`Delete ${grade.name}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                         {sections.filter(s => s.gradeId === grade.id).map(section => {
@@ -499,9 +687,32 @@ export const Academia: React.FC<{ academicYear: string }> = ({ academicYear }) =
           <NewSubjectModal 
             onClose={() => setShowSubjectModal(false)}
             grades={grades}
-            onSave={(newSubject) => {
-              setSubjects(prev => [...prev, { ...newSubject, id: `s${prev.length + 1}` }]);
-              setShowSubjectModal(false);
+            onSave={async (newSubject) => {
+              if (!organizationId || !branchId) return;
+              setIsMutating(true);
+              setError(null);
+              try {
+                for (const gradeName of newSubject.applicableGrades) {
+                  const g = grades.find(x => x.name === gradeName);
+                  if (g) {
+                    const createdSubject = await academiaApi.createSubject({
+                      organization: organizationId,
+                      branch: branchId,
+                      grade: g.id,
+                      name: newSubject.nameEn,
+                      code: newSubject.code
+                    });
+                    await academiaApi.linkGradeSubject(organizationId, g.id, createdSubject.id);
+                  }
+                }
+                await fetchData();
+                setShowSubjectModal(false);
+              } catch (err) {
+                console.error(err);
+                setError(extractApiError(err));
+              } finally {
+                setIsMutating(false);
+              }
             }}
           />
         )}
@@ -550,6 +761,7 @@ export const Academia: React.FC<{ academicYear: string }> = ({ academicYear }) =
               }));
             }}
             academicYear={academicYear}
+            onDelete={() => setDeleteTarget({ type: 'section', id: activeSection.id, label: `${activeGrade?.name || 'Grade'} - ${activeSection.name}` })}
           />
         )}
 
@@ -577,28 +789,48 @@ export const Academia: React.FC<{ academicYear: string }> = ({ academicYear }) =
             onUnassignTeacher={(assignmentId) => {
               setAssignments(prev => prev.filter(a => a.id !== assignmentId));
             }}
+            onDelete={() => setDeleteTarget({ type: 'subject', id: activeSubject.id, label: activeSubject.nameEn })}
           />
         )}
 
         {showAddGradeModal && (
           <NewGradeModal 
             onClose={() => setShowAddGradeModal(false)}
-            onSave={(name, sectionNames) => {
-              const gradeId = `g${Date.now()}`;
-              setGrades(prev => [...prev, { id: gradeId, name }]);
-              
-              if (sectionNames.length > 0) {
-                const newSections: Section[] = sectionNames.map(sName => ({
-                  id: Math.random().toString(36).substr(2, 9),
-                  name: sName.trim().toUpperCase(),
-                  gradeId: gradeId,
-                  studentCount: 40,
-                  homeroomTeacherId: undefined
-                }));
-                setSections(prev => [...prev, ...newSections]);
+            onSave={async (name, sectionNames) => {
+              if (!organizationId || !branchId) return;
+              setIsMutating(true);
+              setError(null);
+              try {
+                const level = parseInt(name.replace(/\D/g, ''), 10) || (grades.length + 1);
+                const createdGrade = await academiaApi.createGrade({
+                  organization: organizationId,
+                  branch: branchId,
+                  name: name.trim(),
+                  level
+                });
+
+                if (sectionNames.length > 0) {
+                  await Promise.all(
+                    sectionNames.map(sName => 
+                      academiaApi.createSection({
+                        organization: organizationId,
+                        branch: branchId,
+                        grade: createdGrade.id,
+                        academic_year: academicYearId || '',
+                        name: sName.trim().toUpperCase()
+                      })
+                    )
+                  );
+                }
+
+                await fetchData();
+                setShowAddGradeModal(false);
+              } catch (err) {
+                console.error(err);
+                setError(extractApiError(err));
+              } finally {
+                setIsMutating(false);
               }
-              
-              setShowAddGradeModal(false);
             }}
           />
         )}
@@ -610,14 +842,27 @@ export const Academia: React.FC<{ academicYear: string }> = ({ academicYear }) =
               setShowAddSectionModal(false);
               setSelectedGradeForNewSection(null);
             }}
-            onSave={(newSection) => {
-              setSections(prev => [...prev, { 
-                ...newSection, 
-                id: Math.random().toString(36).substr(2, 9),
-                gradeId: selectedGradeForNewSection.id
-              }]);
-              setShowAddSectionModal(false);
-              setSelectedGradeForNewSection(null);
+            onSave={async (newSection) => {
+              if (!organizationId || !branchId) return;
+              setIsMutating(true);
+              setError(null);
+              try {
+                await academiaApi.createSection({
+                  organization: organizationId,
+                  branch: branchId,
+                  grade: selectedGradeForNewSection.id,
+                  academic_year: academicYearId || '',
+                  name: newSection.name.trim().toUpperCase()
+                });
+                await fetchData();
+                setShowAddSectionModal(false);
+                setSelectedGradeForNewSection(null);
+              } catch (err) {
+                console.error(err);
+                setError(extractApiError(err));
+              } finally {
+                setIsMutating(false);
+              }
             }}
           />
         )}
@@ -653,6 +898,17 @@ export const Academia: React.FC<{ academicYear: string }> = ({ academicYear }) =
               }
               setAssignments(prev => prev.filter(a => a.id !== assignmentId));
             }}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {deleteTarget && (
+          <ConfirmDelete
+            label={deleteTarget.label}
+            isLoading={isMutating}
+            onCancel={() => setDeleteTarget(null)}
+            onConfirm={handleDeleteConfirm}
           />
         )}
       </AnimatePresence>
@@ -901,6 +1157,7 @@ interface SubjectSidebarProps {
   onUnassignTeacher: (assignmentId: string) => void;
   academicYear: string;
   onTeacherClick: (teacherId: string) => void;
+  onDelete: () => void;
 }
 
 const SubjectSidebar: React.FC<SubjectSidebarProps> = ({ 
@@ -913,7 +1170,8 @@ const SubjectSidebar: React.FC<SubjectSidebarProps> = ({
   onAssignTeacher,
   onUnassignTeacher,
   academicYear,
-  onTeacherClick
+  onTeacherClick,
+  onDelete
 }) => {
   const [selectedSectionForQuickLink, setSelectedSectionForQuickLink] = useState<Section | null>(null);
   const [isAddingTeacher, setIsAddingTeacher] = useState(false);
@@ -978,6 +1236,13 @@ const SubjectSidebar: React.FC<SubjectSidebarProps> = ({
                 className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
               >
                 <Settings className="w-5 h-5 text-slate-400" />
+              </button>
+              <button 
+                onClick={onDelete}
+                className="p-2 hover:bg-red-50 text-red-500 hover:text-red-600 rounded-xl transition-colors border border-transparent hover:border-red-100"
+                title="Delete Subject"
+              >
+                <Trash2 className="w-5 h-5" />
               </button>
             </div>
           </div>
@@ -1363,6 +1628,7 @@ interface SectionSidebarProps {
   onLinkSubject: (subjectId: string) => void;
   academicYear: string;
   onTeacherClick: (teacherId: string) => void;
+  onDelete: () => void;
 }
 
 const SectionSidebar: React.FC<SectionSidebarProps> = ({ 
@@ -1378,7 +1644,8 @@ const SectionSidebar: React.FC<SectionSidebarProps> = ({
   linkedSubjectIds,
   onLinkSubject,
   academicYear,
-  onTeacherClick
+  onTeacherClick,
+  onDelete
 }) => {
   const [isAssigning, setIsAssigning] = useState<{ subjectId: string, isHomeroom: boolean } | null>(null);
   const [showLinkSubjectModal, setShowLinkSubjectModal] = useState(false);
@@ -1437,6 +1704,13 @@ const SectionSidebar: React.FC<SectionSidebarProps> = ({
               >
                 <Plus className="w-4 h-4" />
                 Add Subject
+              </button>
+              <button 
+                onClick={onDelete}
+                className="p-2 bg-slate-100 text-slate-400 hover:bg-red-50 hover:text-red-500 rounded-xl transition-all border border-slate-100/50"
+                title="Delete Section"
+              >
+                <Trash2 className="w-4 h-4" />
               </button>
             </div>
           </div>

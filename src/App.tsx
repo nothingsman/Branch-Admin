@@ -18,17 +18,24 @@ import { AcademicCalendar } from './components/AcademicCalendar';
 import { Students } from './components/Students';
 import { Placeholder } from './components/Placeholder';
 import { Login } from './components/Login';
-import { authApi, ApiUser, tokenManager } from './lib/api';
+import { authApi, academiaApi, ApiUser, AcademicYear, BranchAdminProfile, tokenManager } from './lib/api';
 import { ModuleId, Teacher } from './types';
 import { mockGrades, mockSections, mockTeachers } from './constants/mockData';
-import { Loader2, KeyRound } from 'lucide-react';
+import { Loader2, KeyRound, ChevronDown } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 
 export default function App() {
   const [activeModule, setActiveModule] = useState<ModuleId>('dashboard');
-  const [academicYear, setAcademicYear] = useState('AY 2024-25');
   const [user, setUser] = useState<ApiUser | null>(null);
+  const [branchProfile, setBranchProfile] = useState<BranchAdminProfile | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  // Academic year context
+  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState<AcademicYear | null>(null);
+  const [isLoadingYears, setIsLoadingYears] = useState(false);
+  const [isYearPickerOpen, setIsYearPickerOpen] = useState(false);
 
   useEffect(() => {
     async function checkAuth() {
@@ -39,6 +46,7 @@ export default function App() {
           if (profile.verified_at) {
             setUser(profile);
             setIsAuthenticated(true);
+            await loadBranchContext();
           } else {
             authApi.logout();
           }
@@ -51,31 +59,130 @@ export default function App() {
     checkAuth();
   }, []);
 
+  async function loadBranchContext() {
+    try {
+      const profile = await authApi.getBranchAdminProfile();
+      if (profile) {
+        setBranchProfile(profile);
+        await loadAcademicYears(profile.branch);
+      }
+    } catch {
+      // non-fatal — branch context will be null
+    }
+  }
+
+  async function loadAcademicYears(branchId: string) {
+    setIsLoadingYears(true);
+    try {
+      const years = await academiaApi.getAcademicYears(branchId);
+      setAcademicYears(years);
+      // Auto-select the current year, or the first one
+      const current = years.find(y => y.is_current) || years[0] || null;
+      setSelectedAcademicYear(current);
+    } catch {
+      // non-fatal
+    } finally {
+      setIsLoadingYears(false);
+    }
+  }
+
   const handleLogout = () => {
     authApi.logout();
     setUser(null);
+    setBranchProfile(null);
+    setAcademicYears([]);
+    setSelectedAcademicYear(null);
     setIsAuthenticated(false);
     setActiveModule('dashboard');
   };
+
+  const handleLoginSuccess = async (u: ApiUser) => {
+    setUser(u);
+    setIsAuthenticated(true);
+    await loadBranchContext();
+  };
+
+  // Academic year display label
+  const academicYearLabel = selectedAcademicYear?.name ?? 'No Academic Year';
+
+  // Academic year picker rendered in the header area
+  const AcademicYearPicker = () => (
+    <div className="relative">
+      <button
+        onClick={() => setIsYearPickerOpen(v => !v)}
+        className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-xl text-xs font-black border border-primary/20 hover:bg-primary/20 transition-all"
+      >
+        {isLoadingYears ? (
+          <Loader2 className="w-3 h-3 animate-spin" />
+        ) : (
+          <>
+            <span>{academicYearLabel}</span>
+            <ChevronDown className={`w-3 h-3 transition-transform ${isYearPickerOpen ? 'rotate-180' : ''}`} />
+          </>
+        )}
+      </button>
+
+      <AnimatePresence>
+        {isYearPickerOpen && academicYears.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.95 }}
+            className="absolute top-full mt-2 right-0 bg-white border border-slate-100 rounded-2xl shadow-2xl overflow-hidden z-50 min-w-[180px]"
+          >
+            {academicYears.map(year => (
+              <button
+                key={year.id}
+                onClick={() => {
+                  setSelectedAcademicYear(year);
+                  setIsYearPickerOpen(false);
+                }}
+                className={`w-full px-4 py-3 text-left text-xs font-bold transition-colors flex items-center justify-between gap-3 ${
+                  selectedAcademicYear?.id === year.id
+                    ? 'bg-primary/5 text-primary'
+                    : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <span>{year.name}</span>
+                {year.is_current && (
+                  <span className="text-[9px] font-black bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                    Current
+                  </span>
+                )}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 
   const renderContent = () => {
     switch (activeModule) {
       case 'dashboard':
         return <Dashboard />;
       case 'batchImport':
-        return <BatchImport academicYear={academicYear} />;
+        return <BatchImport academicYear={academicYearLabel} />;
       case 'teachers':
-        return <Teachers academicYear={academicYear} />;
+        return <Teachers academicYear={academicYearLabel} />;
       case 'parents':
-        return <Parents academicYear={academicYear} />;
+        return <Parents academicYear={academicYearLabel} />;
       case 'students':
-        return <Students academicYear={academicYear} />;
+        return <Students academicYear={academicYearLabel} />;
       case 'academia':
-        return <Academia academicYear={academicYear} />;
+        return (
+          <Academia
+            academicYearLabel={academicYearLabel}
+            academicYearId={selectedAcademicYear?.id ?? null}
+            organizationId={branchProfile?.organization ?? null}
+            branchId={branchProfile?.branch ?? null}
+            AcademicYearPicker={AcademicYearPicker}
+          />
+        );
       case 'attendance':
         return (
-          <AttendanceDashboard 
-            academicYear={academicYear}
+          <AttendanceDashboard
+            academicYear={academicYearLabel}
             sections={mockSections}
             grades={mockGrades}
             teachers={mockTeachers as Teacher[]}
@@ -84,7 +191,7 @@ export default function App() {
       case 'announcements':
         return <Announcements />;
       case 'calendar':
-        return <AcademicCalendar academicYear={academicYear} />;
+        return <AcademicCalendar academicYear={academicYearLabel} />;
       default:
         return <Placeholder moduleId={activeModule} />;
     }
@@ -111,19 +218,16 @@ export default function App() {
 
   // 2. Conditional Login View
   if (!isAuthenticated || !user) {
-    return <Login onLoginSuccess={(u) => {
-      setUser(u);
-      setIsAuthenticated(true);
-    }} />;
+    return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
   // 3. Authenticated App Layout
   return (
-    <Layout 
-      activeModule={activeModule} 
+    <Layout
+      activeModule={activeModule}
       setActiveModule={setActiveModule}
-      academicYear={academicYear}
-      setAcademicYear={setAcademicYear}
+      academicYear={academicYearLabel}
+      setAcademicYear={() => {}} // controlled via picker now
       user={user}
       onLogout={handleLogout}
     >

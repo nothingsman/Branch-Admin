@@ -17,6 +17,51 @@ export interface ApiUser {
   updated_at: string;
 }
 
+export interface BranchAdminProfile {
+  id: string;
+  organization: string;
+  branch: string;
+  user: string;
+  role_title: string;
+  status: string;
+}
+
+export interface Grade {
+  id: string;
+  organization: string;
+  branch: string;
+  name: string;
+  level: number;
+}
+
+export interface Section {
+  id: string;
+  organization: string;
+  branch: string;
+  grade: string;
+  academic_year: string;
+  name: string;
+}
+
+export interface Subject {
+  id: string;
+  organization: string;
+  branch: string;
+  grade: string;
+  name: string;
+  code: string;
+}
+
+export interface AcademicYear {
+  id: string;
+  organization: string;
+  branch: string;
+  name: string;
+  start_date: string;
+  end_date: string;
+  is_current: boolean;
+}
+
 export interface JWTResponse {
   access: string;
   refresh: string;
@@ -171,5 +216,94 @@ export const authApi = {
 
   logout() {
     tokenManager.clearTokens();
+  },
+
+  async getBranchAdminProfile(): Promise<BranchAdminProfile | null> {
+    const res = await request<{ results: BranchAdminProfile[] }>('/api/branch-admins/', {
+      method: 'GET',
+    });
+    return res?.results?.[0] || null;
   }
 };
+
+export const academiaApi = {
+  // Academic Years
+  async getAcademicYears(branchId: string): Promise<AcademicYear[]> {
+    const res = await request<{ results: AcademicYear[] }>(`/api/academic-years/?branch=${branchId}`);
+    return res.results || [];
+  },
+
+  // Grades
+  async getGrades(branchId: string): Promise<Grade[]> {
+    const res = await request<{ results: Grade[] }>(`/api/grades/?branch=${branchId}`);
+    return res.results || [];
+  },
+  async createGrade(data: Omit<Grade, 'id'>): Promise<Grade> {
+    return await request<Grade>('/api/grades/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  async updateGrade(id: string, data: Partial<Omit<Grade, 'id'>>): Promise<Grade> {
+    return await request<Grade>(`/api/grades/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+  async deleteGrade(id: string): Promise<void> {
+    await request<void>(`/api/grades/${id}/`, { method: 'DELETE' });
+  },
+
+  // Sections
+  async getSections(branchId: string, academicYearId?: string): Promise<Section[]> {
+    const params = new URLSearchParams({ branch: branchId });
+    if (academicYearId) params.set('academic_year', academicYearId);
+    const res = await request<{ results: Section[] }>(`/api/sections/?${params.toString()}`);
+    return res.results || [];
+  },
+  async createSection(data: Omit<Section, 'id'>): Promise<Section> {
+    return await request<Section>('/api/sections/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  async updateSection(id: string, data: Partial<Omit<Section, 'id'>>): Promise<Section> {
+    return await request<Section>(`/api/sections/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+  async deleteSection(id: string): Promise<void> {
+    await request<void>(`/api/sections/${id}/`, { method: 'DELETE' });
+  },
+
+  // Subjects
+  async getSubjects(branchId: string): Promise<Subject[]> {
+    const res = await request<{ results: Subject[] }>(`/api/subjects/?branch=${branchId}`);
+    return res.results || [];
+  },
+  async createSubject(data: Omit<Subject, 'id'>): Promise<Subject> {
+    return await request<Subject>('/api/subjects/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  async updateSubject(id: string, data: Partial<Omit<Subject, 'id'>>): Promise<Subject> {
+    return await request<Subject>(`/api/subjects/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+  async deleteSubject(id: string): Promise<void> {
+    await request<void>(`/api/subjects/${id}/`, { method: 'DELETE' });
+  },
+
+  // Grade Subjects Link
+  async linkGradeSubject(organization: string, grade: string, subject: string): Promise<any> {
+    return await request('/api/grade-subjects/', {
+      method: 'POST',
+      body: JSON.stringify({ organization, grade, subject }),
+    });
+  },
+};
+
