@@ -16,12 +16,15 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { importApi } from '../lib/api';
 
 interface BatchImportProps {
   academicYear?: string;
+  organizationId: string | null;
+  branchId: string | null;
 }
 
-export const BatchImport: React.FC<BatchImportProps> = ({ academicYear }) => {
+export const BatchImport: React.FC<BatchImportProps> = ({ academicYear, organizationId, branchId }) => {
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<'idle' | 'uploading' | 'validating' | 'success'>('idle');
   const [isToastMinimized, setIsToastMinimized] = useState(false);
@@ -39,30 +42,42 @@ export const BatchImport: React.FC<BatchImportProps> = ({ academicYear }) => {
     }
   };
 
-  const startProcess = () => {
-    setStatus('uploading');
-    setProgress(0);
-    setIsToastMinimized(false);
-    
-    // Simulate progress
-    const interval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 95) {
-          clearInterval(interval);
-          return 95;
-        }
-        return prev + 5;
-      });
-    }, 150);
+  const getEndpointTag = (moduleName: string): 'students' | 'parents' | 'teachers' | null => {
+    if (moduleName === 'Student Record') return 'students';
+    if (moduleName === 'Parent Record') return 'parents';
+    if (moduleName === 'Teacher Record') return 'teachers';
+    return null;
+  };
 
-    setTimeout(() => {
-      setStatus('validating');
-      setTimeout(() => {
-        clearInterval(interval);
-        setProgress(100);
-        setStatus('success');
-      }, 2000);
-    }, 1500);
+  const [errors, setErrors] = useState<any[]>([]);
+
+  const startProcess = async () => {
+    if (!file || !organizationId || !branchId) return;
+
+    const endpoint = getEndpointTag(targetModule);
+    if (!endpoint) {
+      alert("This module is not supported for import yet.");
+      return;
+    }
+
+    setStatus('uploading');
+    setProgress(25);
+    setErrors([]);
+
+    try {
+      setProgress(50);
+      await importApi.uploadBulkFile(endpoint, file, organizationId, branchId);
+      setProgress(100);
+      setStatus('success');
+    } catch (err: any) {
+      setStatus('idle');
+      if (err.status === 400 && err.data?.errors) {
+        setErrors(err.data.errors);
+        alert("Validation failed. Please review row-level errors.");
+      } else {
+        alert(err.message || "An unexpected error occurred during import.");
+      }
+    }
   };
 
   const downloadTemplate = (name: string) => {
@@ -140,6 +155,27 @@ export const BatchImport: React.FC<BatchImportProps> = ({ academicYear }) => {
                   <X className="w-4 h-4" />
                 </button>
               </motion.div>
+            )}
+
+            {errors.length > 0 && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-4 w-full text-left max-h-60 overflow-y-auto">
+                <h4 className="text-sm font-bold text-red-800 mb-2 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" />
+                  Import Failed: Row-level Validation Errors
+                </h4>
+                <div className="space-y-2">
+                  {errors.map((err, idx) => (
+                    <div key={idx} className="text-xs text-red-700">
+                      <span className="font-bold">Row {err.row || 'N/A'}:</span>{' '}
+                      {Object.entries(err.errors).map(([field, msgs]: any) => (
+                        <span key={field} className="mr-2">
+                          <span className="underline">{field}</span>: {msgs.join(', ')}
+                        </span>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
 

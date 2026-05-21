@@ -162,7 +162,13 @@ export default function App() {
       case 'dashboard':
         return <Dashboard />;
       case 'batchImport':
-        return <BatchImport academicYear={academicYearLabel} />;
+        return (
+          <BatchImport 
+            academicYear={academicYearLabel} 
+            organizationId={branchProfile?.organization ?? null}
+            branchId={branchProfile?.branch ?? null}
+          />
+        );
       case 'teachers':
         return <Teachers academicYear={academicYearLabel} />;
       case 'parents':

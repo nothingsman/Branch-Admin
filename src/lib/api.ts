@@ -307,3 +307,24 @@ export const academiaApi = {
   },
 };
 
+export const importApi = {
+  /**
+   * Upload file for bulk import
+   */
+  async uploadBulkFile(
+    endpoint: 'students' | 'parents' | 'teachers',
+    file: File,
+    organizationId: string,
+    branchId: string
+  ): Promise<{ detail: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('organization', organizationId);
+    formData.append('branch', branchId);
+
+    return await request<{ detail: string }>(`/api/${endpoint}/bulk-import/`, {
+      method: 'POST',
+      body: formData,
+    });
+  }
+};
