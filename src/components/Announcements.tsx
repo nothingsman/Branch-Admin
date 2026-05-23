@@ -1,843 +1,358 @@
-
-import React, { useState, useMemo } from 'react';
-import { 
-  Plus, 
-  Search, 
-  MoreVertical, 
-  Users, 
-  Send as SendIcon, 
-  Clock, 
-  FileText, 
-  Eye, 
-  AlertCircle, 
-  Languages, 
-  Bold, 
-  List, 
-  Link as LinkIcon, 
-  Paperclip,
-  CheckCircle,
+import React, { useMemo, useState } from 'react';
+import {
+  AlertCircle,
+  Clock,
+  Edit3,
+  Languages,
+  Loader2,
+  Plus,
+  Search,
+  Send,
+  Trash2,
+  Users,
   X,
-  ChevronDown,
-  Calendar as CalendarIcon,
-  ChevronLeft,
-  ChevronRight,
-  GraduationCap,
-  Building2
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-import { 
-  format, 
-  startOfMonth, 
-  endOfMonth, 
-  startOfWeek, 
-  endOfWeek, 
-  eachDayOfInterval, 
-  isSameMonth, 
-  isSameDay, 
-  addMonths, 
-  subMonths, 
-  isToday,
-  parseISO
-} from 'date-fns';
-import { mockGrades, mockSections } from '../constants/mockData';
+import { AnimatePresence, motion } from 'motion/react';
+import { format, parseISO } from 'date-fns';
+import {
+  announcementsApi,
+  ApiAnnouncement,
+  ApiAnnouncementTargetingCriteria,
+  ApiAnnouncementWrite,
+  PaginatedResponse,
+} from '../lib/api';
+import { useApiQuery } from '../hooks/useApiQuery';
 
-interface Announcement {
-  id: string;
+interface AnnouncementsProps {
+  branchId: string | null;
+  organizationId: string | null;
+  academicYearId: string | null;
+}
+
+type AnnouncementDraftState = {
   subject: string;
-  preview: string;
-  amharicSubject?: string;
-  amharicPreview?: string;
-  audience: string;
-  status: 'Sent' | 'Scheduled' | 'Draft';
-  readPercentage: number;
-  date: string;
-  isUrgent?: boolean;
-}
+  message: string;
+  amharicSubject: string;
+  amharicBody: string;
+  targetRoles: ApiAnnouncementWrite['target_roles'];
+  targetedGradeIds: string[];
+  targetedSectionIds: string[];
+  isUrgent: boolean;
+  scheduledAt: string;
+};
 
-const initialAnnouncements: Announcement[] = [
-  {
-    id: '1',
-    subject: 'End of Term Schedule',
-    preview: 'Please be advised that the term will conclude on...',
-    audience: 'All Parents',
-    status: 'Sent',
-    readPercentage: 85,
-    date: 'Oct 24, 2024'
-  },
-  {
-    id: '2',
-    subject: 'Staff Meeting Update',
-    preview: 'The mandatory staff meeting for Grade 10 teachers has been moved...',
-    audience: 'Grade 10 Teachers',
-    status: 'Scheduled',
-    readPercentage: 0,
-    date: 'Oct 26, 2024'
-  },
-  {
-    id: '3',
-    subject: 'Urgent: Water Main Break',
-    preview: 'We are experiencing a minor issue with the school infrastructure...',
-    audience: 'All Staff',
-    status: 'Sent',
-    readPercentage: 98,
-    date: 'Oct 23, 2024',
-    isUrgent: true
-  },
-  {
-    id: '4',
-    subject: 'Parent-Teacher Conference',
-    preview: 'Booking slots for the upcoming conferences will open...',
-    audience: 'All Parents',
-    status: 'Draft',
-    readPercentage: 0,
-    date: 'Saved Oct 22'
-  }
-];
+const emptyDraft: AnnouncementDraftState = {
+  subject: '',
+  message: '',
+  amharicSubject: '',
+  amharicBody: '',
+  targetRoles: 'BOTH',
+  targetedGradeIds: [],
+  targetedSectionIds: [],
+  isUrgent: false,
+  scheduledAt: '',
+};
 
-interface RecipientOption {
-  id: string;
-  label: string;
-  subtitle: string;
-  type: string;
-  icon: any;
-}
+export const Announcements: React.FC<AnnouncementsProps> = ({
+  branchId,
+  organizationId,
+  academicYearId,
+}) => {
+  void academicYearId;
 
-export const Announcements: React.FC = () => {
-  const [announcements, setAnnouncements] = useState<Announcement[]>(initialAnnouncements);
-  const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeFilter, setActiveFilter] = useState<'All' | 'Sent' | 'Scheduled' | 'Draft' | 'Urgent'>('All');
-  const [isUrgent, setIsUrgent] = useState(false);
-  const [isRecipientSelectorOpen, setIsRecipientSelectorOpen] = useState(false);
-  const [recipientSearch, setRecipientSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<
+    'all' | 'DRAFT' | 'SENT' | 'SCHEDULED' | 'urgent'
+  >('all');
+  const [selectedAnnouncementId, setSelectedAnnouncementId] = useState<string | null>(
+    null,
+  );
+  const [editingAnnouncement, setEditingAnnouncement] = useState<ApiAnnouncement | null>(
+    null,
+  );
+  const [composerOpen, setComposerOpen] = useState(false);
 
-  const [newSubject, setNewSubject] = useState('');
-  const [newPreview, setNewPreview] = useState('');
-  const [newAmharicSubject, setNewAmharicSubject] = useState('');
-  const [newAmharicPreview, setNewAmharicPreview] = useState('');
-  const [subAudience, setSubAudience] = useState<'Parents' | 'Teachers' | 'Both'>('Both');
-
-  const recipientOptions: RecipientOption[] = useMemo(() => [
-    { id: 'all', label: 'Whole School', subtitle: 'All Parents, Teachers & Staff', type: 'general', icon: Building2 },
-    { id: 'parents-all', label: 'All Parents', subtitle: 'Every registered parent', type: 'general', icon: Users },
-    { id: 'teachers-all', label: 'All Teachers', subtitle: 'Academic staff only', type: 'general', icon: GraduationCap },
-    ...mockGrades.map(g => ({ id: `grade-${g.id}`, label: `All ${g.name}`, subtitle: 'Parents & Teachers', type: 'grade', icon: GraduationCap })),
-    ...mockSections.map(s => {
-      const grade = mockGrades.find(g => g.id === s.gradeId);
-      return { id: `section-${s.id}`, label: `${grade?.name} - Section ${s.name}`, subtitle: 'Parents only', type: 'section', icon: Users };
-    })
-  ], []);
-
-  const [selectedRecipient, setSelectedRecipient] = useState<RecipientOption>(recipientOptions[0]);
-  const [selectedAnnouncementId, setSelectedAnnouncementId] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [isTranslating, setIsTranslating] = useState(false);
-  const [deliveryMethod, setDeliveryMethod] = useState<'immediately' | 'scheduled'>('immediately');
-  const [scheduledDate, setScheduledDate] = useState('');
-  const [isAnnouncementCalendarOpen, setIsAnnouncementCalendarOpen] = useState(false);
-  const [calendarViewDate, setCalendarViewDate] = useState(new Date());
-  const [isRecalling, setIsRecalling] = useState(false);
-  const [isConfirmingSend, setIsConfirmingSend] = useState(false);
-
-  const filteredRecipientOptions = recipientOptions.filter(opt => 
-    opt.label.toLowerCase().includes(recipientSearch.toLowerCase()) || 
-    opt.subtitle.toLowerCase().includes(recipientSearch.toLowerCase()) ||
-    opt.type.toLowerCase().includes(recipientSearch.toLowerCase())
+  const {
+    data: targetingCriteria,
+    isLoading: targetingLoading,
+    error: targetingError,
+  } = useApiQuery<ApiAnnouncementTargetingCriteria>(
+    branchId && organizationId ? () => announcementsApi.getTargetingCriteria() : null,
+    [branchId, organizationId],
   );
 
-  const filteredAnnouncements = announcements.filter(a => {
-    const matchesSearch = a.subject.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      a.preview.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      a.audience.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    if (activeFilter === 'All') return matchesSearch;
-    if (activeFilter === 'Urgent') return matchesSearch && a.isUrgent;
-    return matchesSearch && a.status === activeFilter;
-  });
+  const {
+    data,
+    isLoading: announcementsLoading,
+    error: announcementsError,
+    refetch,
+  } = useApiQuery<PaginatedResponse<ApiAnnouncement>>(
+    branchId && organizationId
+      ? () =>
+          announcementsApi.list({
+            branch: branchId,
+            organization: organizationId,
+            ordering: '-created_at',
+          })
+      : null,
+    [branchId, organizationId],
+  );
 
-  const selectedAnnouncement = announcements.find(a => a.id === selectedAnnouncementId);
+  const grades = targetingCriteria?.grades ?? [];
+  const sections = targetingCriteria?.sections ?? [];
+  const announcements = useMemo(() => data?.results ?? [], [data]);
+  const selectedAnnouncement = useMemo(
+    () =>
+      announcements.find((announcement) => announcement.id === selectedAnnouncementId) ??
+      null,
+    [announcements, selectedAnnouncementId],
+  );
 
-  const resetForm = () => {
-    setNewSubject('');
-    setNewPreview('');
-    setNewAmharicSubject('');
-    setNewAmharicPreview('');
-    setSelectedRecipient(recipientOptions[0]);
-    setSubAudience('Both');
-    setIsUrgent(false);
-    setEditingId(null);
-    setDeliveryMethod('immediately');
-    setScheduledDate('');
-    setIsAnnouncementCalendarOpen(false);
-    setIsConfirmingSend(false);
-  };
+  const filteredAnnouncements = useMemo(() => {
+    return announcements.filter((announcement) => {
+      const matchesSearch =
+        announcement.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        announcement.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        recipientLabel(announcement, grades, sections)
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase());
+      if (statusFilter === 'all') return matchesSearch;
+      if (statusFilter === 'urgent') return matchesSearch && announcement.is_urgent;
+      return matchesSearch && announcement.status === statusFilter;
+    });
+  }, [announcements, grades, searchTerm, sections, statusFilter]);
 
-  const handleSaveAsDraft = () => {
-    const audienceLabel = (selectedRecipient.type === 'grade' || selectedRecipient.type === 'section') 
-      ? `${selectedRecipient.label} (${subAudience})`
-      : selectedRecipient.label;
+  const stats = useMemo(
+    () => ({
+      total: announcements.length,
+      sent: announcements.filter((announcement) => announcement.status === 'SENT')
+        .length,
+      scheduled: announcements.filter(
+        (announcement) => announcement.status === 'SCHEDULED',
+      ).length,
+      drafts: announcements.filter((announcement) => announcement.status === 'DRAFT')
+        .length,
+    }),
+    [announcements],
+  );
 
-    const draft: Announcement = {
-      id: editingId || Math.random().toString(36).substr(2, 9),
-      subject: newSubject || 'Untitled Draft',
-      preview: newPreview,
-      amharicSubject: newAmharicSubject,
-      amharicPreview: newAmharicPreview,
-      audience: audienceLabel,
-      status: 'Draft',
-      readPercentage: 0,
-      date: `Saved ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
-    };
+  const isLoading = targetingLoading || announcementsLoading;
+  const error = targetingError || announcementsError;
 
-    if (editingId) {
-      setAnnouncements(prev => prev.map(a => a.id === editingId ? draft : a));
-    } else {
-      setAnnouncements(prev => [draft, ...prev]);
-    }
+  if (isLoading) {
+    return (
+      <div className="flex h-full items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-xs font-black uppercase tracking-widest text-slate-500">
+            Loading announcements
+          </p>
+        </div>
+      </div>
+    );
+  }
 
-    setIsComposeOpen(false);
-    resetForm();
-  };
-
-  const handleSend = () => {
-    if (!newSubject) {
-      alert('Please enter a subject');
-      return;
-    }
-
-    const status = deliveryMethod === 'scheduled' ? 'Scheduled' : 'Sent';
-    let dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    
-    if (deliveryMethod === 'scheduled' && scheduledDate) {
-      const d = new Date(scheduledDate);
-      if (!isNaN(d.getTime())) {
-        dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      }
-    }
-
-    const audienceLabel = (selectedRecipient.type === 'grade' || selectedRecipient.type === 'section') 
-      ? `${selectedRecipient.label} (${subAudience})`
-      : selectedRecipient.label;
-
-    const newAnnouncement: Announcement = {
-      id: editingId || Math.random().toString(36).substr(2, 9),
-      subject: newSubject,
-      preview: newPreview,
-      amharicSubject: newAmharicSubject,
-      amharicPreview: newAmharicPreview,
-      audience: audienceLabel,
-      status: status,
-      readPercentage: 0,
-      date: dateStr,
-      isUrgent: isUrgent
-    };
-
-    if (editingId) {
-      setAnnouncements(prev => prev.map(a => a.id === editingId ? newAnnouncement : a));
-    } else {
-      setAnnouncements(prev => [newAnnouncement, ...prev]);
-    }
-
-    setIsComposeOpen(false);
-    resetForm();
-  };
-
-  const handleEdit = () => {
-    if (!selectedAnnouncement) return;
-    setEditingId(selectedAnnouncement.id);
-    setNewSubject(selectedAnnouncement.subject);
-    setNewPreview(selectedAnnouncement.preview);
-    setNewAmharicSubject(selectedAnnouncement.amharicSubject || '');
-    setNewAmharicPreview(selectedAnnouncement.amharicPreview || '');
-    setIsUrgent(selectedAnnouncement.isUrgent || false);
-    
-    // Parse audience to extract recipient and sub-audience
-    let audienceStr = selectedAnnouncement.audience;
-    let foundSubAudience: 'Parents' | 'Teachers' | 'Both' = 'Both';
-    
-    if (audienceStr.endsWith('(Parents)')) {
-      foundSubAudience = 'Parents';
-      audienceStr = audienceStr.replace(' (Parents)', '');
-    } else if (audienceStr.endsWith('(Teachers)')) {
-      foundSubAudience = 'Teachers';
-      audienceStr = audienceStr.replace(' (Teachers)', '');
-    } else if (audienceStr.endsWith('(Both)')) {
-      foundSubAudience = 'Both';
-      audienceStr = audienceStr.replace(' (Both)', '');
-    }
-
-    const recipient = recipientOptions.find(opt => opt.label === audienceStr) || recipientOptions[0];
-    setSelectedRecipient(recipient);
-    setSubAudience(foundSubAudience);
-    
-    setSelectedAnnouncementId(null);
-    setIsComposeOpen(true);
-  };
-
-  const handleRecall = () => {
-    if (!selectedAnnouncementId) return;
-    setAnnouncements(prev => prev.filter(a => a.id !== selectedAnnouncementId));
-    setSelectedAnnouncementId(null);
-    setIsRecalling(false);
-  };
-
-  const handleTranslate = () => {
-    setIsTranslating(true);
-    setTimeout(() => {
-      setNewAmharicSubject(`ርዕስ፡ ${newSubject}`);
-      setNewAmharicPreview(`ይህ መልእክት ስለ ${newSubject} ነው። ${newPreview}`);
-      setIsTranslating(false);
-    }, 1500);
-  };
+  if (error) {
+    return (
+      <div className="flex h-full items-center justify-center bg-slate-50 p-6">
+        <div className="max-w-md rounded-3xl border border-red-100 bg-red-50 p-6 text-center">
+          <AlertCircle className="mx-auto mb-3 h-8 w-8 text-red-500" />
+          <p className="font-black text-red-700">Failed to load announcements</p>
+          <p className="mt-2 text-sm text-red-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex-1 bg-white overflow-y-auto">
-      <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-6">
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-bold text-slate-900">Announcements</h1>
-            <p className="text-sm text-slate-500">Manage communication with parents and staff</p>
-          </div>
-          <button 
-            onClick={() => {
-              resetForm();
-              setIsComposeOpen(true);
-            }}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white rounded-xl font-bold transition-all shadow-lg shadow-primary/20 hover:shadow-primary/30 active:scale-95"
-          >
-            <Plus className="w-5 h-5" />
-            <span>New Announcement</span>
-          </button>
-        </div>
-
-        {/* Search Bar & Filters */}
-        <div className="space-y-4">
-          <div className="relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-primary transition-colors" />
-            <input 
-              type="text" 
-              placeholder="Search by subject, audience, or content..."
-              className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all outline-none"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+    <div className="flex h-full bg-slate-50">
+      <div className="flex-1 overflow-y-auto p-4 md:p-8">
+        <div className="mx-auto max-w-6xl space-y-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h1 className="text-2xl font-black tracking-tight text-slate-900">
+                Announcements
+              </h1>
+              <p className="text-sm text-slate-500">
+                Manage school-wide and targeted communications
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setEditingAnnouncement(null);
+                setComposerOpen(true);
+              }}
+              className="flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-black text-white shadow-lg shadow-primary/20"
+            >
+              <Plus className="h-4 w-4" />
+              New Announcement
+            </button>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {(['All', 'Sent', 'Scheduled', 'Draft', 'Urgent'] as const).map(filter => (
-              <button
-                key={filter}
-                onClick={() => setActiveFilter(filter)}
-                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                  activeFilter === filter 
-                    ? 'bg-primary text-white shadow-lg shadow-primary/20' 
-                    : 'bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600'
-                }`}
-              >
-                {filter}
-              </button>
-            ))}
+          <div className="grid gap-3 md:grid-cols-4">
+            <StatCard label="All" value={stats.total} />
+            <StatCard label="Sent" value={stats.sent} />
+            <StatCard label="Scheduled" value={stats.scheduled} />
+            <StatCard label="Drafts" value={stats.drafts} />
           </div>
-        </div>
 
-        {/* Feed */}
-        <div className="space-y-4">
-          {filteredAnnouncements.length > 0 ? (
-            filteredAnnouncements.map((announcement) => (
-              <motion.div 
-                key={announcement.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                onClick={() => setSelectedAnnouncementId(announcement.id)}
-                className={`p-5 border border-slate-100 rounded-2xl shadow-sm hover:shadow-md transition-all group cursor-pointer ${announcement.isUrgent ? 'bg-alert-soft/30 border-alert-soft' : 'bg-white'}`}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-3 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
-                        announcement.isUrgent ? 'bg-alert-soft text-alert-text' : 'bg-primary/5 text-primary'
-                      }`}>
-                        {announcement.audience}
-                      </span>
-                      <span className={`flex items-center gap-1 text-[10px] font-bold ${
-                        announcement.status === 'Sent' ? 'text-emerald-500' : 
-                        announcement.status === 'Scheduled' ? 'text-amber-500' : 'text-slate-400'
-                      }`}>
-                        {announcement.status === 'Sent' && <CheckCircle className="w-3 h-3" />}
-                        {announcement.status === 'Scheduled' && <Clock className="w-3 h-3" />}
-                        {announcement.status === 'Draft' && <FileText className="w-3 h-3" />}
-                        {announcement.status}
-                      </span>
-                    </div>
-                    
-                    <div>
-                      <h3 className={`text-base font-bold ${announcement.isUrgent ? 'text-alert-text' : 'text-slate-900'}`}>
-                        {announcement.subject}
-                      </h3>
-                      <p className="text-sm text-slate-500 line-clamp-1 mt-0.5">{announcement.preview}</p>
-                    </div>
+          <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
+            <div className="flex flex-col gap-4 md:flex-row">
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Search announcements"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm outline-none focus:border-primary/30 focus:bg-white focus:ring-4 focus:ring-primary/5"
+                />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {(['all', 'SENT', 'SCHEDULED', 'DRAFT', 'urgent'] as const).map(
+                  (filter) => (
+                    <button
+                      key={filter}
+                      onClick={() => setStatusFilter(filter)}
+                      className={`rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest ${
+                        statusFilter === filter
+                          ? 'bg-primary text-white'
+                          : 'border border-slate-200 bg-white text-slate-600'
+                      }`}
+                    >
+                      {filter === 'all' ? 'All' : filter}
+                    </button>
+                  ),
+                )}
+              </div>
+            </div>
 
-                    <div className="flex items-center gap-6 pt-1">
-                      <div className="flex items-center gap-2 group/stat">
-                        <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-primary rounded-full transition-all duration-1000"
-                            style={{ width: `${announcement.readPercentage}%` }}
-                          />
-                        </div>
-                        <span className="text-[10px] font-bold text-slate-400">{announcement.readPercentage}% opened</span>
+            <div className="mt-5 space-y-3">
+              {filteredAnnouncements.map((announcement) => (
+                <button
+                  key={announcement.id}
+                  onClick={() => setSelectedAnnouncementId(announcement.id)}
+                  className={`w-full rounded-2xl border p-5 text-left transition ${
+                    selectedAnnouncementId === announcement.id
+                      ? 'border-primary/30 bg-primary/5'
+                      : 'border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <AnnouncementBadge
+                          label={recipientLabel(announcement, grades, sections)}
+                        />
+                        <StatusBadge status={announcement.status} urgent={announcement.is_urgent} />
                       </div>
-                      <span className="text-[10px] font-bold text-slate-300 ml-auto">{announcement.date}</span>
+                      <h2 className="mt-3 text-lg font-black text-slate-900">
+                        {announcement.subject}
+                      </h2>
+                      <p className="mt-2 line-clamp-2 text-sm text-slate-500">
+                        {announcement.message}
+                      </p>
+                    </div>
+                    <div className="text-left md:text-right">
+                      <p className="text-sm font-bold text-slate-700">
+                        {displayDate(announcement)}
+                      </p>
                     </div>
                   </div>
-                  
-                  <button className="p-2 hover:bg-slate-50 rounded-xl transition-colors shrink-0">
-                    <MoreVertical className="w-5 h-5 text-slate-400" />
-                  </button>
-                </div>
-              </motion.div>
-            ))
-          ) : (
-            <div className="text-center py-20 bg-slate-50 rounded-3xl border border-dashed border-slate-200">
-              <Search className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-500 font-bold">No announcements found</p>
-              <p className="text-xs text-slate-400 mt-1">Try adjusting your search terms</p>
+                </button>
+              ))}
+              {filteredAnnouncements.length === 0 && (
+                <EmptyState message="No announcements match the current filters." />
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
 
-      {/* Compose Modal */}
       <AnimatePresence>
-        {isComposeOpen && (
+        {selectedAnnouncement && (
           <>
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100]"
-              onClick={() => setIsComposeOpen(false)}
+              className="fixed inset-0 z-[90] bg-slate-950/40"
+              onClick={() => setSelectedAnnouncementId(null)}
             />
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="fixed inset-0 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 w-full md:max-w-2xl h-full md:h-auto md:max-h-[90vh] bg-white md:rounded-3xl shadow-2xl z-[101] flex flex-col overflow-hidden"
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 220 }}
+              className="fixed right-0 top-0 z-[100] flex h-full w-full max-w-md flex-col bg-white shadow-2xl"
             >
-              {/* Modal Header */}
-              <div className="p-4 md:p-6 border-b border-slate-100 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-primary/5 rounded-xl flex items-center justify-center">
-                    <Plus className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-black text-slate-900">Compose Announcement</h2>
-                    <p className="text-xs text-slate-500 font-bold uppercase tracking-widest opacity-60 hidden md:block">Target your audience</p>
-                  </div>
+              <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
+                <div>
+                  <h2 className="text-base font-black text-slate-900">
+                    Announcement Details
+                  </h2>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {recipientLabel(selectedAnnouncement, grades, sections)}
+                  </p>
                 </div>
-                <button 
-                  onClick={() => setIsComposeOpen(false)}
-                  className="p-2 hover:bg-slate-50 rounded-xl transition-colors"
+                <button
+                  onClick={() => setSelectedAnnouncementId(null)}
+                  className="rounded-xl p-2 hover:bg-slate-50"
                 >
-                  <X className="w-5 h-5 text-slate-400" />
+                  <X className="h-5 w-5 text-slate-400" />
                 </button>
               </div>
-
-              {/* Modal Body */}
-              <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 no-scrollbar">
-                {/* Custom Target Audience Selector */}
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Recipients</label>
-                  <div className="relative">
-                    <button 
-                      onClick={() => setIsRecipientSelectorOpen(!isRecipientSelectorOpen)}
-                      className="w-full flex items-center justify-between pl-4 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-primary/20 transition-all text-left outline-none"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                          {React.createElement(selectedRecipient.icon || Users, { className: "w-4 h-4" })}
-                        </div>
-                        <div>
-                          <p className="text-slate-900 leading-none">{selectedRecipient.label}</p>
-                          <p className="text-[10px] text-slate-400 font-medium mt-1 uppercase tracking-tight">{selectedRecipient.subtitle}</p>
-                        </div>
-                      </div>
-                      <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isRecipientSelectorOpen ? 'rotate-180' : ''}`} />
-                    </button>
-
-                    <AnimatePresence>
-                      {isRecipientSelectorOpen && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                          className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 overflow-hidden flex flex-col max-h-[320px]"
-                        >
-                          <div className="p-3 border-b border-slate-100 sticky top-0 bg-white z-10">
-                            <div className="relative group">
-                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                              <input 
-                                type="text" 
-                                placeholder="Filter recipients..."
-                                className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/10 focus:bg-white transition-all outline-none"
-                                value={recipientSearch}
-                                onChange={(e) => setRecipientSearch(e.target.value)}
-                                autoFocus
-                                onClick={(e) => e.stopPropagation()}
-                              />
-                            </div>
-                          </div>
-
-                          <div className="flex-1 overflow-y-auto no-scrollbar py-2">
-                            {['general', 'grade', 'section'].map(type => {
-                              const options = filteredRecipientOptions.filter(opt => opt.type === type);
-                              if (options.length === 0) return null;
-
-                              return (
-                                <div key={type} className="mb-2">
-                                  <div className="px-4 py-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">{type}s</div>
-                                  {options.map(opt => (
-                                    <button 
-                                      key={opt.id}
-                                      onClick={() => {
-                                        setSelectedRecipient(opt);
-                                        setIsRecipientSelectorOpen(false);
-                                      }}
-                                      className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors text-left group ${selectedRecipient.id === opt.id ? 'bg-primary/5' : ''}`}
-                                    >
-                                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${selectedRecipient.id === opt.id ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-slate-200 group-hover:text-slate-600'}`}>
-                                        <opt.icon className="w-3.5 h-3.5" />
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <p className={`text-xs font-bold leading-tight ${selectedRecipient.id === opt.id ? 'text-primary' : 'text-slate-700'}`}>{opt.label}</p>
-                                        <p className="text-[9px] text-slate-400 truncate">{opt.subtitle}</p>
-                                      </div>
-                                      {selectedRecipient.id === opt.id && (
-                                        <CheckCircle className="w-4 h-4 text-primary" />
-                                      )}
-                                    </button>
-                                  ))}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </div>
-
-                {/* Sub-Audience Selector for Grade/Section */}
-                <AnimatePresence>
-                  {(selectedRecipient.type === 'grade' || selectedRecipient.type === 'section') && (
-                    <motion.div 
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="space-y-2 pt-2"
-                    >
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Send To</label>
-                      <div className="flex items-center gap-2 p-1.5 bg-slate-50 border border-slate-200 rounded-2xl">
-                        {(['Parents', 'Teachers', 'Both'] as const).map(option => (
-                          <button
-                            key={option}
-                            onClick={() => setSubAudience(option)}
-                            className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                              subAudience === option 
-                                ? 'bg-white text-primary shadow-sm ring-1 ring-slate-200' 
-                                : 'text-slate-400 hover:text-slate-600'
-                            }`}
-                          >
-                            {option}
-                          </button>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Multilingual Inputs */}
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between px-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">English Content</label>
-                      <button 
-                        onClick={handleTranslate}
-                        disabled={isTranslating}
-                        className="flex items-center gap-1.5 text-[10px] font-bold text-primary hover:text-primary/80 transition-colors disabled:opacity-50"
-                      >
-                        <Languages className={`w-3 h-3 ${isTranslating ? 'animate-spin' : ''}`} />
-                        <span>{isTranslating ? 'Translating...' : 'Auto-translate'}</span>
-                      </button>
-                    </div>
-                    <input 
-                      type="text" 
-                      placeholder="Subject line (English)"
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 outline-none"
-                      value={newSubject}
-                      onChange={(e) => setNewSubject(e.target.value)}
+              <div className="flex-1 space-y-5 overflow-y-auto p-6">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <StatusBadge
+                      status={selectedAnnouncement.status}
+                      urgent={selectedAnnouncement.is_urgent}
                     />
-                    <div className="relative">
-                      <div className="absolute top-3 left-4 flex gap-3 text-slate-300 border-b border-transparent">
-                        <Bold className="w-3.5 h-3.5 cursor-pointer hover:text-slate-600" />
-                        <List className="w-3.5 h-3.5 cursor-pointer hover:text-slate-600" />
-                        <LinkIcon className="w-3.5 h-3.5 cursor-pointer hover:text-slate-600" />
-                      </div>
-                      <textarea 
-                        rows={4}
-                        placeholder="Write your message here..."
-                        className="w-full px-4 pt-10 pb-4 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 outline-none min-h-[120px]"
-                        value={newPreview}
-                        onChange={(e) => setNewPreview(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 pt-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Amharic Version</label>
-                    <input 
-                      type="text" 
-                      placeholder="ርዕሰ ጉዳይ (አማርኛ)"
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 outline-none font-amharic"
-                      value={newAmharicSubject}
-                      onChange={(e) => setNewAmharicSubject(e.target.value)}
-                    />
-                    <textarea 
-                      rows={3}
-                      placeholder="መልእክትዎን እዚህ ይጻፉ..."
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 outline-none font-amharic min-h-[100px]"
-                      value={newAmharicPreview}
-                      onChange={(e) => setNewAmharicPreview(e.target.value)}
+                    <AnnouncementBadge
+                      label={audienceLabel(selectedAnnouncement.target_roles)}
                     />
                   </div>
+                  <h3 className="mt-4 text-2xl font-black text-slate-900">
+                    {selectedAnnouncement.subject}
+                  </h3>
+                  <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-slate-600">
+                    {selectedAnnouncement.message}
+                  </p>
                 </div>
-
-                {/* Media Attachment */}
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Attachments</label>
-                  <div className="border-2 border-dashed border-slate-200 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 hover:border-primary/40 hover:bg-primary/5 transition-all cursor-pointer">
-                    <Paperclip className="w-6 h-6 text-slate-400" />
-                    <p className="text-xs font-bold text-slate-600">Drop files or click to upload</p>
-                    <p className="text-[10px] text-slate-400">PDF, PNG, JPG or MP4 (Max 20MB)</p>
-                  </div>
-                </div>
-
-                {/* Urgent Toggle */}
-                <div 
-                  className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
-                    isUrgent ? 'bg-alert-soft border-alert-soft ring-4 ring-alert-soft/50' : 'bg-slate-50 border-slate-200'
-                  }`}
-                  onClick={() => setIsUrgent(!isUrgent)}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-                      isUrgent ? 'bg-alert-text text-white' : 'bg-slate-200 text-slate-400'
-                    }`}>
-                      <AlertCircle className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className={`text-xs font-bold ${isUrgent ? 'text-alert-text' : 'text-slate-700'}`}>Mark as Urgent</p>
-                      <p className="text-[10px] text-slate-500">Sends SMS & push notifications immediately</p>
-                    </div>
-                  </div>
-                  <div className={`w-10 h-5 rounded-full relative transition-colors ${isUrgent ? 'bg-alert-text' : 'bg-slate-300'}`}>
-                    <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isUrgent ? 'right-1' : 'left-1'}`} />
-                  </div>
-                </div>
-
-                {/* Scheduling */}
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Delivery</label>
-                    <div className="flex items-center gap-4">
-                      <button 
-                        onClick={() => setDeliveryMethod('immediately')}
-                        className={`flex-1 p-4 rounded-2xl border transition-all text-center font-bold text-xs ${
-                          deliveryMethod === 'immediately' ? 'border-primary bg-primary/5 text-primary' : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300'
-                        }`}
-                      >
-                        Immediately
-                      </button>
-                      <button 
-                        onClick={() => setDeliveryMethod('scheduled')}
-                        className={`flex-1 p-4 rounded-2xl border transition-all text-center font-bold text-xs flex items-center justify-center gap-2 ${
-                          deliveryMethod === 'scheduled' ? 'border-primary bg-primary/5 text-primary' : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300'
-                        }`}
-                      >
-                        <Clock className="w-4 h-4" />
-                        Schedule
-                      </button>
-                    </div>
-                  </div>
-
-                  <AnimatePresence>
-                    {deliveryMethod === 'scheduled' && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="space-y-4"
-                      >
-                        <div className="space-y-3 relative">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Schedule Date & Time</label>
-                          <button 
-                            type="button"
-                            onClick={() => setIsAnnouncementCalendarOpen(!isAnnouncementCalendarOpen)}
-                            className={`w-full flex items-center justify-between px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold transition-all hover:border-primary/40 group ${isAnnouncementCalendarOpen ? 'ring-4 ring-primary/5 border-primary shadow-sm' : ''}`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <CalendarIcon className={`w-4 h-4 transition-colors ${isAnnouncementCalendarOpen ? 'text-primary' : 'text-slate-400 group-hover:text-primary'}`} />
-                              <span className={scheduledDate ? 'text-slate-900' : 'text-slate-400'}>
-                                {scheduledDate ? format(parseISO(scheduledDate), 'MMM dd, yyyy HH:mm') : 'Select Date & Time'}
-                              </span>
-                            </div>
-                            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isAnnouncementCalendarOpen ? 'rotate-180' : ''}`} />
-                          </button>
-
-                          <AnimatePresence>
-                            {isAnnouncementCalendarOpen && (
-                              <motion.div 
-                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-[1.25rem] shadow-[0_20px_40px_-10px_rgba(26,35,126,0.2)] z-[110] p-3 select-none max-w-[190px] mx-auto md:max-w-none"
-                              >
-                                {/* Micro Picker Header */}
-                                <div className="flex items-center justify-between mb-2">
-                                  <div className="flex items-center gap-1">
-                                    <div className="w-5 h-5 rounded bg-primary/5 flex items-center justify-center">
-                                      <CalendarIcon className="w-2.5 h-2.5 text-primary" />
-                                    </div>
-                                    <div className="flex flex-col">
-                                      <span className="text-[8.5px] font-black text-slate-900 leading-none">
-                                        {format(calendarViewDate, 'MMM yyyy')}
-                                      </span>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-0.5">
-                                    <button 
-                                      type="button"
-                                      onClick={() => setCalendarViewDate(subMonths(calendarViewDate, 1))}
-                                      className="p-1 hover:bg-slate-50 rounded-md text-slate-400 hover:text-primary transition-all active:scale-90"
-                                    >
-                                      <ChevronLeft className="w-2.5 h-2.5" />
-                                    </button>
-                                    <button 
-                                      type="button"
-                                      onClick={() => setCalendarViewDate(addMonths(calendarViewDate, 1))}
-                                      className="p-1 hover:bg-slate-50 rounded-md text-slate-400 hover:text-primary transition-all active:scale-90"
-                                    >
-                                      <ChevronRight className="w-2.5 h-2.5" />
-                                    </button>
-                                  </div>
-                                </div>
-
-                                {/* Micro Date Grid */}
-                                <div className="mb-2">
-                                  <div className="grid grid-cols-7 mb-0.5">
-                                    {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
-                                      <div key={`${day}-${i}`} className="text-[6.5px] font-black text-slate-300 text-center py-0.5">
-                                        {day}
-                                      </div>
-                                    ))}
-                                  </div>
-
-                                  <div className="grid grid-cols-7 gap-0.5">
-                                    {(() => {
-                                      const start = startOfWeek(startOfMonth(calendarViewDate));
-                                      const end = endOfWeek(endOfMonth(calendarViewDate));
-                                      const days = eachDayOfInterval({ start, end });
-                                      
-                                      return days.map((day, i) => {
-                                        const isSelected = scheduledDate ? isSameDay(day, parseISO(scheduledDate)) : false;
-                                        const isCurrentMonth = isSameMonth(day, calendarViewDate);
-                                        const isTodayDate = isToday(day);
-                                        
-                                        return (
-                                          <button
-                                            key={i}
-                                            type="button"
-                                            onClick={() => {
-                                              const timePortion = scheduledDate ? scheduledDate.split('T')[1] || '12:00' : '12:00';
-                                              const newDate = format(day, "yyyy-MM-dd") + 'T' + timePortion;
-                                              setScheduledDate(newDate);
-                                            }}
-                                            className={`aspect-square rounded-md flex items-center justify-center text-[7.5px] font-black transition-all relative group/day ${
-                                              isSelected 
-                                                ? 'bg-primary text-white shadow-sm shadow-primary/20 z-10' 
-                                                : isCurrentMonth 
-                                                  ? 'text-slate-600 hover:bg-primary/5 hover:text-primary' 
-                                                  : 'text-slate-200'
-                                            }`}
-                                          >
-                                            {format(day, 'd')}
-                                            {isTodayDate && !isSelected && (
-                                              <div className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0.5 h-0.5 bg-primary rounded-full" />
-                                            )}
-                                          </button>
-                                        );
-                                      });
-                                    })()}
-                                  </div>
-                                </div>
-
-                                {/* Micro Time Selection */}
-                                <div className="pt-2 border-t border-slate-50">
-                                  <div className="flex items-center justify-between gap-1.5 mb-1.5 px-0.5">
-                                    <span className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest leading-none">Time</span>
-                                    <input 
-                                      type="time" 
-                                      className="bg-slate-50 border border-slate-100 rounded px-1.5 py-0.5 text-[8.5px] font-black text-slate-900 outline-none w-[66px]"
-                                      value={scheduledDate ? scheduledDate.split('T')[1] || '' : ''}
-                                      onChange={(e) => {
-                                        const datePortion = scheduledDate ? scheduledDate.split('T')[0] : format(new Date(), "yyyy-MM-dd");
-                                        setScheduledDate(`${datePortion}T${e.target.value}`);
-                                      }}
-                                    />
-                                  </div>
-                                  <button 
-                                    type="button"
-                                    onClick={() => setIsAnnouncementCalendarOpen(false)}
-                                    className="w-full py-1.5 bg-primary text-white text-[8px] font-black uppercase tracking-widest rounded-lg hover:bg-primary/90 transition-all active:scale-95"
-                                  >
-                                    Set Schedule
-                                  </button>
-                                </div>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    Delivery
+                  </p>
+                  <p className="mt-2 text-sm font-bold text-slate-700">
+                    {selectedAnnouncement.status === 'SCHEDULED' &&
+                    selectedAnnouncement.scheduled_at
+                      ? `Scheduled for ${format(parseISO(selectedAnnouncement.scheduled_at), 'MMM d, yyyy HH:mm')}`
+                      : `Created ${displayDate(selectedAnnouncement)}`}
+                  </p>
                 </div>
               </div>
-
-              {/* Modal Footer */}
-              <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-4">
-                <button 
-                  onClick={handleSaveAsDraft}
-                  className="px-6 py-2.5 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  Save as Draft
-                </button>
-                <div className="relative flex-1">
-                  <button 
+              <div className="border-t border-slate-100 bg-slate-50 p-5">
+                <div className="grid grid-cols-2 gap-3">
+                  <button
                     onClick={() => {
-                      if (isConfirmingSend) {
-                        handleSend();
-                      } else {
-                        setIsConfirmingSend(true);
-                        setTimeout(() => setIsConfirmingSend(false), 3000);
-                      }
+                      setEditingAnnouncement(selectedAnnouncement);
+                      setComposerOpen(true);
                     }}
-                    className={`w-full flex items-center justify-center gap-2 py-3 text-white rounded-xl font-bold transition-all shadow-lg active:scale-95 group ${
-                      isConfirmingSend ? 'bg-emerald-600 shadow-emerald-200' : 'bg-primary shadow-primary/20 hover:bg-primary/90'
-                    }`}
+                    className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700"
                   >
-                    <SendIcon className={`w-4 h-4 transition-transform ${isConfirmingSend ? 'scale-110' : 'group-hover:translate-x-1'}`} />
-                    <span>{isConfirmingSend ? "Confirm Send" : "Send Announcement"}</span>
+                    <Edit3 className="h-4 w-4" />
+                    Edit
+                  </button>
+                  <button
+                    onClick={async () => {
+                      await announcementsApi.delete(selectedAnnouncement.id);
+                      setSelectedAnnouncementId(null);
+                      refetch();
+                    }}
+                    className="flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-black text-white"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete
                   </button>
                 </div>
               </div>
@@ -846,170 +361,456 @@ export const Announcements: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Announcement Details Side Panel */}
       <AnimatePresence>
-        {selectedAnnouncementId && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110]"
-              onClick={() => setSelectedAnnouncementId(null)}
-            />
-            <motion.div 
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed right-0 top-0 bottom-0 w-full md:max-w-lg bg-white shadow-2xl z-[120] flex flex-col overflow-hidden"
-            >
-              {selectedAnnouncement && (
-                <>
-                  <div className="p-4 md:p-6 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                        selectedAnnouncement.isUrgent ? 'bg-alert-soft text-alert-text' : 'bg-primary/5 text-primary'
-                      }`}>
-                        <Eye className="w-5 h-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <h2 className="text-base md:text-lg font-black text-slate-900 truncate">Announcement Details</h2>
-                        <p className="text-[10px] md:text-xs text-slate-500 font-bold uppercase tracking-widest opacity-60">Sent on {selectedAnnouncement.date}</p>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={() => setSelectedAnnouncementId(null)}
-                      className="p-2 hover:bg-slate-50 rounded-xl transition-colors"
-                    >
-                      <X className="w-5 h-5 text-slate-400" />
-                    </button>
-                  </div>
-
-                  <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8 no-scrollbar pb-28 md:pb-8">
-                    {/* Status & Audience */}
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 md:gap-4">
-                      <div className="flex-1 p-3 md:p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                        <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 md:mb-1.5 px-0.5 whitespace-nowrap">Audience</p>
-                        <p className="text-[11px] md:text-xs font-black text-primary uppercase tracking-tight truncate">{selectedAnnouncement.audience}</p>
-                      </div>
-                      <div className="flex-1 p-3 md:p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                        <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 md:mb-1.5 px-0.5 whitespace-nowrap">Status</p>
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
-                          <p className="text-[11px] md:text-xs font-black text-slate-700 uppercase tracking-tight">{selectedAnnouncement.status}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Content Section */}
-                    <div className="space-y-6">
-                      <div className="space-y-3">
-                        <h3 className="text-2xl font-black text-slate-900 leading-tight tracking-tight">
-                          {selectedAnnouncement.subject}
-                        </h3>
-                        <div className="text-sm font-medium leading-relaxed text-slate-600">
-                          <p>{selectedAnnouncement.preview}</p>
-                          <p className="mt-4">
-                            Detailed communication content for {selectedAnnouncement.audience}. Updates include scheduling, departmental requirements, and general registry notices.
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="p-6 bg-primary/[0.03] border border-primary/10 rounded-3xl">
-                        <div className="flex items-center gap-2 mb-4">
-                          <Languages className="w-4 h-4 text-primary/40" />
-                          <span className="text-[10px] font-black text-primary/40 uppercase tracking-widest">Amharic Translation</span>
-                        </div>
-                        <p className="text-slate-800 font-amharic leading-relaxed">
-                          {selectedAnnouncement.amharicPreview || "ይህ የመልእክቱ አማርኛ ትርጉም ዝርዝር እዚህ ጋር ይሰፍራል። ወላጆች እና ተማሪዎች በቀላሉ እንዲረዱት በቋንቋቸው የቀረበ መረጃ ነው።"}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Engagement Analytics */}
-                    <div className="space-y-4">
-                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Engagement Overview</h4>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-                          <p className="text-3xl font-black text-primary leading-none tracking-tighter">{selectedAnnouncement.readPercentage}%</p>
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-2">Open Rate</p>
-                        </div>
-                        <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-                          <p className="text-3xl font-black text-slate-900 leading-none tracking-tighter">428</p>
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-2">Total Views</p>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-3 pt-2 px-1">
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="font-bold text-slate-400 uppercase tracking-wider">Scheduled Delivery</span>
-                          <span className="font-black text-slate-700 font-mono tracking-tight">{selectedAnnouncement.date}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="font-bold text-slate-400 uppercase tracking-wider">Registry Staff</span>
-                          <span className="font-black text-slate-700">Admin Portal</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Attachments */}
-                    <div className="space-y-3">
-                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Attached Resources</h4>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl hover:border-primary/20 transition-all cursor-pointer group shadow-sm">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:text-primary transition-colors border border-slate-100/50">
-                              <FileText className="w-5 h-5" />
-                            </div>
-                            <div>
-                               <p className="text-xs font-black text-slate-700">School_Calendar_2024.pdf</p>
-                               <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">2.4 MB • PDF Document</p>
-                            </div>
-                          </div>
-                          <ChevronRight className="w-4 h-4 text-slate-200 group-hover:text-primary transition-all group-hover:translate-x-0.5" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex gap-4">
-                    <button 
-                      onClick={handleEdit}
-                      className="flex-1 py-3.5 bg-white border border-slate-200 text-slate-600 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm active:scale-95"
-                    >
-                      Edit
-                    </button>
-                    {!isRecalling ? (
-                      <button 
-                        onClick={() => setIsRecalling(true)}
-                        className="flex-1 py-3.5 bg-alert-soft text-alert-text border border-alert-soft rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-alert-soft/80 transition-all shadow-sm active:scale-95"
-                      >
-                        Recall
-                      </button>
-                    ) : (
-                      <div className="flex-1 flex gap-2">
-                        <button 
-                          onClick={handleRecall}
-                          className="flex-1 py-3.5 bg-red-600 text-white rounded-2xl text-xs font-black uppercase tracking-tight shadow-lg shadow-red-200 active:scale-95"
-                        >
-                          Confirm Recall
-                        </button>
-                        <button 
-                          onClick={() => setIsRecalling(false)}
-                          className="px-4 py-3 bg-slate-200 text-slate-600 rounded-2xl text-xs font-bold hover:bg-slate-300 transition-all active:scale-95"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-            </motion.div>
-          </>
+        {composerOpen && branchId && organizationId && (
+          <AnnouncementComposer
+            branchId={branchId}
+            organizationId={organizationId}
+            grades={grades}
+            sections={sections}
+            initialAnnouncement={editingAnnouncement}
+            onClose={() => {
+              setComposerOpen(false);
+              setEditingAnnouncement(null);
+            }}
+            onSuccess={() => {
+              setComposerOpen(false);
+              setEditingAnnouncement(null);
+              refetch();
+            }}
+          />
         )}
       </AnimatePresence>
     </div>
   );
 };
+
+function AnnouncementComposer({
+  branchId,
+  organizationId,
+  grades,
+  sections,
+  initialAnnouncement,
+  onClose,
+  onSuccess,
+}: {
+  branchId: string;
+  organizationId: string;
+  grades: ApiAnnouncementTargetingCriteria['grades'];
+  sections: ApiAnnouncementTargetingCriteria['sections'];
+  initialAnnouncement: ApiAnnouncement | null;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [draft, setDraft] = useState<AnnouncementDraftState>(
+    initialAnnouncement
+      ? {
+          subject: initialAnnouncement.subject,
+          message: initialAnnouncement.message,
+          amharicSubject: '',
+          amharicBody: '',
+          targetRoles: initialAnnouncement.target_roles,
+          targetedGradeIds: initialAnnouncement.targeted_grades ?? [],
+          targetedSectionIds: initialAnnouncement.targeted_sections ?? [],
+          isUrgent: initialAnnouncement.is_urgent,
+          scheduledAt: toDateTimeLocal(initialAnnouncement.scheduled_at ?? ''),
+        }
+      : emptyDraft,
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(status: ApiAnnouncementWrite['status']) {
+    setIsSubmitting(true);
+    setError(null);
+
+    const payload: ApiAnnouncementWrite = {
+      organization: organizationId,
+      branch: branchId,
+      subject: draft.subject.trim(),
+      message: draft.message.trim(),
+      status,
+      is_urgent: draft.isUrgent,
+      target_roles: draft.targetRoles,
+      targeted_grades: draft.targetedGradeIds,
+      targeted_sections: draft.targetedSectionIds,
+      scheduled_at:
+        status === 'SCHEDULED' && draft.scheduledAt
+          ? new Date(draft.scheduledAt).toISOString()
+          : null,
+    };
+
+    try {
+      if (initialAnnouncement) {
+        await announcementsApi.update(initialAnnouncement.id, payload);
+      } else {
+        await announcementsApi.create(payload);
+      }
+      onSuccess();
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : 'Failed to save announcement.',
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/40 p-4"
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96, y: 12 }}
+        className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl"
+      >
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
+          <div>
+            <h2 className="text-lg font-black text-slate-900">
+              {initialAnnouncement ? 'Edit Announcement' : 'Compose Announcement'}
+            </h2>
+            <p className="text-xs text-slate-500">
+              Target grades and sections using the live backend criteria.
+            </p>
+          </div>
+          <button onClick={onClose} className="rounded-xl p-2 hover:bg-slate-50">
+            <X className="h-5 w-5 text-slate-400" />
+          </button>
+        </div>
+
+        <div className="flex-1 space-y-5 overflow-y-auto p-6">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Audience">
+              <select
+                value={draft.targetRoles}
+                onChange={(event) =>
+                  setDraft({
+                    ...draft,
+                    targetRoles: event.target.value as AnnouncementDraftState['targetRoles'],
+                  })
+                }
+                className="field"
+              >
+                <option value="BOTH">Parents and Teachers</option>
+                <option value="PARENTS">Parents Only</option>
+                <option value="TEACHERS">Teachers Only</option>
+              </select>
+            </Field>
+            <Field label="Scheduled Time">
+              <input
+                type="datetime-local"
+                value={draft.scheduledAt}
+                onChange={(event) =>
+                  setDraft({ ...draft, scheduledAt: event.target.value })
+                }
+                className="field"
+              />
+            </Field>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Target Grades">
+              <select
+                multiple
+                value={draft.targetedGradeIds}
+                onChange={(event) =>
+                  setDraft({
+                    ...draft,
+                    targetedGradeIds: selectedValues(event.target.options),
+                  })
+                }
+                className="field min-h-[140px]"
+              >
+                {grades.map((grade) => (
+                  <option key={grade.id} value={grade.id}>
+                    {grade.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Target Sections">
+              <select
+                multiple
+                value={draft.targetedSectionIds}
+                onChange={(event) =>
+                  setDraft({
+                    ...draft,
+                    targetedSectionIds: selectedValues(event.target.options),
+                  })
+                }
+                className="field min-h-[140px]"
+              >
+                {sections.map((section) => (
+                  <option key={section.id} value={section.id}>
+                    {section.grade_name} - Section {section.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+
+          <p className="text-xs text-slate-500">
+            Leave both targeting lists empty to send to the full selected audience.
+          </p>
+
+          <Field label="Subject">
+            <input
+              value={draft.subject}
+              onChange={(event) => setDraft({ ...draft, subject: event.target.value })}
+              className="field"
+            />
+          </Field>
+          <Field label="Message">
+            <textarea
+              rows={5}
+              value={draft.message}
+              onChange={(event) => setDraft({ ...draft, message: event.target.value })}
+              className="field min-h-[140px]"
+            />
+          </Field>
+
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              Local Translation Draft
+            </p>
+            <button
+              type="button"
+              onClick={() =>
+                setDraft({
+                  ...draft,
+                  amharicSubject: `ርዕስ፡ ${draft.subject}`,
+                  amharicBody: `ይህ መልእክት ስለ ${draft.subject} ነው። ${draft.message}`,
+                })
+              }
+              className="flex items-center gap-2 text-xs font-black text-primary"
+            >
+              <Languages className="h-4 w-4" />
+              Auto-translate
+            </button>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Amharic Subject">
+              <input
+                value={draft.amharicSubject}
+                onChange={(event) =>
+                  setDraft({ ...draft, amharicSubject: event.target.value })
+                }
+                className="field"
+              />
+            </Field>
+            <Field label="Amharic Message">
+              <textarea
+                rows={5}
+                value={draft.amharicBody}
+                onChange={(event) =>
+                  setDraft({ ...draft, amharicBody: event.target.value })
+                }
+                className="field min-h-[140px]"
+              />
+            </Field>
+          </div>
+
+          <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <input
+              type="checkbox"
+              checked={draft.isUrgent}
+              onChange={(event) =>
+                setDraft({ ...draft, isUrgent: event.target.checked })
+              }
+            />
+            <span className="text-sm font-bold text-slate-700">
+              Mark as urgent
+            </span>
+          </label>
+
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-500">
+            Attachment persistence is available in the backend through media upload, but this composer still leaves attachment selection out of scope for this pass.
+          </div>
+
+          {error && (
+            <div className="rounded-2xl border border-red-100 bg-red-50 p-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 bg-slate-50 px-6 py-5">
+          <button
+            type="button"
+            onClick={() => submit('DRAFT')}
+            disabled={isSubmitting || !draft.subject.trim() || !draft.message.trim()}
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 disabled:opacity-60"
+          >
+            Save Draft
+          </button>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              disabled={
+                isSubmitting ||
+                !draft.subject.trim() ||
+                !draft.message.trim() ||
+                !draft.scheduledAt
+              }
+              onClick={() => submit('SCHEDULED')}
+              className="rounded-xl border border-primary/20 bg-primary/10 px-4 py-2.5 text-sm font-black text-primary disabled:opacity-60"
+            >
+              <span className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                Schedule
+              </span>
+            </button>
+            <button
+              type="button"
+              disabled={isSubmitting || !draft.subject.trim() || !draft.message.trim()}
+              onClick={() => submit('SENT')}
+              className="rounded-xl bg-primary px-4 py-2.5 text-sm font-black text-white disabled:opacity-60"
+            >
+              <span className="flex items-center gap-2">
+                <Send className="h-4 w-4" />
+                {isSubmitting ? 'Saving...' : 'Send'}
+              </span>
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block space-y-2">
+      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+        {label}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+function StatCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+        {label}
+      </p>
+      <p className="mt-2 text-2xl font-black text-slate-900">{value}</p>
+    </div>
+  );
+}
+
+function AnnouncementBadge({ label }: { label: string }) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-primary">
+      <Users className="h-3.5 w-3.5" />
+      {label}
+    </span>
+  );
+}
+
+function StatusBadge({
+  status,
+  urgent,
+}: {
+  status: ApiAnnouncement['status'];
+  urgent: boolean;
+}) {
+  if (urgent) {
+    return (
+      <span className="rounded-full bg-red-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-red-700">
+        Urgent
+      </span>
+    );
+  }
+
+  const styles =
+    status === 'SENT'
+      ? 'bg-emerald-50 text-emerald-700'
+      : status === 'SCHEDULED'
+        ? 'bg-amber-50 text-amber-700'
+        : 'bg-slate-100 text-slate-600';
+
+  return (
+    <span className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest ${styles}`}>
+      {status}
+    </span>
+  );
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-500">
+      {message}
+    </div>
+  );
+}
+
+function displayDate(announcement: ApiAnnouncement) {
+  const value =
+    announcement.scheduled_at ?? announcement.updated_at ?? announcement.created_at;
+
+  if (!value) return 'Unknown date';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return format(date, 'MMM d, yyyy HH:mm');
+}
+
+function audienceLabel(audience: ApiAnnouncement['target_roles']) {
+  if (audience === 'PARENTS') return 'Parents Only';
+  if (audience === 'TEACHERS') return 'Teachers Only';
+  return 'Parents and Teachers';
+}
+
+function recipientLabel(
+  announcement: ApiAnnouncement,
+  grades: ApiAnnouncementTargetingCriteria['grades'],
+  sections: ApiAnnouncementTargetingCriteria['sections'],
+) {
+  const gradeLabels = announcement.targeted_grades
+    .map((gradeId) => grades.find((grade) => grade.id === gradeId)?.name)
+    .filter((value): value is string => Boolean(value));
+  const sectionLabels = announcement.targeted_sections
+    .map((sectionId) => {
+      const section = sections.find((item) => item.id === sectionId);
+      return section ? `${section.grade_name} - Section ${section.name}` : null;
+    })
+    .filter((value): value is string => Boolean(value));
+
+  if (gradeLabels.length === 0 && sectionLabels.length === 0) {
+    if (announcement.target_roles === 'PARENTS') return 'All Parents';
+    if (announcement.target_roles === 'TEACHERS') return 'All Teachers';
+    return 'Whole School';
+  }
+
+  return [...gradeLabels, ...sectionLabels].join(', ');
+}
+
+function selectedValues(options: HTMLOptionsCollection) {
+  return Array.from(options)
+    .filter((option) => option.selected)
+    .map((option) => option.value);
+}
+
+function toDateTimeLocal(value: string) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
+    .toISOString()
+    .slice(0, 16);
+}

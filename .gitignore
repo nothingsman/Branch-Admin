@@ -10,3 +10,7 @@ coverage/
 !.env.example
 # next-agents-md
 .next-docs/
+.kiro/
+.vscode/
+FRONTEND_INTEGRATION_GUIDE.md
+bulk_import_frontend_integration.md

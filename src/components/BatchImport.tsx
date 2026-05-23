@@ -50,6 +50,7 @@ export const BatchImport: React.FC<BatchImportProps> = ({ academicYear, organiza
   };
 
   const [errors, setErrors] = useState<any[]>([]);
+  const [taskId, setTaskId] = useState<string | null>(null);
 
   const startProcess = async () => {
     if (!file || !organizationId || !branchId) return;
@@ -66,9 +67,31 @@ export const BatchImport: React.FC<BatchImportProps> = ({ academicYear, organiza
 
     try {
       setProgress(50);
-      await importApi.uploadBulkFile(endpoint, file, organizationId, branchId);
-      setProgress(100);
-      setStatus('success');
+      const started = await importApi.uploadBulkFile(endpoint, file, organizationId, branchId);
+      if (!started.task_id) {
+        throw new Error('Bulk import started without a task id.');
+      }
+      setTaskId(started.task_id);
+      setStatus('validating');
+
+      let attempts = 0;
+      while (attempts < 60) {
+        const job = await importApi.getStatus(started.task_id);
+        setProgress(Math.max(55, Math.min(job.progress || 0, 100)));
+        if (job.status === 'success') {
+          setProgress(100);
+          setStatus('success');
+          return;
+        }
+        if (job.status === 'failed') {
+          setStatus('idle');
+          setErrors(Array.isArray(job.errors) ? job.errors : [{ errors: job.errors }]);
+          throw new Error('Bulk import failed.');
+        }
+        attempts += 1;
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+      throw new Error('Bulk import is still processing. Check again shortly.');
     } catch (err: any) {
       setStatus('idle');
       if (err.status === 400 && err.data?.errors) {
@@ -108,9 +131,9 @@ export const BatchImport: React.FC<BatchImportProps> = ({ academicYear, organiza
           <h2 className="text-2xl font-bold text-primary">Batch Data Import</h2>
           <p className="text-sm text-slate-500">Upload CSV or Excel files to bulk create records</p>
         </div>
-        <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2">
+          <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2">
           <Info className="w-4 h-4" />
-          Template Version 2.1.2
+          {taskId ? `Import Job ${taskId.slice(0, 8)}` : 'Template Version 2.1.2'}
         </div>
       </div>
 

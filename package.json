@@ -8,9 +8,9 @@
     "build": "next build --webpack",
     "start": "next start --hostname 0.0.0.0 --port 3000",
     "clean": "rm -rf .next out",
-    "lint": "next typegen && tsc --noEmit",
+    "lint": "next typegen && tsc --noEmit --incremental false",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
-    "typecheck": "next typegen && tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit --incremental false"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",

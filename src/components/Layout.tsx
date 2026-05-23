@@ -10,7 +10,6 @@ interface LayoutProps {
   activeModule: ModuleId;
   setActiveModule: (module: ModuleId) => void;
   academicYear: string;
-  setAcademicYear: (year: string) => void;
   user: ApiUser;
   onLogout: () => void;
   children: React.ReactNode;
@@ -20,7 +19,6 @@ export const Layout: React.FC<LayoutProps> = ({
   activeModule, 
   setActiveModule, 
   academicYear,
-  setAcademicYear,
   user,
   onLogout,
   children 
@@ -33,7 +31,6 @@ export const Layout: React.FC<LayoutProps> = ({
         activeModule={activeModule} 
         setActiveModule={setActiveModule}
         academicYear={academicYear}
-        setAcademicYear={setAcademicYear}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         user={user}

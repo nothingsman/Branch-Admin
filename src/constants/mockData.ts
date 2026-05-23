@@ -1,6 +1,29 @@
 
 import { Grade, Section, Subject, Teacher, Assignment, Student, Parent } from '../types';
 
+function createStudent(
+  partial: Pick<
+    Student,
+    'id' | 'name' | 'grade' | 'section' | 'registrationStatus' | 'languagePreference'
+  > &
+    Partial<Student>,
+): Student {
+  const [firstName = partial.name, lastName = ''] = partial.name.split(' ');
+  return {
+    firstName,
+    lastName,
+    gradeId: partial.gradeId ?? partial.grade.toLowerCase().replace(/\s+/g, '-'),
+    sectionId: partial.sectionId ?? `${partial.grade}-${partial.section}`.toLowerCase(),
+    rollNo: partial.rollNo ?? partial.id.toUpperCase(),
+    gender: partial.gender ?? 'OTHER',
+    dateOfBirth: partial.dateOfBirth ?? '2008-01-01',
+    admissionDate: partial.admissionDate ?? '2024-09-01',
+    branchId: partial.branchId ?? 'mock-branch',
+    organizationId: partial.organizationId ?? 'mock-org',
+    ...partial,
+  };
+}
+
 export const mockParents: Parent[] = [
   { 
     id: 'p1', 
@@ -11,7 +34,8 @@ export const mockParents: Parent[] = [
     linkedStudents: ['st1', 'st2'], 
     languagePreference: 'English',
     relationship: 'Father',
-    isPrimaryContact: true
+    isPrimaryContact: true,
+    isActive: true,
   },
   { 
     id: 'p2', 
@@ -22,7 +46,8 @@ export const mockParents: Parent[] = [
     linkedStudents: ['st3'], 
     languagePreference: 'Amharic',
     relationship: 'Father',
-    isPrimaryContact: true
+    isPrimaryContact: true,
+    isActive: false,
   },
   { 
     id: 'p3', 
@@ -33,19 +58,20 @@ export const mockParents: Parent[] = [
     linkedStudents: ['st4'], 
     languagePreference: 'Amharic',
     isPrimaryContact: false,
-    relationship: 'Mother'
+    relationship: 'Mother',
+    isActive: false,
   },
 ];
 
 export const mockStudents: Student[] = [
-  { id: 'st1', name: 'Nahom Tesfaye', grade: 'Grade 9', section: 'A', registrationStatus: 'Registered', languagePreference: 'English', parentId: 'p1' },
-  { id: 'st2', name: 'Betty Girma', grade: 'Grade 9', section: 'A', registrationStatus: 'Registered', languagePreference: 'Amharic', parentId: 'p1' },
-  { id: 'st3', name: 'Yonas mamo', grade: 'Grade 10', section: 'A', registrationStatus: 'Registered', languagePreference: 'English', parentId: 'p2' },
-  { id: 'st4', name: 'Selam Habte', grade: 'Grade 11', section: 'A', registrationStatus: 'Registered', languagePreference: 'Amharic', parentId: 'p3' },
-  { id: 'st5', name: 'Kebede Alemu', grade: 'Grade 9', section: 'B', registrationStatus: 'Pending', languagePreference: 'Amharic' }, // Unlinked
-  { id: 'st6', name: 'Marta Hailu', grade: 'Grade 10', section: 'B', registrationStatus: 'Registered', languagePreference: 'English' }, // Unlinked
-  { id: 'st7', name: 'Daniel Tadesse', grade: 'Grade 12', section: 'A', registrationStatus: 'Registered', languagePreference: 'English' }, // Unlinked
-  { id: 'st8', name: 'Helen Gashaw', grade: 'Grade 9', section: 'A', registrationStatus: 'Withdrawn', languagePreference: 'Amharic' }, // Unlinked
+  createStudent({ id: 'st1', name: 'Nahom Tesfaye', grade: 'Grade 9', section: 'A', registrationStatus: 'Registered', languagePreference: 'English', parentId: 'p1' }),
+  createStudent({ id: 'st2', name: 'Betty Girma', grade: 'Grade 9', section: 'A', registrationStatus: 'Registered', languagePreference: 'Amharic', parentId: 'p1' }),
+  createStudent({ id: 'st3', name: 'Yonas mamo', grade: 'Grade 10', section: 'A', registrationStatus: 'Registered', languagePreference: 'English', parentId: 'p2' }),
+  createStudent({ id: 'st4', name: 'Selam Habte', grade: 'Grade 11', section: 'A', registrationStatus: 'Registered', languagePreference: 'Amharic', parentId: 'p3' }),
+  createStudent({ id: 'st5', name: 'Kebede Alemu', grade: 'Grade 9', section: 'B', registrationStatus: 'Pending', languagePreference: 'Amharic' }),
+  createStudent({ id: 'st6', name: 'Marta Hailu', grade: 'Grade 10', section: 'B', registrationStatus: 'Registered', languagePreference: 'English' }),
+  createStudent({ id: 'st7', name: 'Daniel Tadesse', grade: 'Grade 12', section: 'A', registrationStatus: 'Registered', languagePreference: 'English' }),
+  createStudent({ id: 'st8', name: 'Helen Gashaw', grade: 'Grade 9', section: 'A', registrationStatus: 'Withdrawn', languagePreference: 'Amharic' }),
 ];
 
 export const mockGrades: Grade[] = [
@@ -109,4 +135,3 @@ export const mockAssignments: Assignment[] = [
   { id: 'a2', teacherId: '2', sectionId: '10a', subjectId: 's2', isHomeroom: true, academicYear: 'AY 2024-25' },
   { id: 'a3', teacherId: '3', sectionId: '11a', subjectId: 's1', isHomeroom: true, academicYear: 'AY 2024-25' },
 ];
-

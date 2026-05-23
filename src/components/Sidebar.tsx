@@ -1,12 +1,11 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   LayoutDashboard,
   Users, 
   BookOpen, 
   ClipboardCheck, 
   CalendarDays,
-  ChevronDown,
   Megaphone,
   GraduationCap,
   FileUp,
@@ -23,7 +22,6 @@ interface SidebarProps {
   activeModule: ModuleId;
   setActiveModule: (module: ModuleId) => void;
   academicYear: string;
-  setAcademicYear: (year: string) => void;
   isOpen?: boolean;
   onClose?: () => void;
   user: ApiUser;
@@ -46,23 +44,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeModule, 
   setActiveModule,
   academicYear,
-  setAcademicYear,
   isOpen,
   onClose,
   user,
   onLogout
 }) => {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [profile, setProfile] = useState({ 
+  const [isEditingProfile, setIsEditingProfile] = React.useState(false);
+  const [profile, setProfile] = React.useState({ 
     name: user.name || 'Admin User', 
     role: 'Branch Administrator',
     email: user.email || 'admin@edugov.academy',
     phone: user.phone_number || '+251 911 223 344',
     avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=100&h=100&auto=format&fit=crop'
   });
-  const academicYears = ["AY 2024-25", "AY 2023-24", "AY 2022-23"];
-
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleAvatarClick = () => {
@@ -128,45 +122,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
         
-        {/* Academic Year Selector - Custom Dropdown Style */}
-        <div className="relative w-full px-2">
-          <button 
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="w-full flex items-center justify-between bg-white border border-border-soft rounded-lg py-1.5 px-4 text-[11px] font-bold text-primary focus:outline-none focus:ring-2 focus:ring-primary/10 hover:border-primary/40 hover:bg-slate-50 transition-all shadow-sm group"
-          >
-            <span>{academicYear}</span>
-            <ChevronDown className={`w-3 h-3 text-primary transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
-          </button>
-
-          <AnimatePresence>
-            {isDropdownOpen && (
-              <>
-                <div 
-                  className="fixed inset-0 z-10" 
-                  onClick={() => setIsDropdownOpen(false)}
-                />
-                <motion.div
-                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                  className="dropdown-menu !absolute z-20 left-2 right-2 w-auto"
-                >
-                  {academicYears.map((year) => (
-                    <div
-                      key={year}
-                      onClick={() => {
-                        setAcademicYear(year);
-                        setIsDropdownOpen(false);
-                      }}
-                      className={`dropdown-item ${year === academicYear ? 'bg-primary text-white hover:bg-primary hover:text-white' : ''}`}
-                    >
-                      {year}
-                    </div>
-                  ))}
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
+        <div className="w-full px-2">
+          <div className="w-full rounded-lg border border-border-soft bg-white px-4 py-2 text-center text-[11px] font-bold text-primary shadow-sm">
+            {academicYear}
+          </div>
         </div>
       </div>
 
