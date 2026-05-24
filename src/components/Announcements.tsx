@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   Clock,
   Edit3,
+  ExternalLink,
   Languages,
   Loader2,
   Plus,
@@ -13,6 +14,9 @@ import {
   X,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
+import { MediaUploader, MediaUploaderState } from './MediaUploader';
+import { deleteQueuedMedia } from '../lib/media/deleteQueuedMedia';
+import { resolveMediaUrl } from '../lib/media/resolveMediaUrl';
 import { format, parseISO } from 'date-fns';
 import {
   announcementsApi,
@@ -51,6 +55,12 @@ const emptyDraft: AnnouncementDraftState = {
   targetedSectionIds: [],
   isUrgent: false,
   scheduledAt: '',
+};
+
+const emptyMediaUploaderState: MediaUploaderState = {
+  hasChanges: false,
+  mediaId: null,
+  pendingRemovalIds: [],
 };
 
 export const Announcements: React.FC<AnnouncementsProps> = ({
@@ -319,6 +329,12 @@ export const Announcements: React.FC<AnnouncementsProps> = ({
                     {selectedAnnouncement.message}
                   </p>
                 </div>
+                {selectedAnnouncement.attachment && (
+                  <ResolvedMediaLink
+                    mediaId={selectedAnnouncement.attachment}
+                    label="View attachment"
+                  />
+                )}
                 <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                     Delivery
@@ -419,6 +435,32 @@ function AnnouncementComposer({
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [attachmentState, setAttachmentState] =
+    useState<MediaUploaderState>(emptyMediaUploaderState);
+  const [isAttachmentBusy, setIsAttachmentBusy] = useState(false);
+
+  const initialAttachmentId = initialAnnouncement?.attachment ?? null;
+
+  async function handleClose() {
+    if (isSubmitting || isAttachmentBusy) {
+      return;
+    }
+
+    try {
+      const mediaIdsToDelete = new Set<string>();
+
+      if (attachmentState.mediaId && attachmentState.mediaId !== initialAttachmentId) {
+        mediaIdsToDelete.add(attachmentState.mediaId);
+      }
+
+      if (mediaIdsToDelete.size > 0) {
+        await deleteQueuedMedia([...mediaIdsToDelete]);
+      }
+    } finally {
+      setAttachmentState(emptyMediaUploaderState);
+      onClose();
+    }
+  }
 
   async function submit(status: ApiAnnouncementWrite['status']) {
     setIsSubmitting(true);
@@ -434,6 +476,7 @@ function AnnouncementComposer({
       target_roles: draft.targetRoles,
       targeted_grades: draft.targetedGradeIds,
       targeted_sections: draft.targetedSectionIds,
+      attachment: attachmentState.mediaId,
       scheduled_at:
         status === 'SCHEDULED' && draft.scheduledAt
           ? new Date(draft.scheduledAt).toISOString()
@@ -446,6 +489,8 @@ function AnnouncementComposer({
       } else {
         await announcementsApi.create(payload);
       }
+      await deleteQueuedMedia(attachmentState.pendingRemovalIds);
+      setAttachmentState(emptyMediaUploaderState);
       onSuccess();
     } catch (submitError) {
       setError(
@@ -480,7 +525,7 @@ function AnnouncementComposer({
               Target grades and sections using the live backend criteria.
             </p>
           </div>
-          <button onClick={onClose} className="rounded-xl p-2 hover:bg-slate-50">
+          <button onClick={() => void handleClose()} className="rounded-xl p-2 hover:bg-slate-50">
             <X className="h-5 w-5 text-slate-400" />
           </button>
         </div>
@@ -630,9 +675,26 @@ function AnnouncementComposer({
             </span>
           </label>
 
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-500">
-            Attachment persistence is available in the backend through media upload, but this composer still leaves attachment selection out of scope for this pass.
-          </div>
+          <MediaUploader
+            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+            label="Attachment"
+            description="Attach an image or document"
+            initialMediaId={initialAttachmentId}
+            onUploaded={(mediaId) =>
+              setAttachmentState((current) => ({
+                ...current,
+                mediaId,
+              }))
+            }
+            onRemoved={() =>
+              setAttachmentState((current) => ({
+                ...current,
+                mediaId: null,
+              }))
+            }
+            onStateChange={setAttachmentState}
+            onBusyChange={setIsAttachmentBusy}
+          />
 
           {error && (
             <div className="rounded-2xl border border-red-100 bg-red-50 p-3 text-sm text-red-700">
@@ -645,7 +707,12 @@ function AnnouncementComposer({
           <button
             type="button"
             onClick={() => submit('DRAFT')}
-            disabled={isSubmitting || !draft.subject.trim() || !draft.message.trim()}
+            disabled={
+              isSubmitting ||
+              isAttachmentBusy ||
+              !draft.subject.trim() ||
+              !draft.message.trim()
+            }
             className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 disabled:opacity-60"
           >
             Save Draft
@@ -655,6 +722,7 @@ function AnnouncementComposer({
               type="button"
               disabled={
                 isSubmitting ||
+                isAttachmentBusy ||
                 !draft.subject.trim() ||
                 !draft.message.trim() ||
                 !draft.scheduledAt
@@ -669,7 +737,12 @@ function AnnouncementComposer({
             </button>
             <button
               type="button"
-              disabled={isSubmitting || !draft.subject.trim() || !draft.message.trim()}
+              disabled={
+                isSubmitting ||
+                isAttachmentBusy ||
+                !draft.subject.trim() ||
+                !draft.message.trim()
+              }
               onClick={() => submit('SENT')}
               className="rounded-xl bg-primary px-4 py-2.5 text-sm font-black text-white disabled:opacity-60"
             >
@@ -756,6 +829,54 @@ function EmptyState({ message }: { message: string }) {
     <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-500">
       {message}
     </div>
+  );
+}
+
+function ResolvedMediaLink({
+  mediaId,
+  label,
+}: {
+  mediaId: string;
+  label: string;
+}) {
+  const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    resolveMediaUrl(mediaId)
+      .then((url) => {
+        if (!cancelled) {
+          setResolvedUrl(url);
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to resolve attachment URL:', error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mediaId]);
+
+  if (!resolvedUrl) {
+    return (
+      <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-500">
+        Attachment available, but the download link could not be resolved.
+      </div>
+    );
+  }
+
+  return (
+    <a
+      href={resolvedUrl}
+      target="_blank"
+      rel="noreferrer"
+      className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm font-bold text-slate-700 transition hover:border-primary/20 hover:text-primary"
+    >
+      <span>{label}</span>
+      <ExternalLink className="h-4 w-4" />
+    </a>
   );
 }
 

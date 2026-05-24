@@ -2,6 +2,8 @@
  * kelem-api client — lightweight and robust fetch wrapper for Djoser JWT authentication.
  */
 
+import { createMediaClient } from './media/mediaClient';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
 // ---------------------------------------------------------------------------
@@ -525,7 +527,7 @@ export const tokenManager = {
 // ---------------------------------------------------------------------------
 // Core fetch wrapper
 // ---------------------------------------------------------------------------
-async function request<T>(
+export async function request<T>(
   path: string,
   options: RequestInit = {},
   skipAuth = false,
@@ -616,6 +618,8 @@ function unwrapEnvelope<T>(payload: T | { data?: T } | { message?: string; data?
   }
   return payload as T;
 }
+
+const mediaClient = createMediaClient({ request });
 
 // ---------------------------------------------------------------------------
 // Auth API
@@ -1106,106 +1110,8 @@ export const importApi = {
     organizationId: string,
     branchId: string,
   ): Promise<{ task_id: string; detail: string }> {
-    const media = await mediaApi.uploadFile(file);
+    const media = await mediaClient.uploadFile({ file });
     return this.startBulkImport(endpoint, media.id, organizationId, branchId);
-  },
-};
-
-// ---------------------------------------------------------------------------
-// Media API
-// ---------------------------------------------------------------------------
-export const mediaApi = {
-  async initUpload(fileName: string, contentType: string): Promise<ApiMediaUploadInit> {
-    const response = await request<ApiMediaUploadInit | { data: ApiMediaUploadInit }>(
-      '/api/media/upload',
-      {
-        method: 'POST',
-        body: JSON.stringify({ file_name: fileName, content_type: contentType }),
-      },
-    );
-    return unwrapEnvelope(response);
-  },
-
-  async getPartUrl(
-    mediaId: string,
-    uploadId: string,
-    partNumber: number,
-  ): Promise<ApiMediaPartUrl> {
-    const response = await request<ApiMediaPartUrl | { data: ApiMediaPartUrl }>(
-      `/api/media/${mediaId}/multipart/part-url`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ upload_id: uploadId, part_number: partNumber }),
-      },
-    );
-    return unwrapEnvelope(response);
-  },
-
-  async completeUpload(
-    mediaId: string,
-    uploadId: string,
-    parts: Array<{ part_number: number; etag: string }>,
-  ): Promise<ApiMultipartCompleteResult> {
-    const response = await request<
-      ApiMultipartCompleteResult | { data: ApiMultipartCompleteResult }
-    >(`/api/media/${mediaId}/multipart/complete`, {
-      method: 'POST',
-      body: JSON.stringify({ upload_id: uploadId, parts }),
-    });
-    return unwrapEnvelope(response);
-  },
-
-  async abortUpload(mediaId: string, uploadId: string): Promise<void> {
-    await request(`/api/media/${mediaId}/multipart/abort`, {
-      method: 'POST',
-      body: JSON.stringify({ upload_id: uploadId }),
-    });
-  },
-
-  async get(mediaId: string): Promise<ApiMediaFile> {
-    const response = await request<ApiMediaFile | { data: ApiMediaFile }>(
-      `/api/media/${mediaId}`,
-      { method: 'GET' },
-    );
-    return unwrapEnvelope(response);
-  },
-
-  async getDownloadUrl(mediaId: string): Promise<{ download_url: string }> {
-    const response = await request<
-      { download_url: string } | { data: { download_url: string } }
-    >(`/api/media/${mediaId}/url`, { method: 'GET' });
-    return unwrapEnvelope(response);
-  },
-
-  async delete(mediaId: string): Promise<void> {
-    await request(`/api/media/${mediaId}`, { method: 'DELETE' });
-  },
-
-  async uploadFile(file: File): Promise<ApiMultipartCompleteResult> {
-    const init = await this.initUpload(file.name, file.type || 'application/octet-stream');
-    const { presigned_url } = await this.getPartUrl(init.id, init.upload_id, 1);
-    const uploadResponse = await fetch(presigned_url, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': file.type || 'application/octet-stream',
-      },
-      body: file,
-    });
-
-    if (!uploadResponse.ok) {
-      await this.abortUpload(init.id, init.upload_id);
-      throw new ApiError('Failed to upload file to storage.', uploadResponse.status);
-    }
-
-    const etag = uploadResponse.headers.get('etag');
-    if (!etag) {
-      await this.abortUpload(init.id, init.upload_id);
-      throw new ApiError('Upload succeeded but no ETag was returned by storage.', 500);
-    }
-
-    return this.completeUpload(init.id, init.upload_id, [
-      { part_number: 1, etag },
-    ]);
   },
 };
 

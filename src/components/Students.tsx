@@ -1,10 +1,14 @@
-import React, { useState, useMemo } from 'react';
+import Image from 'next/image';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Users, Search, UserPlus, Link2, Link2Off, MoreVertical,
   GraduationCap, ChevronRight, ShieldCheck, AlertCircle,
   FileText, Edit3, Mail, Phone, ArrowUpDown, X, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { MediaUploader, MediaUploaderState } from './MediaUploader';
+import { deleteQueuedMedia } from '../lib/media/deleteQueuedMedia';
+import { resolveMediaUrl } from '../lib/media/resolveMediaUrl';
 import { Student, Parent } from '../types';
 import { ApiStudent, ApiParent, studentsApi, StudentGender, StudentStatus } from '../lib/api';
 import { useStudents } from '../hooks/useStudents';
@@ -69,6 +73,12 @@ interface StudentsProps {
   academicYearId: string | null;
 }
 
+const emptyMediaUploaderState: MediaUploaderState = {
+  hasChanges: false,
+  mediaId: null,
+  pendingRemovalIds: [],
+};
+
 export const Students: React.FC<StudentsProps> = ({
   academicYear, branchId, organizationId, academicYearId,
 }) => {
@@ -98,6 +108,9 @@ export const Students: React.FC<StudentsProps> = ({
   });
   const [isSubmittingStudent, setIsSubmittingStudent] = useState(false);
   const [studentFormError, setStudentFormError] = useState<string | null>(null);
+  const [studentPhotoState, setStudentPhotoState] =
+    useState<MediaUploaderState>(emptyMediaUploaderState);
+  const [isStudentMediaBusy, setIsStudentMediaBusy] = useState(false);
 
   // API hooks
   const {
@@ -161,6 +174,34 @@ export const Students: React.FC<StudentsProps> = ({
       status: 'ACTIVE',
     });
     setStudentFormError(null);
+    setStudentPhotoState(emptyMediaUploaderState);
+  };
+
+  const cleanupStudentMedia = async () => {
+    const mediaIdsToDelete = new Set(studentPhotoState.pendingRemovalIds);
+
+    if (studentPhotoState.mediaId) {
+      mediaIdsToDelete.add(studentPhotoState.mediaId);
+    }
+
+    if (mediaIdsToDelete.size > 0) {
+      await deleteQueuedMedia([...mediaIdsToDelete]);
+    }
+
+    setStudentPhotoState(emptyMediaUploaderState);
+  };
+
+  const closeAddStudentModal = async () => {
+    if (isStudentMediaBusy || isSubmittingStudent) {
+      return;
+    }
+
+    try {
+      await cleanupStudentMedia();
+    } finally {
+      resetStudentForm();
+      setIsAddModalOpen(false);
+    }
   };
 
   // Loading / error states
@@ -300,9 +341,7 @@ export const Students: React.FC<StudentsProps> = ({
                           className="hover:bg-slate-50/80 transition-colors cursor-pointer group">
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
-                                <GraduationCap className="w-5 h-5 text-slate-400" />
-                              </div>
+                              <StudentAvatar student={student} className="h-10 w-10 rounded-xl" iconClassName="w-5 h-5" />
                               <div>
                                 <p className="text-sm font-black text-slate-900 group-hover:text-primary transition-colors">{student.name}</p>
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{student.rollNo || student.id.slice(0, 8)}</p>
@@ -391,10 +430,12 @@ export const Students: React.FC<StudentsProps> = ({
               </div>
               <div className="flex-1 overflow-auto p-8 space-y-8">
                 <div className="flex flex-col items-center text-center space-y-4">
-                  <div className="w-24 h-24 rounded-[2rem] bg-slate-50 border border-slate-100 flex items-center justify-center relative">
-                    <GraduationCap className="w-12 h-12 text-slate-300" />
-                    <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent rounded-[2rem]" />
-                  </div>
+                  <StudentAvatar
+                    student={selectedStudent}
+                    className="h-24 w-24 rounded-[2rem]"
+                    iconClassName="w-12 h-12"
+                    large
+                  />
                   <div>
                     <h2 className="text-2xl font-black text-slate-900 leading-tight tracking-tight">{selectedStudent.name}</h2>
                     <p className="text-xs font-black text-slate-400 uppercase tracking-widest mt-1">Roll: {selectedStudent.rollNo || '—'}</p>
@@ -700,7 +741,7 @@ export const Students: React.FC<StudentsProps> = ({
                     <p className="text-xs text-slate-500 font-bold">Register a student into the system</p>
                   </div>
                 </div>
-                <button onClick={() => setIsAddModalOpen(false)} className="p-2 hover:bg-slate-50 rounded-full transition-all">
+                <button onClick={() => void closeAddStudentModal()} className="p-2 hover:bg-slate-50 rounded-full transition-all">
                   <X className="w-5 h-5 text-slate-400" />
                 </button>
               </div>
@@ -817,6 +858,26 @@ export const Students: React.FC<StudentsProps> = ({
                     />
                   </div>
                 </div>
+                <MediaUploader
+                  accept="image/*"
+                  imageOnly
+                  label="Student Photo"
+                  description="Upload a student profile image"
+                  onUploaded={(mediaId) =>
+                    setStudentPhotoState((current) => ({
+                      ...current,
+                      mediaId,
+                    }))
+                  }
+                  onRemoved={() =>
+                    setStudentPhotoState((current) => ({
+                      ...current,
+                      mediaId: null,
+                    }))
+                  }
+                  onStateChange={setStudentPhotoState}
+                  onBusyChange={setIsStudentMediaBusy}
+                />
                 {studentFormError && (
                   <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
                     {studentFormError}
@@ -824,11 +885,12 @@ export const Students: React.FC<StudentsProps> = ({
                 )}
               </div>
               <div className="p-8 border-t border-slate-100 flex items-center justify-end gap-4">
-                <button onClick={() => setIsAddModalOpen(false)}
+                <button onClick={() => void closeAddStudentModal()}
                   className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-all">Cancel</button>
                 <button
                   disabled={
                     isSubmittingStudent ||
+                    isStudentMediaBusy ||
                     !branchId ||
                     !organizationId ||
                     !newStudentForm.firstName ||
@@ -856,10 +918,12 @@ export const Students: React.FC<StudentsProps> = ({
                         roll_no: newStudentForm.rollNo.trim(),
                         current_section: newStudentForm.sectionId,
                         admission_date: newStudentForm.admissionDate,
+                        photo: studentPhotoState.mediaId ?? undefined,
                         status: newStudentForm.status,
                       });
-                      setIsAddModalOpen(false);
+                      await deleteQueuedMedia(studentPhotoState.pendingRemovalIds);
                       resetStudentForm();
+                      setIsAddModalOpen(false);
                       refetchStudents();
                     } catch (error) {
                       setStudentFormError(
@@ -922,3 +986,56 @@ export const Students: React.FC<StudentsProps> = ({
     </div>
   );
 };
+
+function StudentAvatar({
+  student,
+  className,
+  iconClassName,
+  large = false,
+}: {
+  student: Student;
+  className: string;
+  iconClassName: string;
+  large?: boolean;
+}) {
+  const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    resolveMediaUrl(student.photoUrl ?? null)
+      .then((url) => {
+        if (!cancelled) {
+          setResolvedUrl(url);
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to resolve student photo:', error);
+        if (!cancelled) {
+          setResolvedUrl(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [student.photoUrl]);
+
+  return (
+    <div className={`${className} relative flex items-center justify-center overflow-hidden border border-slate-100 bg-slate-50`}>
+      {resolvedUrl ? (
+        <Image
+          src={resolvedUrl}
+          alt={student.name}
+          fill
+          unoptimized
+          sizes={large ? '6rem' : '2.5rem'}
+          className="object-cover"
+        />
+      ) : (
+        <GraduationCap className={`${iconClassName} text-slate-300`} />
+      )}
+      {large && <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-tr from-primary/5 to-transparent" />}
+    </div>
+  );
+}
