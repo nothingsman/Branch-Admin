@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState } from "react"
 import {
   AlertCircle,
   Calendar as CalendarIcon,
@@ -9,20 +9,23 @@ import {
   UserCheck,
   UserX,
   X,
-} from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
-import { format } from 'date-fns';
-import { useAttendanceSummaries, useDailyAttendanceStatus } from '../hooks/useAttendance';
-import { useGrades } from '../hooks/useGrades';
-import { useSections } from '../hooks/useSections';
-import { useTeachers, useHomeroomAssignments } from '../hooks/useTeachers';
-import { ApiDailyAttendanceStatus } from '../lib/api';
+} from "lucide-react"
+import { AnimatePresence, motion } from "motion/react"
+import { format } from "date-fns"
+import {
+  useAttendanceSummaries,
+  useDailyAttendanceStatus,
+} from "../hooks/useAttendance"
+import { useGrades } from "../hooks/useGrades"
+import { useSections } from "../hooks/useSections"
+import { useTeachers, useHomeroomAssignments } from "../hooks/useTeachers"
+import { ApiDailyAttendanceStatus } from "../lib/api"
 
 interface AttendanceDashboardProps {
-  academicYear: string;
-  branchId: string | null;
-  organizationId: string | null;
-  academicYearId: string | null;
+  academicYear: string
+  branchId: string | null
+  organizationId: string | null
+  academicYearId: string | null
 }
 
 export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
@@ -32,30 +35,38 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
   academicYearId,
 }) => {
   const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split('T')[0],
-  );
-  const [activeTab, setActiveTab] = useState<'overview' | 'chronic' | 'logs'>(
-    'overview',
-  );
-  const [logFilter, setLogFilter] = useState<'all' | 'marked' | 'pending'>('all');
-  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
+    new Date().toISOString().split("T")[0]
+  )
+  const [activeTab, setActiveTab] = useState<"overview" | "chronic" | "logs">(
+    "overview"
+  )
+  const [logFilter, setLogFilter] = useState<"all" | "marked" | "pending">(
+    "all"
+  )
+  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(
+    null
+  )
 
-  const { grades, isLoading: gradesLoading, error: gradesError } = useGrades(branchId);
+  const {
+    grades,
+    isLoading: gradesLoading,
+    error: gradesError,
+  } = useGrades(branchId)
   const {
     sections,
     isLoading: sectionsLoading,
     error: sectionsError,
-  } = useSections(branchId, academicYearId);
+  } = useSections(branchId, academicYearId)
   const {
     teachers,
     isLoading: teachersLoading,
     error: teachersError,
-  } = useTeachers({ branchId, organizationId });
+  } = useTeachers({ branchId, organizationId })
   const {
     homeroomAssignments,
     isLoading: homeroomLoading,
     error: homeroomError,
-  } = useHomeroomAssignments({ branchId, organizationId, academicYearId });
+  } = useHomeroomAssignments({ branchId, organizationId, academicYearId })
   const {
     statuses,
     isLoading: statusesLoading,
@@ -65,12 +76,12 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
     organizationId,
     academicYearId,
     date: selectedDate,
-  });
+  })
   const {
     summaries,
     isLoading: summariesLoading,
     error: summariesError,
-  } = useAttendanceSummaries({ organizationId, academicYearId });
+  } = useAttendanceSummaries({ organizationId, academicYearId })
 
   const isLoading =
     gradesLoading ||
@@ -78,38 +89,42 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
     teachersLoading ||
     homeroomLoading ||
     statusesLoading ||
-    summariesLoading;
+    summariesLoading
   const error =
     gradesError ||
     sectionsError ||
     teachersError ||
     homeroomError ||
     statusesError ||
-    summariesError;
+    summariesError
 
   const teacherNames = useMemo(() => {
-    return new Map(teachers.map((teacher) => [teacher.id, teacher.user_name]));
-  }, [teachers]);
+    return new Map(teachers.map((teacher) => [teacher.id, teacher.user_name]))
+  }, [teachers])
 
   const homeroomBySection = useMemo(() => {
-    return new Map(homeroomAssignments.map((assignment) => [assignment.section, assignment]));
-  }, [homeroomAssignments]);
+    return new Map(
+      homeroomAssignments.map((assignment) => [assignment.section, assignment])
+    )
+  }, [homeroomAssignments])
 
   const sectionsWithStatus = useMemo(() => {
-    const statusBySection = new Map(statuses.map((status) => [status.section, status]));
+    const statusBySection = new Map(
+      statuses.map((status) => [status.section, status])
+    )
     return sections.map((section) => {
-      const status = statusBySection.get(section.id);
-      const homeroom = homeroomBySection.get(section.id);
-      const grade = grades.find((item) => item.id === section.grade);
+      const status = statusBySection.get(section.id)
+      const homeroom = homeroomBySection.get(section.id)
+      const grade = grades.find((item) => item.id === section.grade)
       return {
         section,
-        gradeName: grade?.name ?? status?.grade_name ?? 'Unknown Grade',
+        gradeName: grade?.name ?? status?.grade_name ?? "Unknown Grade",
         status:
           status ??
           ({
             section: section.id,
             section_name: section.name,
-            grade_name: grade?.name ?? 'Unknown Grade',
+            grade_name: grade?.name ?? "Unknown Grade",
             date: selectedDate,
             total_students: 0,
             present: 0,
@@ -124,10 +139,17 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
         teacherName:
           (homeroom?.teacher && teacherNames.get(homeroom.teacher)) ??
           homeroom?.teacher_name ??
-          'Unassigned',
-      };
-    });
-  }, [grades, homeroomBySection, sections, selectedDate, statuses, teacherNames]);
+          "Unassigned",
+      }
+    })
+  }, [
+    grades,
+    homeroomBySection,
+    sections,
+    selectedDate,
+    statuses,
+    teacherNames,
+  ])
 
   const kpis = useMemo(() => {
     if (sectionsWithStatus.length === 0) {
@@ -137,23 +159,25 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
         absent: 0,
         markedSections: 0,
         totalSections: 0,
-      };
+      }
     }
 
     const totalStudents = sectionsWithStatus.reduce(
       (sum, item) => sum + item.status.total_students,
-      0,
-    );
+      0
+    )
     const present = sectionsWithStatus.reduce(
       (sum, item) => sum + item.status.present,
-      0,
-    );
+      0
+    )
     const absent = sectionsWithStatus.reduce(
-      (sum, item) => sum + item.status.absent + item.status.late + item.status.excused,
-      0,
-    );
-    const markedSections = sectionsWithStatus.filter((item) => item.status.is_marked)
-      .length;
+      (sum, item) =>
+        sum + item.status.absent + item.status.late + item.status.excused,
+      0
+    )
+    const markedSections = sectionsWithStatus.filter(
+      (item) => item.status.is_marked
+    ).length
 
     return {
       attendanceRate: totalStudents > 0 ? (present / totalStudents) * 100 : 0,
@@ -161,47 +185,52 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
       absent,
       markedSections,
       totalSections: sectionsWithStatus.length,
-    };
-  }, [sectionsWithStatus]);
+    }
+  }, [sectionsWithStatus])
 
   const chronicAbsentees = useMemo(() => {
     return [...summaries]
       .sort((left, right) => {
         if (right.total_absent !== left.total_absent) {
-          return right.total_absent - left.total_absent;
+          return right.total_absent - left.total_absent
         }
-        return left.attendance_rate - right.attendance_rate;
+        return left.attendance_rate - right.attendance_rate
       })
-      .slice(0, 8);
-  }, [summaries]);
+      .slice(0, 8)
+  }, [summaries])
 
   const selectedSection = useMemo(() => {
-    return sectionsWithStatus.find((item) => item.section.id === selectedSectionId) ?? null;
-  }, [sectionsWithStatus, selectedSectionId]);
+    return (
+      sectionsWithStatus.find(
+        (item) => item.section.id === selectedSectionId
+      ) ?? null
+    )
+  }, [sectionsWithStatus, selectedSectionId])
 
   const sectionSummary = useMemo(() => {
-    if (!selectedSection) return null;
+    if (!selectedSection) return null
     const gradeMatches = chronicAbsentees.filter(
-      (summary) => summary.student_name && selectedSection.gradeName,
-    );
+      (summary) => summary.student_name && selectedSection.gradeName
+    )
     return {
       averageAttendance: selectedSection.status.attendance_rate,
       totalAbsent: selectedSection.status.absent,
-      chronicCount: gradeMatches.filter((summary) => summary.total_absent >= 3).length,
-    };
-  }, [chronicAbsentees, selectedSection]);
+      chronicCount: gradeMatches.filter((summary) => summary.total_absent >= 3)
+        .length,
+    }
+  }, [chronicAbsentees, selectedSection])
 
   if (isLoading) {
     return (
-      <div className="flex h-full items-center justify-center bg-slate-50">
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-xs font-black uppercase tracking-widest text-slate-500">
+          <p className="text-xs font-black tracking-widest text-slate-500 uppercase">
             Loading attendance dashboard
           </p>
         </div>
       </div>
-    );
+    )
   }
 
   if (error) {
@@ -213,7 +242,7 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
           <p className="mt-2 text-sm text-red-600">{error}</p>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -223,11 +252,11 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
           <section className="rounded-[2rem] bg-primary p-8 text-white shadow-xl">
             <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60">
+                <p className="text-[10px] font-black tracking-[0.3em] text-white/60 uppercase">
                   Attendance Dashboard
                 </p>
                 <h1 className="mt-2 text-3xl font-black tracking-tight">
-                  {format(new Date(selectedDate), 'MMMM d, yyyy')}
+                  {format(new Date(selectedDate), "MMMM d, yyyy")}
                 </h1>
                 <p className="mt-2 text-sm font-medium text-white/70">
                   Academic year {academicYear}
@@ -268,17 +297,17 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
 
           <div className="flex gap-2 rounded-2xl border border-slate-100 bg-white p-1 shadow-sm">
             {[
-              { id: 'overview', label: 'Overview', icon: TrendingUp },
-              { id: 'chronic', label: 'Chronic', icon: AlertCircle },
-              { id: 'logs', label: 'Logs', icon: Clock },
+              { id: "overview", label: "Overview", icon: TrendingUp },
+              { id: "chronic", label: "Chronic", icon: AlertCircle },
+              { id: "logs", label: "Logs", icon: Clock },
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest transition ${
+                className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-black tracking-widest uppercase transition ${
                   activeTab === tab.id
-                    ? 'bg-primary text-white'
-                    : 'text-slate-500 hover:bg-slate-50'
+                    ? "bg-primary text-white"
+                    : "text-slate-500 hover:bg-slate-50"
                 }`}
               >
                 <tab.icon className="h-4 w-4" />
@@ -287,11 +316,11 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
             ))}
           </div>
 
-          {activeTab === 'overview' && (
+          {activeTab === "overview" && (
             <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
               <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
                 <div className="mb-4">
-                  <h2 className="text-sm font-black uppercase tracking-widest text-slate-900">
+                  <h2 className="text-sm font-black tracking-widest text-slate-900 uppercase">
                     Section Status
                   </h2>
                   <p className="text-xs font-medium text-slate-500">
@@ -317,8 +346,8 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
                         <p className="text-lg font-black text-slate-900">
                           {item.status.attendance_rate.toFixed(1)}%
                         </p>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                          {item.status.is_marked ? 'Marked' : 'Pending'}
+                        <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                          {item.status.is_marked ? "Marked" : "Pending"}
                         </p>
                       </div>
                     </button>
@@ -331,7 +360,7 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
 
               <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
                 <div className="mb-4">
-                  <h2 className="text-sm font-black uppercase tracking-widest text-slate-900">
+                  <h2 className="text-sm font-black tracking-widest text-slate-900 uppercase">
                     Grade Breakdown
                   </h2>
                   <p className="text-xs font-medium text-slate-500">
@@ -361,10 +390,10 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
             </div>
           )}
 
-          {activeTab === 'chronic' && (
+          {activeTab === "chronic" && (
             <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
               <div className="mb-4">
-                <h2 className="text-sm font-black uppercase tracking-widest text-slate-900">
+                <h2 className="text-sm font-black tracking-widest text-slate-900 uppercase">
                   Chronic Absenteeism
                 </h2>
                 <p className="text-xs font-medium text-slate-500">
@@ -385,7 +414,10 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
                         Updated {formatDateTime(summary.last_updated)}
                       </p>
                     </div>
-                    <SummaryMetric label="Absent" value={summary.total_absent} />
+                    <SummaryMetric
+                      label="Absent"
+                      value={summary.total_absent}
+                    />
                     <SummaryMetric
                       label="Attendance"
                       value={`${summary.attendance_rate.toFixed(1)}%`}
@@ -403,11 +435,11 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
             </section>
           )}
 
-          {activeTab === 'logs' && (
+          {activeTab === "logs" && (
             <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
               <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <h2 className="text-sm font-black uppercase tracking-widest text-slate-900">
+                  <h2 className="text-sm font-black tracking-widest text-slate-900 uppercase">
                     Section Logs
                   </h2>
                   <p className="text-xs font-medium text-slate-500">
@@ -415,14 +447,14 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  {(['all', 'marked', 'pending'] as const).map((filter) => (
+                  {(["all", "marked", "pending"] as const).map((filter) => (
                     <button
                       key={filter}
                       onClick={() => setLogFilter(filter)}
-                      className={`rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-widest ${
+                      className={`rounded-xl px-3 py-2 text-[10px] font-black tracking-widest uppercase ${
                         logFilter === filter
-                          ? 'bg-primary text-white'
-                          : 'border border-slate-200 bg-white text-slate-600'
+                          ? "bg-primary text-white"
+                          : "border border-slate-200 bg-white text-slate-600"
                       }`}
                     >
                       {filter}
@@ -433,7 +465,7 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[680px] text-left">
                   <thead>
-                    <tr className="border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    <tr className="border-b border-slate-100 text-[10px] font-black tracking-widest text-slate-400 uppercase">
                       <th className="px-4 py-3">Section</th>
                       <th className="px-4 py-3">Teacher</th>
                       <th className="px-4 py-3">Rate</th>
@@ -444,9 +476,10 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
                   <tbody>
                     {sectionsWithStatus
                       .filter((item) => {
-                        if (logFilter === 'marked') return item.status.is_marked;
-                        if (logFilter === 'pending') return !item.status.is_marked;
-                        return true;
+                        if (logFilter === "marked") return item.status.is_marked
+                        if (logFilter === "pending")
+                          return !item.status.is_marked
+                        return true
                       })
                       .map((item) => (
                         <tr
@@ -457,16 +490,18 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
                           <td className="px-4 py-4 font-bold text-slate-800">
                             {item.gradeName} • {item.section.name}
                           </td>
-                          <td className="px-4 py-4 text-slate-600">{item.teacherName}</td>
+                          <td className="px-4 py-4 text-slate-600">
+                            {item.teacherName}
+                          </td>
                           <td className="px-4 py-4 text-slate-600">
                             {item.status.attendance_rate.toFixed(1)}%
                           </td>
                           <td className="px-4 py-4">
                             <span
-                              className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest ${
+                              className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-black tracking-widest uppercase ${
                                 item.status.is_marked
-                                  ? 'bg-emerald-50 text-emerald-700'
-                                  : 'bg-red-50 text-red-700'
+                                  ? "bg-emerald-50 text-emerald-700"
+                                  : "bg-red-50 text-red-700"
                               }`}
                             >
                               {item.status.is_marked ? (
@@ -474,7 +509,7 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
                               ) : (
                                 <Clock className="h-3.5 w-3.5" />
                               )}
-                              {item.status.is_marked ? 'Marked' : 'Pending'}
+                              {item.status.is_marked ? "Marked" : "Pending"}
                             </span>
                           </td>
                           <td className="px-4 py-4 text-right text-slate-500">
@@ -501,16 +536,17 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
               onClick={() => setSelectedSectionId(null)}
             />
             <motion.div
-              initial={{ x: '100%' }}
+              initial={{ x: "100%" }}
               animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 220 }}
-              className="fixed right-0 top-0 z-[100] flex h-full w-full max-w-md flex-col bg-white shadow-2xl"
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 28, stiffness: 220 }}
+              className="fixed top-0 right-0 z-[100] flex h-full w-full max-w-md flex-col bg-white shadow-2xl"
             >
               <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
                 <div>
                   <h3 className="text-base font-black text-slate-900">
-                    {selectedSection.gradeName} • Section {selectedSection.section.name}
+                    {selectedSection.gradeName} • Section{" "}
+                    {selectedSection.section.name}
                   </h3>
                   <p className="mt-1 text-xs text-slate-500">
                     {selectedSection.teacherName}
@@ -525,24 +561,37 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
               </div>
               <div className="flex-1 space-y-5 overflow-y-auto p-6">
                 <div className="grid grid-cols-2 gap-3">
-                  <SideMetric label="Present" value={selectedSection.status.present} />
-                  <SideMetric label="Absent" value={selectedSection.status.absent} />
-                  <SideMetric label="Late" value={selectedSection.status.late} />
-                  <SideMetric label="Excused" value={selectedSection.status.excused} />
+                  <SideMetric
+                    label="Present"
+                    value={selectedSection.status.present}
+                  />
+                  <SideMetric
+                    label="Absent"
+                    value={selectedSection.status.absent}
+                  />
+                  <SideMetric
+                    label="Late"
+                    value={selectedSection.status.late}
+                  />
+                  <SideMetric
+                    label="Excused"
+                    value={selectedSection.status.excused}
+                  />
                 </div>
                 <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
                     Register Status
                   </p>
                   <p className="mt-2 text-lg font-black text-slate-900">
-                    {selectedSection.status.is_marked ? 'Marked' : 'Pending'}
+                    {selectedSection.status.is_marked ? "Marked" : "Pending"}
                   </p>
                   <p className="mt-1 text-sm text-slate-500">
-                    Recorded {formatDateTime(selectedSection.status.recorded_at)}
+                    Recorded{" "}
+                    {formatDateTime(selectedSection.status.recorded_at)}
                   </p>
                 </div>
                 <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
                     Daily Attendance Rate
                   </p>
                   <p className="mt-2 text-3xl font-black text-slate-900">
@@ -551,15 +600,21 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
                 </div>
                 {sectionSummary && (
                   <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
                       Academic Year Snapshot
                     </p>
                     <div className="mt-3 space-y-2 text-sm font-medium text-slate-600">
                       <p>
-                        Average attendance: {sectionSummary.averageAttendance.toFixed(1)}%
+                        Average attendance:{" "}
+                        {sectionSummary.averageAttendance.toFixed(1)}%
                       </p>
-                      <p>Total recorded absences: {sectionSummary.totalAbsent}</p>
-                      <p>Students with chronic flags: {sectionSummary.chronicCount}</p>
+                      <p>
+                        Total recorded absences: {sectionSummary.totalAbsent}
+                      </p>
+                      <p>
+                        Students with chronic flags:{" "}
+                        {sectionSummary.chronicCount}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -569,34 +624,34 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
         )}
       </AnimatePresence>
     </div>
-  );
-};
+  )
+}
 
 function buildGradeBreakdown(
   sectionsWithStatus: Array<{
-    gradeName: string;
-    status: ApiDailyAttendanceStatus;
-  }>,
+    gradeName: string
+    status: ApiDailyAttendanceStatus
+  }>
 ) {
-  const grouped = new Map<string, { total: number; count: number }>();
+  const grouped = new Map<string, { total: number; count: number }>()
   for (const item of sectionsWithStatus) {
-    const current = grouped.get(item.gradeName) ?? { total: 0, count: 0 };
-    current.total += item.status.attendance_rate;
-    current.count += 1;
-    grouped.set(item.gradeName, current);
+    const current = grouped.get(item.gradeName) ?? { total: 0, count: 0 }
+    current.total += item.status.attendance_rate
+    current.count += 1
+    grouped.set(item.gradeName, current)
   }
 
   return [...grouped.entries()].map(([gradeName, value]) => ({
     gradeName,
     rate: value.count > 0 ? value.total / value.count : 0,
-  }));
+  }))
 }
 
 function formatDateTime(value: string | null | undefined) {
-  if (!value) return 'Not recorded';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return format(date, 'MMM d, yyyy HH:mm');
+  if (!value) return "Not recorded"
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return format(date, "MMM d, yyyy HH:mm")
 }
 
 function KpiCard({
@@ -605,45 +660,57 @@ function KpiCard({
   helper,
   icon: Icon,
 }: {
-  label: string;
-  value: string | number;
-  helper: string;
-  icon: React.ComponentType<{ className?: string }>;
+  label: string
+  value: string | number
+  helper: string
+  icon: React.ComponentType<{ className?: string }>
 }) {
   return (
     <div className="rounded-3xl border border-white/10 bg-white/10 p-5">
       <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-primary">
         <Icon className="h-5 w-5" />
       </div>
-      <p className="text-[10px] font-black uppercase tracking-widest text-white/60">
+      <p className="text-[10px] font-black tracking-widest text-white/60 uppercase">
         {label}
       </p>
       <p className="mt-2 text-3xl font-black text-white">{value}</p>
       <p className="mt-2 text-sm text-white/70">{helper}</p>
     </div>
-  );
+  )
 }
 
-function SummaryMetric({ label, value }: { label: string; value: string | number }) {
+function SummaryMetric({
+  label,
+  value,
+}: {
+  label: string
+  value: string | number
+}) {
   return (
     <div>
-      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+      <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
         {label}
       </p>
       <p className="mt-1 text-xl font-black text-slate-900">{value}</p>
     </div>
-  );
+  )
 }
 
-function SideMetric({ label, value }: { label: string; value: string | number }) {
+function SideMetric({
+  label,
+  value,
+}: {
+  label: string
+  value: string | number
+}) {
   return (
     <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+      <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
         {label}
       </p>
       <p className="mt-2 text-2xl font-black text-slate-900">{value}</p>
     </div>
-  );
+  )
 }
 
 function EmptyBlock({ message }: { message: string }) {
@@ -651,5 +718,5 @@ function EmptyBlock({ message }: { message: string }) {
     <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-500">
       {message}
     </div>
-  );
+  )
 }

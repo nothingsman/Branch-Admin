@@ -1,44 +1,46 @@
-
-import React from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Header } from './Header';
-import { Sidebar } from './Sidebar';
-import { ModuleId } from '../types';
-import { ApiUser } from '../lib/api';
+import React from "react"
+import { motion, AnimatePresence } from "motion/react"
+import { Header } from "./Header"
+import { Sidebar } from "./Sidebar"
+import { ModuleId } from "../types"
+import { ApiUser } from "../lib/api"
 
 interface LayoutProps {
-  activeModule: ModuleId;
-  setActiveModule: (module: ModuleId) => void;
-  academicYear: string;
-  user: ApiUser;
-  onLogout: () => void;
-  children: React.ReactNode;
+  activeModule: ModuleId
+  setActiveModule: (module: ModuleId) => void
+  academicYear: string
+  schoolName?: string | null
+  user: ApiUser
+  onLogout: () => void
+  children: React.ReactNode
 }
 
-export const Layout: React.FC<LayoutProps> = ({ 
-  activeModule, 
-  setActiveModule, 
+export const Layout: React.FC<LayoutProps> = ({
+  activeModule,
+  setActiveModule,
   academicYear,
+  schoolName,
   user,
   onLogout,
-  children 
+  children,
 }) => {
-  const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = React.useState(false)
 
   return (
     <div className="flex min-h-screen bg-surface">
-      <Sidebar 
-        activeModule={activeModule} 
+      <Sidebar
+        activeModule={activeModule}
         setActiveModule={setActiveModule}
         academicYear={academicYear}
+        schoolName={schoolName}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         user={user}
         onLogout={onLogout}
       />
-      <main className="flex-1 flex flex-col h-screen overflow-hidden lg:ml-64 transition-all duration-300">
-        <Header 
-          activeModule={activeModule} 
+      <main className="flex h-screen flex-1 flex-col overflow-hidden transition-all duration-300 lg:ml-[17rem]">
+        <Header
+          activeModule={activeModule}
           onMenuClick={() => setIsSidebarOpen(true)}
         />
         <div className="flex-1 overflow-y-auto">
@@ -56,5 +58,5 @@ export const Layout: React.FC<LayoutProps> = ({
         </div>
       </main>
     </div>
-  );
-};
+  )
+}

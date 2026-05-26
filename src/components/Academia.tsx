@@ -1,40 +1,43 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from "react"
 import {
   AlertCircle,
+  ArrowLeft,
   Book,
-  BookOpen,
   GraduationCap,
   Loader2,
+  Pencil,
   Plus,
   Trash2,
   Users,
   X,
-} from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+} from "lucide-react"
+import { AnimatePresence, motion } from "motion/react"
 import {
   academiaApi,
   ApiGrade,
   ApiHomeroomAssignment,
   ApiSection,
+  ApiStudent,
   ApiSubject,
   ApiTeacher,
   ApiTeacherAssignment,
+  studentsApi,
   teachersApi,
-} from '../lib/api';
-import { useApiQuery } from '../hooks/useApiQuery';
-import { useGrades } from '../hooks/useGrades';
-import { useSections } from '../hooks/useSections';
+} from "../lib/api"
+import { useApiQuery } from "../hooks/useApiQuery"
+import { useGrades } from "../hooks/useGrades"
+import { useSections } from "../hooks/useSections"
 import {
   useHomeroomAssignments,
   useTeacherAssignments,
   useTeachers,
-} from '../hooks/useTeachers';
+} from "../hooks/useTeachers"
 
 interface AcademiaProps {
-  academicYearLabel: string;
-  academicYearId: string | null;
-  organizationId: string | null;
-  branchId: string | null;
+  academicYearLabel: string
+  academicYearId: string | null
+  organizationId: string | null
+  branchId: string | null
 }
 
 export const Academia: React.FC<AcademiaProps> = ({
@@ -43,32 +46,47 @@ export const Academia: React.FC<AcademiaProps> = ({
   organizationId,
   branchId,
 }) => {
-  const [activeTab, setActiveTab] = useState<'sections' | 'subjects' | 'roles'>(
-    'sections',
-  );
-  const [showGradeModal, setShowGradeModal] = useState(false);
-  const [showSectionModal, setShowSectionModal] = useState(false);
-  const [sectionGradeId, setSectionGradeId] = useState<string>('');
-  const [showSubjectModal, setShowSubjectModal] = useState(false);
-  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<"sections" | "subjects" | "roles">(
+    "sections"
+  )
+  const [showGradeModal, setShowGradeModal] = useState(false)
+  const [showSectionModal, setShowSectionModal] = useState(false)
+  const [sectionGradeId, setSectionGradeId] = useState<string>("")
+  const [showSubjectModal, setShowSubjectModal] = useState(false)
+  const [editingSubject, setEditingSubject] = useState<ApiSubject | null>(null)
+  const [showRoleModal, setShowRoleModal] = useState(false)
+  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(
+    null
+  )
+  const [subjectAssignmentTarget, setSubjectAssignmentTarget] = useState<{
+    section: ApiSection
+    grade: ApiGrade
+    subject: ApiSubject
+    assignment: ApiTeacherAssignment | null
+  } | null>(null)
+  const [homeroomTarget, setHomeroomTarget] = useState<{
+    section: ApiSection
+    grade: ApiGrade
+    assignment: ApiHomeroomAssignment | null
+  } | null>(null)
   const [deleting, setDeleting] = useState<{
-    type: 'grade' | 'section' | 'subject';
-    id: string;
-    label: string;
-  } | null>(null);
+    type: "grade" | "section" | "subject"
+    id: string
+    label: string
+  } | null>(null)
 
   const {
     grades,
     isLoading: gradesLoading,
     error: gradesError,
     refetch: refetchGrades,
-  } = useGrades(branchId);
+  } = useGrades(branchId)
   const {
     sections,
     isLoading: sectionsLoading,
     error: sectionsError,
     refetch: refetchSections,
-  } = useSections(branchId, academicYearId);
+  } = useSections(branchId, academicYearId)
   const {
     data: subjectsData,
     isLoading: subjectsLoading,
@@ -76,25 +94,44 @@ export const Academia: React.FC<AcademiaProps> = ({
     refetch: refetchSubjects,
   } = useApiQuery<ApiSubject[]>(
     branchId ? () => academiaApi.getSubjects(branchId) : null,
-    [branchId],
-  );
+    [branchId]
+  )
   const {
     teachers,
     isLoading: teachersLoading,
     error: teachersError,
-  } = useTeachers({ branchId, organizationId });
+  } = useTeachers({ branchId, organizationId })
   const {
     assignments,
     isLoading: assignmentsLoading,
     error: assignmentsError,
     refetch: refetchAssignments,
-  } = useTeacherAssignments({ organizationId, academicYearId });
+  } = useTeacherAssignments({ organizationId, academicYearId })
   const {
     homeroomAssignments,
     isLoading: homeroomLoading,
     error: homeroomError,
     refetch: refetchHomeroomAssignments,
-  } = useHomeroomAssignments({ branchId, organizationId, academicYearId });
+  } = useHomeroomAssignments({ branchId, organizationId, academicYearId })
+  const {
+    data: sectionStudents,
+    isLoading: studentCountsLoading,
+    error: studentCountsError,
+  } = useApiQuery<Record<string, ApiStudent[]>>(
+    branchId && sections.length > 0
+      ? async () => {
+          const entries = await Promise.all(
+            sections.map(
+              async (section) =>
+                [section.id, await studentsApi.bySection(section.id)] as const
+            )
+          )
+
+          return Object.fromEntries(entries)
+        }
+      : null,
+    [branchId, academicYearId, sections.map((section) => section.id).join("|")]
+  )
 
   const isLoading =
     gradesLoading ||
@@ -102,93 +139,203 @@ export const Academia: React.FC<AcademiaProps> = ({
     subjectsLoading ||
     teachersLoading ||
     assignmentsLoading ||
-    homeroomLoading;
+    homeroomLoading ||
+    studentCountsLoading
   const error =
     gradesError ||
     sectionsError ||
     subjectsError ||
     teachersError ||
     assignmentsError ||
-    homeroomError;
-  const subjects = subjectsData ?? [];
+    homeroomError ||
+    studentCountsError
+  const subjects = subjectsData ?? []
+  const sectionStudentsMap = sectionStudents ?? {}
 
   const refreshAll = () => {
-    refetchGrades();
-    refetchSections();
-    refetchSubjects();
-    refetchAssignments();
-    refetchHomeroomAssignments();
-  };
+    refetchGrades()
+    refetchSections()
+    refetchSubjects()
+    refetchAssignments()
+    refetchHomeroomAssignments()
+  }
 
-  const openSectionModal = (gradeId = '') => {
-    setSectionGradeId(gradeId);
-    setShowSectionModal(true);
-  };
+  const openSectionModal = (gradeId = "") => {
+    setSectionGradeId(gradeId)
+    setShowSectionModal(true)
+  }
+
+  const getSectionStudentCount = (sectionId: string) => {
+    const students = sectionStudentsMap[sectionId] ?? []
+    if (!academicYearId) return students.length
+    return students.filter(
+      (student) => student.academic_year_id === academicYearId
+    ).length
+  }
 
   const sectionCards = useMemo(() => {
     return grades.map((grade) => ({
       grade,
       sections: sections
         .filter((section) => section.grade === grade.id)
-        .sort((left, right) => left.name.localeCompare(right.name, undefined, { numeric: true }))
+        .sort((left, right) =>
+          left.name.localeCompare(right.name, undefined, { numeric: true })
+        )
         .map((section) => ({
           section,
+          studentCount: getSectionStudentCount(section.id),
+          subjectCount: subjects.filter((subject) => subject.grade === grade.id)
+            .length,
+          unassignedSubjectCount: subjects.filter((subject) => {
+            if (subject.grade !== grade.id) return false
+            return !assignments.some(
+              (assignment) =>
+                assignment.section === section.id &&
+                assignment.subject === subject.id
+            )
+          }).length,
           homeroomTeacherName:
-            homeroomAssignments.find((assignment) => assignment.section === section.id)
-              ?.teacher_name ?? 'No homeroom teacher assigned',
+            homeroomAssignments.find(
+              (assignment) => assignment.section === section.id
+            )?.teacher_name ?? "No homeroom teacher assigned",
         })),
-    }));
-  }, [grades, homeroomAssignments, sections]);
+    }))
+  }, [
+    academicYearId,
+    assignments,
+    grades,
+    homeroomAssignments,
+    sectionStudentsMap,
+    sections,
+    subjects,
+  ])
 
   const roleRows = useMemo(() => {
     return sections
       .map((section) => {
-        const grade = grades.find((item) => item.id === section.grade);
+        const grade = grades.find((item) => item.id === section.grade)
         const sectionAssignments = assignments.filter(
-          (assignment) => assignment.section === section.id,
-        );
+          (assignment) => assignment.section === section.id
+        )
         const homeroom = homeroomAssignments.find(
-          (assignment) => assignment.section === section.id,
-        );
+          (assignment) => assignment.section === section.id
+        )
         return {
           section,
-          gradeName: grade?.name ?? 'Unknown Grade',
+          gradeName: grade?.name ?? "Unknown Grade",
           homeroom,
           subjectAssignments: sectionAssignments,
-        };
+        }
       })
       .sort((left, right) => {
-        const gradeComparison = left.gradeName.localeCompare(right.gradeName, undefined, {
-          numeric: true,
-        });
-        if (gradeComparison !== 0) return gradeComparison;
+        const gradeComparison = left.gradeName.localeCompare(
+          right.gradeName,
+          undefined,
+          {
+            numeric: true,
+          }
+        )
+        if (gradeComparison !== 0) return gradeComparison
         return left.section.name.localeCompare(right.section.name, undefined, {
           numeric: true,
-        });
-      });
-  }, [assignments, grades, homeroomAssignments, sections]);
+        })
+      })
+  }, [assignments, grades, homeroomAssignments, sections])
+
+  const selectedSection = useMemo(
+    () => sections.find((section) => section.id === selectedSectionId) ?? null,
+    [sections, selectedSectionId]
+  )
+  const selectedGrade = useMemo(
+    () =>
+      selectedSection
+        ? (grades.find((grade) => grade.id === selectedSection.grade) ?? null)
+        : null,
+    [grades, selectedSection]
+  )
+  const selectedHomeroom = useMemo(
+    () =>
+      selectedSection
+        ? (homeroomAssignments.find(
+            (assignment) => assignment.section === selectedSection.id
+          ) ?? null)
+        : null,
+    [homeroomAssignments, selectedSection]
+  )
+  const selectedSectionAssignments = useMemo(
+    () =>
+      selectedSection
+        ? assignments.filter(
+            (assignment) => assignment.section === selectedSection.id
+          )
+        : [],
+    [assignments, selectedSection]
+  )
+  const selectedSectionSubjects = useMemo(
+    () =>
+      selectedGrade
+        ? subjects.filter((subject) => subject.grade === selectedGrade.id)
+        : [],
+    [selectedGrade, subjects]
+  )
+  const selectedStudentCount = selectedSection
+    ? getSectionStudentCount(selectedSection.id)
+    : 0
+  const unassignedSections = useMemo(
+    () =>
+      sections.filter((section) => {
+        const gradeSubjects = subjects.filter(
+          (subject) => subject.grade === section.grade
+        )
+        const hasHomeroom = homeroomAssignments.some(
+          (assignment) => assignment.section === section.id
+        )
+
+        return (
+          !hasHomeroom ||
+          gradeSubjects.some(
+            (subject) =>
+              !assignments.some(
+                (assignment) =>
+                  assignment.section === section.id &&
+                  assignment.subject === subject.id
+              )
+          )
+        )
+      }).length,
+    [assignments, homeroomAssignments, sections, subjects]
+  )
+
+  useEffect(() => {
+    if (
+      selectedSectionId &&
+      !sections.some((section) => section.id === selectedSectionId)
+    ) {
+      setSelectedSectionId(null)
+    }
+  }, [sections, selectedSectionId])
 
   const stats = useMemo(
     () => ({
       grades: grades.length,
       sections: sections.length,
       subjects: subjects.length,
-      homerooms: homeroomAssignments.length,
+      unassignedSections,
     }),
-    [grades.length, homeroomAssignments.length, sections.length, subjects.length],
-  );
+    [grades.length, sections.length, subjects.length, unassignedSections]
+  )
 
   if (isLoading) {
     return (
-      <div className="flex h-full items-center justify-center bg-slate-50">
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-xs font-black uppercase tracking-widest text-slate-500">
+          <p className="text-xs font-black tracking-widest text-slate-500 uppercase">
             Loading academia
           </p>
         </div>
       </div>
-    );
+    )
   }
 
   if (error) {
@@ -200,7 +347,7 @@ export const Academia: React.FC<AcademiaProps> = ({
           <p className="mt-2 text-sm text-red-600">{error}</p>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -243,31 +390,48 @@ export const Academia: React.FC<AcademiaProps> = ({
           </div>
 
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <StatCard label="Grades" value={stats.grades} icon={GraduationCap} />
-            <StatCard label="Sections" value={stats.sections} icon={Users} />
-            <StatCard label="Subjects" value={stats.subjects} icon={Book} />
-            <StatCard label="Homerooms" value={stats.homerooms} icon={BookOpen} />
+            <StatCard
+              label="Grade Levels"
+              value={stats.grades}
+              icon={GraduationCap}
+            />
+            <StatCard
+              label="Total Sections"
+              value={stats.sections}
+              icon={Users}
+            />
+            <StatCard
+              label="Total Subjects"
+              value={stats.subjects}
+              icon={Book}
+            />
+            <StatCard
+              label="Unassigned Sections"
+              value={stats.unassignedSections}
+              icon={AlertCircle}
+            />
           </div>
 
           {!academicYearId && (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
-              No academic year is available. Create or mark an academic year as current in the backend before adding sections or role assignments.
+              No academic year is available. Create or mark an academic year as
+              current in the backend before adding sections or role assignments.
             </div>
           )}
 
           <div className="flex gap-2 rounded-2xl border border-slate-100 bg-slate-50 p-1">
             {[
-              { id: 'sections', label: 'Sections', icon: Users },
-              { id: 'subjects', label: 'Subjects', icon: Book },
-              { id: 'roles', label: 'Roles', icon: GraduationCap },
+              { id: "sections", label: "Sections", icon: Users },
+              { id: "subjects", label: "Subjects", icon: Book },
+              { id: "roles", label: "Roles", icon: GraduationCap },
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest ${
+                className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-black tracking-widest uppercase ${
                   activeTab === tab.id
-                    ? 'bg-white text-primary shadow-sm'
-                    : 'text-slate-500'
+                    ? "bg-white text-primary shadow-sm"
+                    : "text-slate-500"
                 }`}
               >
                 <tab.icon className="h-4 w-4" />
@@ -279,86 +443,193 @@ export const Academia: React.FC<AcademiaProps> = ({
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 md:p-6">
-        {activeTab === 'sections' && (
-          <div className="space-y-6">
-            {sectionCards.map(({ grade, sections: gradeSections }) => (
-              <section
-                key={grade.id}
-                className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm"
-              >
-                <div className="mb-4 flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-black text-slate-900">{grade.name}</h2>
-                    <p className="text-xs text-slate-500">
-                      {gradeSections.length} sections
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => openSectionModal(grade.id)}
-                      disabled={!academicYearId}
-                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      Add Section
-                    </button>
+        {activeTab === "sections" && (
+          <div className="relative min-h-full">
+            <div
+              className={`space-y-6 transition-all duration-300 ${
+                selectedSection ? "pointer-events-none blur-[2px]" : ""
+              }`}
+            >
+              {sectionCards.map(({ grade, sections: gradeSections }) => (
+                <section
+                  key={grade.id}
+                  className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_18px_50px_rgba(15,23,42,0.05)]"
+                >
+                  <div className="mb-5 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-black text-slate-700">
+                        {grade.level}
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-black text-slate-900 uppercase">
+                          {grade.name}
+                        </h2>
+                        <p className="text-xs font-medium tracking-widest text-slate-400 uppercase">
+                          {gradeSections.length} sections
+                        </p>
+                      </div>
+                    </div>
                     <button
                       onClick={() =>
                         setDeleting({
-                          type: 'grade',
+                          type: "grade",
                           id: grade.id,
                           label: grade.name,
                         })
                       }
-                      className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs font-black text-red-700"
+                      className="rounded-xl p-2 text-slate-300 transition hover:bg-red-50 hover:text-red-600"
                     >
-                      Delete Grade
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
-                </div>
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                  {gradeSections.map(({ section, homeroomTeacherName }) => (
-                    <div
-                      key={section.id}
-                      className="rounded-2xl border border-slate-100 bg-slate-50 p-4"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-black text-slate-900">
-                            Section {section.name}
-                          </p>
-                          <p className="mt-1 text-xs text-slate-500">
-                            {homeroomTeacherName}
-                          </p>
-                        </div>
+
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    {gradeSections.map(
+                      ({
+                        section,
+                        studentCount,
+                        subjectCount,
+                        unassignedSubjectCount,
+                        homeroomTeacherName,
+                      }) => (
                         <button
-                          onClick={() =>
-                            setDeleting({
-                              type: 'section',
-                              id: section.id,
-                              label: `${grade.name} ${section.name}`,
-                            })
-                          }
-                          className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                          key={section.id}
+                          type="button"
+                          onClick={() => setSelectedSectionId(section.id)}
+                          className={`group rounded-[1.75rem] border p-4 text-left transition-all ${
+                            selectedSectionId === section.id
+                              ? "border-primary bg-primary/[0.03] shadow-lg shadow-primary/10"
+                              : "border-slate-100 bg-white hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-md"
+                          }`}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          {(() => {
+                            const hasHomeroom =
+                              homeroomTeacherName !==
+                              "No homeroom teacher assigned"
+
+                            return (
+                              <>
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <p className="text-[10px] font-black tracking-[0.28em] text-slate-400 uppercase">
+                                      Section
+                                    </p>
+                                    <p className="mt-1 text-4xl leading-none font-black text-slate-900">
+                                      {section.name}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-1 text-xs font-bold text-slate-400">
+                                    <Users className="h-3.5 w-3.5" />
+                                    <span>{studentCount}</span>
+                                  </div>
+                                </div>
+
+                                <div
+                                  className={`mt-5 rounded-2xl px-3 py-2.5 ${
+                                    hasHomeroom
+                                      ? "border border-emerald-100 bg-emerald-50/80"
+                                      : "border border-rose-100 bg-rose-50/70"
+                                  }`}
+                                >
+                                  <p
+                                    className={`text-[11px] font-black ${
+                                      hasHomeroom
+                                        ? "text-emerald-600"
+                                        : "text-rose-500"
+                                    }`}
+                                  >
+                                    {hasHomeroom
+                                      ? homeroomTeacherName
+                                      : "No Homeroom"}
+                                  </p>
+                                  <p className="mt-1 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
+                                    {hasHomeroom ? "Homeroom lead" : "HT lead"}
+                                  </p>
+                                </div>
+
+                                <div className="mt-4 flex items-center justify-between text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                                  <span>{subjectCount} subjects</span>
+                                  <span>
+                                    {unassignedSubjectCount > 0
+                                      ? `${unassignedSubjectCount} unassigned`
+                                      : "fully assigned"}
+                                  </span>
+                                </div>
+                              </>
+                            )
+                          })()}
                         </button>
+                      )
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => openSectionModal(grade.id)}
+                      disabled={!academicYearId}
+                      className="flex min-h-[15.5rem] flex-col items-center justify-center rounded-[1.75rem] border border-dashed border-slate-200 bg-slate-50/70 text-center transition hover:border-primary/30 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm">
+                        <Plus className="h-5 w-5" />
                       </div>
-                    </div>
-                  ))}
+                      <p className="text-[11px] font-black tracking-widest text-slate-500 uppercase">
+                        Add Section
+                      </p>
+                    </button>
+                  </div>
+
                   {gradeSections.length === 0 && (
-                    <EmptyState message="No sections created for this grade." />
+                    <div className="mt-4">
+                      <EmptyState message="No sections created for this grade." />
+                    </div>
                   )}
-                </div>
-              </section>
-            ))}
+                </section>
+              ))}
+            </div>
+
+            <AnimatePresence>
+              {selectedSection && selectedGrade && (
+                <SectionDetailsDrawer
+                  academicYearLabel={academicYearLabel}
+                  grade={selectedGrade}
+                  section={selectedSection}
+                  subjects={selectedSectionSubjects}
+                  assignments={selectedSectionAssignments}
+                  homeroomAssignment={selectedHomeroom}
+                  studentCount={selectedStudentCount}
+                  onClose={() => setSelectedSectionId(null)}
+                  onDeleteSection={() =>
+                    setDeleting({
+                      type: "section",
+                      id: selectedSection.id,
+                      label: `${selectedGrade.name} ${selectedSection.name}`,
+                    })
+                  }
+                  onAssignSubject={(subject, assignment) =>
+                    setSubjectAssignmentTarget({
+                      section: selectedSection,
+                      grade: selectedGrade,
+                      subject,
+                      assignment,
+                    })
+                  }
+                  onAssignHomeroom={() =>
+                    setHomeroomTarget({
+                      section: selectedSection,
+                      grade: selectedGrade,
+                      assignment: selectedHomeroom,
+                    })
+                  }
+                />
+              )}
+            </AnimatePresence>
           </div>
         )}
 
-        {activeTab === 'subjects' && (
+        {activeTab === "subjects" && (
           <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
             <div className="space-y-3">
               {subjects.map((subject) => {
-                const grade = grades.find((item) => item.id === subject.grade);
+                const grade = grades.find((item) => item.id === subject.grade)
                 return (
                   <div
                     key={subject.id}
@@ -369,23 +640,35 @@ export const Academia: React.FC<AcademiaProps> = ({
                         {subject.name}
                       </p>
                       <p className="mt-1 text-xs text-slate-500">
-                        {subject.code} • {grade?.name ?? 'Unknown Grade'}
+                        {subject.code} • {grade?.name ?? "Unknown Grade"}
                       </p>
                     </div>
-                    <button
-                      onClick={() =>
-                        setDeleting({
-                          type: 'subject',
-                          id: subject.id,
-                          label: subject.name,
-                        })
-                      }
-                      className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs font-black text-red-700"
-                    >
-                      Delete
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditingSubject(subject)}
+                        className="rounded-xl border border-slate-200 bg-white p-2.5 text-slate-500 transition hover:border-primary/30 hover:text-primary"
+                        aria-label={`Edit ${subject.name}`}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDeleting({
+                            type: "subject",
+                            id: subject.id,
+                            label: subject.name,
+                          })
+                        }
+                        className="rounded-xl border border-red-100 bg-red-50 p-2.5 text-red-700 transition hover:bg-red-100"
+                        aria-label={`Delete ${subject.name}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
-                );
+                )
               })}
               {subjects.length === 0 && (
                 <EmptyState message="No subjects created yet." />
@@ -394,12 +677,12 @@ export const Academia: React.FC<AcademiaProps> = ({
           </section>
         )}
 
-        {activeTab === 'roles' && (
+        {activeTab === "roles" && (
           <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[760px] text-left">
                 <thead>
-                  <tr className="border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  <tr className="border-b border-slate-100 text-[10px] font-black tracking-widest text-slate-400 uppercase">
                     <th className="px-4 py-3">Section</th>
                     <th className="px-4 py-3">Homeroom</th>
                     <th className="px-4 py-3">Subject Assignments</th>
@@ -408,14 +691,17 @@ export const Academia: React.FC<AcademiaProps> = ({
                 </thead>
                 <tbody>
                   {roleRows.map((row) => (
-                    <tr key={row.section.id} className="border-b border-slate-50">
+                    <tr
+                      key={row.section.id}
+                      className="border-b border-slate-50"
+                    >
                       <td className="px-4 py-4">
                         <p className="text-sm font-black text-slate-900">
                           {row.gradeName} • Section {row.section.name}
                         </p>
                       </td>
                       <td className="px-4 py-4 text-sm text-slate-600">
-                        {row.homeroom?.teacher_name ?? 'Unassigned'}
+                        {row.homeroom?.teacher_name ?? "Unassigned"}
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex flex-wrap gap-2">
@@ -423,13 +709,16 @@ export const Academia: React.FC<AcademiaProps> = ({
                             row.subjectAssignments.map((assignment) => (
                               <span
                                 key={assignment.id}
-                                className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-slate-600"
+                                className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black tracking-widest text-slate-600 uppercase"
                               >
-                                {assignment.subject_name} - {assignment.teacher_name}
+                                {assignment.subject_name} -{" "}
+                                {assignment.teacher_name}
                               </span>
                             ))
                           ) : (
-                            <span className="text-sm text-slate-400">No subject assignments</span>
+                            <span className="text-sm text-slate-400">
+                              No subject assignments
+                            </span>
                           )}
                         </div>
                       </td>
@@ -458,8 +747,8 @@ export const Academia: React.FC<AcademiaProps> = ({
             existingCount={grades.length}
             onClose={() => setShowGradeModal(false)}
             onSuccess={() => {
-              setShowGradeModal(false);
-              refreshAll();
+              setShowGradeModal(false)
+              refreshAll()
             }}
           />
         )}
@@ -472,9 +761,9 @@ export const Academia: React.FC<AcademiaProps> = ({
             initialGradeId={sectionGradeId}
             onClose={() => setShowSectionModal(false)}
             onSuccess={() => {
-              setShowSectionModal(false);
-              setSectionGradeId('');
-              refreshAll();
+              setShowSectionModal(false)
+              setSectionGradeId("")
+              refreshAll()
             }}
           />
         )}
@@ -485,8 +774,21 @@ export const Academia: React.FC<AcademiaProps> = ({
             grades={grades}
             onClose={() => setShowSubjectModal(false)}
             onSuccess={() => {
-              setShowSubjectModal(false);
-              refreshAll();
+              setShowSubjectModal(false)
+              refreshAll()
+            }}
+          />
+        )}
+        {editingSubject && branchId && organizationId && (
+          <SubjectModal
+            branchId={branchId}
+            organizationId={organizationId}
+            grades={grades}
+            subject={editingSubject}
+            onClose={() => setEditingSubject(null)}
+            onSuccess={() => {
+              setEditingSubject(null)
+              refreshAll()
             }}
           />
         )}
@@ -503,8 +805,40 @@ export const Academia: React.FC<AcademiaProps> = ({
             homeroomAssignments={homeroomAssignments}
             onClose={() => setShowRoleModal(false)}
             onSuccess={() => {
-              setShowRoleModal(false);
-              refreshAll();
+              setShowRoleModal(false)
+              refreshAll()
+            }}
+          />
+        )}
+        {subjectAssignmentTarget && organizationId && academicYearId && (
+          <SubjectAssignmentModal
+            organizationId={organizationId}
+            academicYearId={academicYearId}
+            section={subjectAssignmentTarget.section}
+            grade={subjectAssignmentTarget.grade}
+            subject={subjectAssignmentTarget.subject}
+            teachers={teachers}
+            existingAssignment={subjectAssignmentTarget.assignment}
+            onClose={() => setSubjectAssignmentTarget(null)}
+            onSuccess={() => {
+              setSubjectAssignmentTarget(null)
+              refreshAll()
+            }}
+          />
+        )}
+        {homeroomTarget && organizationId && branchId && academicYearId && (
+          <HomeroomAssignmentModal
+            organizationId={organizationId}
+            branchId={branchId}
+            academicYearId={academicYearId}
+            section={homeroomTarget.section}
+            grade={homeroomTarget.grade}
+            teachers={teachers}
+            existingAssignment={homeroomTarget.assignment}
+            onClose={() => setHomeroomTarget(null)}
+            onSuccess={() => {
+              setHomeroomTarget(null)
+              refreshAll()
             }}
           />
         )}
@@ -513,22 +847,25 @@ export const Academia: React.FC<AcademiaProps> = ({
             label={deleting.label}
             onClose={() => setDeleting(null)}
             onConfirm={async () => {
-              if (deleting.type === 'grade') {
-                await academiaApi.deleteGrade(deleting.id);
-              } else if (deleting.type === 'section') {
-                await academiaApi.deleteSection(deleting.id);
+              if (deleting.type === "grade") {
+                await academiaApi.deleteGrade(deleting.id)
+              } else if (deleting.type === "section") {
+                await academiaApi.deleteSection(deleting.id)
+                if (selectedSectionId === deleting.id) {
+                  setSelectedSectionId(null)
+                }
               } else {
-                await academiaApi.deleteSubject(deleting.id);
+                await academiaApi.deleteSubject(deleting.id)
               }
-              setDeleting(null);
-              refreshAll();
+              setDeleting(null)
+              refreshAll()
             }}
           />
         )}
       </AnimatePresence>
     </div>
-  );
-};
+  )
+}
 
 function GradeModal({
   branchId,
@@ -537,14 +874,14 @@ function GradeModal({
   onClose,
   onSuccess,
 }: {
-  branchId: string;
-  organizationId: string;
-  existingCount: number;
-  onClose: () => void;
-  onSuccess: () => void;
+  branchId: string
+  organizationId: string
+  existingCount: number
+  onClose: () => void
+  onSuccess: () => void
 }) {
-  const [name, setName] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [name, setName] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   return (
     <ModalFrame title="Create Grade" onClose={onClose}>
@@ -553,22 +890,22 @@ function GradeModal({
         onClose={onClose}
         disabled={!name || isSubmitting}
         onSubmit={async () => {
-          setIsSubmitting(true);
+          setIsSubmitting(true)
           try {
             await academiaApi.createGrade({
               organization: organizationId,
               branch: branchId,
               name,
-              level: parseInt(name.replace(/\D/g, ''), 10) || existingCount + 1,
-            });
-            onSuccess();
+              level: parseInt(name.replace(/\D/g, ""), 10) || existingCount + 1,
+            })
+            onSuccess()
           } finally {
-            setIsSubmitting(false);
+            setIsSubmitting(false)
           }
         }}
       />
     </ModalFrame>
-  );
+  )
 }
 
 function SectionModal({
@@ -580,23 +917,23 @@ function SectionModal({
   onClose,
   onSuccess,
 }: {
-  branchId: string;
-  organizationId: string;
-  academicYearId: string;
-  grades: ApiGrade[];
-  initialGradeId?: string;
-  onClose: () => void;
-  onSuccess: () => void;
+  branchId: string
+  organizationId: string
+  academicYearId: string
+  grades: ApiGrade[]
+  initialGradeId?: string
+  onClose: () => void
+  onSuccess: () => void
 }) {
-  const [gradeId, setGradeId] = useState(initialGradeId ?? '');
-  const [name, setName] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [gradeId, setGradeId] = useState(initialGradeId ?? "")
+  const [name, setName] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   return (
     <ModalFrame title="Create Section" onClose={onClose}>
       <div className="space-y-4">
         <label className="block space-y-2">
-          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+          <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
             Grade
           </span>
           <select
@@ -618,7 +955,7 @@ function SectionModal({
         onClose={onClose}
         disabled={!gradeId || !name || isSubmitting}
         onSubmit={async () => {
-          setIsSubmitting(true);
+          setIsSubmitting(true)
           try {
             await academiaApi.createSection({
               organization: organizationId,
@@ -626,70 +963,81 @@ function SectionModal({
               grade: gradeId,
               academic_year: academicYearId,
               name: name.toUpperCase(),
-            });
-            onSuccess();
+            })
+            onSuccess()
           } finally {
-            setIsSubmitting(false);
+            setIsSubmitting(false)
           }
         }}
       />
     </ModalFrame>
-  );
+  )
 }
 
 function SubjectModal({
   branchId,
   organizationId,
   grades,
+  subject,
   onClose,
   onSuccess,
 }: {
-  branchId: string;
-  organizationId: string;
-  grades: ApiGrade[];
-  onClose: () => void;
-  onSuccess: () => void;
+  branchId: string
+  organizationId: string
+  grades: ApiGrade[]
+  subject?: ApiSubject
+  onClose: () => void
+  onSuccess: () => void
 }) {
-  const [gradeIds, setGradeIds] = useState<string[]>([]);
-  const [name, setName] = useState('');
-  const [code, setCode] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isEditMode = Boolean(subject)
+  const [gradeIds, setGradeIds] = useState<string[]>(
+    subject ? [subject.grade] : []
+  )
+  const [name, setName] = useState(subject?.name ?? "")
+  const [code, setCode] = useState(subject?.code ?? "")
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   return (
-    <ModalFrame title="Create Subject" onClose={onClose}>
+    <ModalFrame
+      title={isEditMode ? "Edit Subject" : "Create Subject"}
+      onClose={onClose}
+    >
       <div className="space-y-4">
         <div className="space-y-2">
-          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+          <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
             Grades
           </span>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {grades.map((grade) => {
-              const selected = gradeIds.includes(grade.id);
+              const selected = gradeIds.includes(grade.id)
               return (
                 <button
                   key={grade.id}
                   type="button"
+                  disabled={isEditMode}
                   onClick={() =>
                     setGradeIds((current) =>
                       current.includes(grade.id)
                         ? current.filter((id) => id !== grade.id)
-                        : [...current, grade.id],
+                        : [...current, grade.id]
                     )
                   }
                   className={`rounded-2xl border px-4 py-3 text-left text-sm font-black transition ${
                     selected
-                      ? 'border-primary bg-primary text-white shadow-lg shadow-primary/20'
-                      : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-primary/30 hover:bg-white'
+                      ? "border-primary bg-primary text-white shadow-lg shadow-primary/20"
+                      : "border-slate-200 bg-slate-50 text-slate-700 hover:border-primary/30 hover:bg-white"
                   }`}
                 >
                   {grade.name}
                 </button>
-              );
+              )
             })}
           </div>
         </div>
         <p className="text-xs text-slate-500">
-          Select one or more grades. The subject will be created for each selected grade.
+          {isEditMode
+            ? "Grade cannot be changed while editing an existing subject."
+            : "Select one or more grades. The subject will be created for each selected grade."}
         </p>
         <InputField label="Subject Name" value={name} onChange={setName} />
         <InputField label="Subject Code" value={code} onChange={setCode} />
@@ -698,26 +1046,402 @@ function SubjectModal({
         onClose={onClose}
         disabled={gradeIds.length === 0 || !name || !code || isSubmitting}
         onSubmit={async () => {
-          setIsSubmitting(true);
+          setIsSubmitting(true)
           try {
-            for (const gradeId of gradeIds) {
-              const subject = await academiaApi.createSubject({
-                organization: organizationId,
-                branch: branchId,
-                grade: gradeId,
+            if (subject) {
+              await academiaApi.updateSubject(subject.id, {
                 name,
                 code,
-              });
-              await academiaApi.linkGradeSubject(organizationId, gradeId, subject.id);
+              })
+            } else {
+              for (const gradeId of gradeIds) {
+                const createdSubject = await academiaApi.createSubject({
+                  organization: organizationId,
+                  branch: branchId,
+                  grade: gradeId,
+                  name,
+                  code,
+                })
+                await academiaApi.linkGradeSubject(
+                  organizationId,
+                  gradeId,
+                  createdSubject.id
+                )
+              }
             }
-            onSuccess();
+            onSuccess()
           } finally {
-            setIsSubmitting(false);
+            setIsSubmitting(false)
+          }
+        }}
+        submitLabel={isEditMode ? "Save Changes" : "Create Subject"}
+      />
+    </ModalFrame>
+  )
+}
+
+function SectionDetailsDrawer({
+  academicYearLabel,
+  grade,
+  section,
+  subjects,
+  assignments,
+  homeroomAssignment,
+  studentCount,
+  onClose,
+  onDeleteSection,
+  onAssignSubject,
+  onAssignHomeroom,
+}: {
+  academicYearLabel: string
+  grade: ApiGrade
+  section: ApiSection
+  subjects: ApiSubject[]
+  assignments: ApiTeacherAssignment[]
+  homeroomAssignment: ApiHomeroomAssignment | null
+  studentCount: number
+  onClose: () => void
+  onDeleteSection: () => void
+  onAssignSubject: (
+    subject: ApiSubject,
+    assignment: ApiTeacherAssignment | null
+  ) => void
+  onAssignHomeroom: () => void
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="absolute inset-0 z-30 flex justify-end"
+    >
+      <button
+        type="button"
+        aria-label="Close section details"
+        onClick={onClose}
+        className="absolute inset-0 bg-slate-950/12 backdrop-blur-[2px]"
+      />
+
+      <motion.aside
+        initial={{ x: 80, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        exit={{ x: 80, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 280, damping: 30 }}
+        className="relative flex h-full w-full max-w-xl flex-col border-l border-slate-200 bg-white shadow-[0_30px_80px_rgba(15,23,42,0.16)]"
+      >
+        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="rounded-full bg-primary px-3 py-1 text-[10px] font-black tracking-widest text-white uppercase">
+              {academicYearLabel}
+            </div>
+            <button
+              type="button"
+              onClick={onDeleteSection}
+              className="rounded-xl p-2 text-slate-300 transition hover:bg-red-50 hover:text-red-600"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 py-6">
+          <div className="mb-8 flex items-start gap-4">
+            <div className="flex h-20 w-20 items-center justify-center rounded-[1.75rem] bg-emerald-50 text-emerald-500">
+              <Users className="h-9 w-9" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-3xl font-black tracking-tight text-slate-900">
+                {grade.name} • {section.name}
+              </h2>
+              <div className="mt-3 flex gap-4 text-[11px] font-black tracking-widest uppercase">
+                <span className="border-b-2 border-emerald-300 pb-1 text-emerald-600">
+                  Section Profile
+                </span>
+                <span className="text-slate-300">Registry Details</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-8">
+            <p className="mb-3 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+              Enrollment
+            </p>
+            <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
+              <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                Total Students
+              </p>
+              <div className="mt-2 flex items-end gap-2">
+                <span className="text-4xl leading-none font-black text-slate-900">
+                  {studentCount}
+                </span>
+                <span className="text-xs font-bold text-slate-400">
+                  enrolled
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-8">
+            <p className="mb-3 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+              Homeroom Staff
+            </p>
+            <div className="rounded-[1.75rem] border border-dashed border-slate-200 bg-slate-50/60 p-5">
+              {homeroomAssignment ? (
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-black text-slate-900">
+                      {homeroomAssignment.teacher_name}
+                    </p>
+                    <p className="mt-1 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                      Homeroom Lead
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={onAssignHomeroom}
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black tracking-widest text-slate-700 uppercase transition hover:border-primary/30 hover:text-primary"
+                  >
+                    Replace Lead
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-4 text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-300">
+                    <Plus className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-black tracking-widest text-slate-500 uppercase">
+                      Assign Lead
+                    </p>
+                    <p className="mt-1 text-sm text-slate-400">
+                      No homeroom teacher assigned yet.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={onAssignHomeroom}
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black tracking-widest text-slate-700 uppercase transition hover:border-primary/30 hover:text-primary"
+                  >
+                    Assign Lead
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                Faculty Assignments
+              </p>
+              <p className="text-[10px] font-black tracking-widest text-slate-300 uppercase">
+                {assignments.length} roles active
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {subjects.map((subject) => {
+                const assignment =
+                  assignments.find(
+                    (candidate) => candidate.subject === subject.id
+                  ) ?? null
+
+                return (
+                  <div
+                    key={subject.id}
+                    className="flex items-center gap-4 rounded-[1.75rem] border border-slate-100 bg-white p-4 shadow-sm"
+                  >
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-50 text-xs font-black text-slate-500">
+                      {subject.code}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-lg font-black text-slate-900">
+                        {subject.name}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-400">
+                        {assignment?.teacher_name ?? "No teacher assigned"}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onAssignSubject(subject, assignment)}
+                      className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black tracking-widest text-slate-700 uppercase transition hover:border-primary/30 hover:text-primary"
+                    >
+                      {assignment ? "Change" : "Link Staff"}
+                    </button>
+                  </div>
+                )
+              })}
+
+              {subjects.length === 0 && (
+                <EmptyState message="No subjects are linked to this grade yet." />
+              )}
+            </div>
+          </div>
+        </div>
+      </motion.aside>
+    </motion.div>
+  )
+}
+
+function SubjectAssignmentModal({
+  organizationId,
+  academicYearId,
+  section,
+  grade,
+  subject,
+  teachers,
+  existingAssignment,
+  onClose,
+  onSuccess,
+}: {
+  organizationId: string
+  academicYearId: string
+  section: ApiSection
+  grade: ApiGrade
+  subject: ApiSubject
+  teachers: ApiTeacher[]
+  existingAssignment: ApiTeacherAssignment | null
+  onClose: () => void
+  onSuccess: () => void
+}) {
+  const [teacherId, setTeacherId] = useState(existingAssignment?.teacher ?? "")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  return (
+    <ModalFrame
+      title={`${existingAssignment ? "Change" : "Assign"} ${subject.name} Teacher`}
+      onClose={onClose}
+    >
+      <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+        <p className="text-sm font-black text-slate-900">
+          {grade.name} • Section {section.name}
+        </p>
+        <p className="mt-1 text-xs text-slate-500">
+          {subject.code} • {subject.name}
+        </p>
+      </div>
+
+      <SelectField
+        label="Teacher"
+        value={teacherId}
+        onChange={setTeacherId}
+        options={teachers.map((teacher) => ({
+          value: teacher.id,
+          label: `${teacher.user_name} - ${teacher.employee_id}`,
+        }))}
+      />
+
+      <ModalActions
+        onClose={onClose}
+        disabled={!teacherId || isSubmitting}
+        submitLabel={existingAssignment ? "Replace Teacher" : "Assign Teacher"}
+        onSubmit={async () => {
+          setIsSubmitting(true)
+          try {
+            if (existingAssignment) {
+              await teachersApi.deleteAssignment(existingAssignment.id)
+            }
+
+            await teachersApi.createAssignment({
+              teacher: teacherId,
+              organization: organizationId,
+              subject: subject.id,
+              section: section.id,
+              academic_year: academicYearId,
+            })
+            onSuccess()
+          } finally {
+            setIsSubmitting(false)
           }
         }}
       />
     </ModalFrame>
-  );
+  )
+}
+
+function HomeroomAssignmentModal({
+  organizationId,
+  branchId,
+  academicYearId,
+  section,
+  grade,
+  teachers,
+  existingAssignment,
+  onClose,
+  onSuccess,
+}: {
+  organizationId: string
+  branchId: string
+  academicYearId: string
+  section: ApiSection
+  grade: ApiGrade
+  teachers: ApiTeacher[]
+  existingAssignment: ApiHomeroomAssignment | null
+  onClose: () => void
+  onSuccess: () => void
+}) {
+  const [teacherId, setTeacherId] = useState(existingAssignment?.teacher ?? "")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  return (
+    <ModalFrame
+      title={`${existingAssignment ? "Replace" : "Assign"} Homeroom Lead`}
+      onClose={onClose}
+    >
+      <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+        <p className="text-sm font-black text-slate-900">
+          {grade.name} • Section {section.name}
+        </p>
+        <p className="mt-1 text-xs text-slate-500">
+          Homeroom teacher assignment
+        </p>
+      </div>
+
+      <SelectField
+        label="Teacher"
+        value={teacherId}
+        onChange={setTeacherId}
+        options={teachers.map((teacher) => ({
+          value: teacher.id,
+          label: `${teacher.user_name} - ${teacher.employee_id}`,
+        }))}
+      />
+
+      <ModalActions
+        onClose={onClose}
+        disabled={!teacherId || isSubmitting}
+        submitLabel={existingAssignment ? "Replace Lead" : "Assign Lead"}
+        onSubmit={async () => {
+          setIsSubmitting(true)
+          try {
+            if (existingAssignment) {
+              await teachersApi.deleteHomeroomAssignment(existingAssignment.id)
+            }
+
+            await teachersApi.createHomeroomAssignment({
+              organization: organizationId,
+              branch: branchId,
+              academic_year: academicYearId,
+              section: section.id,
+              teacher: teacherId,
+              notes: "",
+            })
+            onSuccess()
+          } finally {
+            setIsSubmitting(false)
+          }
+        }}
+      />
+    </ModalFrame>
+  )
 }
 
 function RoleAssignmentModal({
@@ -733,49 +1457,51 @@ function RoleAssignmentModal({
   onClose,
   onSuccess,
 }: {
-  organizationId: string;
-  branchId: string;
-  academicYearId: string;
-  grades: ApiGrade[];
-  sections: ApiSection[];
-  subjects: ApiSubject[];
-  teachers: ApiTeacher[];
-  assignments: ApiTeacherAssignment[];
-  homeroomAssignments: ApiHomeroomAssignment[];
-  onClose: () => void;
-  onSuccess: () => void;
+  organizationId: string
+  branchId: string
+  academicYearId: string
+  grades: ApiGrade[]
+  sections: ApiSection[]
+  subjects: ApiSubject[]
+  teachers: ApiTeacher[]
+  assignments: ApiTeacherAssignment[]
+  homeroomAssignments: ApiHomeroomAssignment[]
+  onClose: () => void
+  onSuccess: () => void
 }) {
-  const [teacherId, setTeacherId] = useState('');
-  const [sectionId, setSectionId] = useState('');
-  const [subjectId, setSubjectId] = useState('');
-  const [isHomeroom, setIsHomeroom] = useState(false);
-  const [mode, setMode] = useState<'create' | 'delete'>('create');
-  const [existingAssignmentId, setExistingAssignmentId] = useState('');
-  const [existingHomeroomId, setExistingHomeroomId] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [teacherId, setTeacherId] = useState("")
+  const [sectionId, setSectionId] = useState("")
+  const [subjectId, setSubjectId] = useState("")
+  const [isHomeroom, setIsHomeroom] = useState(false)
+  const [mode, setMode] = useState<"create" | "delete">("create")
+  const [existingAssignmentId, setExistingAssignmentId] = useState("")
+  const [existingHomeroomId, setExistingHomeroomId] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const sectionOptions = useMemo(
     () => buildSectionOptions(sections, grades),
-    [sections, grades],
-  );
+    [sections, grades]
+  )
 
   return (
     <ModalFrame title="Manage Teacher Roles" onClose={onClose}>
       <div className="space-y-4">
         <div className="flex gap-2 rounded-2xl border border-slate-100 bg-slate-50 p-1">
-          {(['create', 'delete'] as const).map((value) => (
+          {(["create", "delete"] as const).map((value) => (
             <button
               key={value}
               onClick={() => setMode(value)}
-              className={`flex-1 rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest ${
-                mode === value ? 'bg-white text-primary shadow-sm' : 'text-slate-500'
+              className={`flex-1 rounded-xl px-4 py-3 text-xs font-black tracking-widest uppercase ${
+                mode === value
+                  ? "bg-white text-primary shadow-sm"
+                  : "text-slate-500"
               }`}
             >
-              {value === 'create' ? 'Create Assignment' : 'Remove Assignment'}
+              {value === "create" ? "Create Assignment" : "Remove Assignment"}
             </button>
           ))}
         </div>
 
-        {mode === 'create' ? (
+        {mode === "create" ? (
           <>
             <SelectField
               label="Teacher"
@@ -840,22 +1566,22 @@ function RoleAssignmentModal({
         onClose={onClose}
         disabled={
           isSubmitting ||
-          (mode === 'create'
+          (mode === "create"
             ? !teacherId || !sectionId || !subjectId
             : !existingAssignmentId && !existingHomeroomId)
         }
-        submitLabel={mode === 'create' ? 'Save Role' : 'Remove Role'}
+        submitLabel={mode === "create" ? "Save Role" : "Remove Role"}
         onSubmit={async () => {
-          setIsSubmitting(true);
+          setIsSubmitting(true)
           try {
-            if (mode === 'create') {
+            if (mode === "create") {
               await teachersApi.createAssignment({
                 teacher: teacherId,
                 organization: organizationId,
                 subject: subjectId,
                 section: sectionId,
                 academic_year: academicYearId,
-              });
+              })
               if (isHomeroom) {
                 await teachersApi.createHomeroomAssignment({
                   organization: organizationId,
@@ -863,25 +1589,25 @@ function RoleAssignmentModal({
                   academic_year: academicYearId,
                   section: sectionId,
                   teacher: teacherId,
-                  notes: '',
-                });
+                  notes: "",
+                })
               }
             } else {
               if (existingAssignmentId) {
-                await teachersApi.deleteAssignment(existingAssignmentId);
+                await teachersApi.deleteAssignment(existingAssignmentId)
               }
               if (existingHomeroomId) {
-                await teachersApi.deleteHomeroomAssignment(existingHomeroomId);
+                await teachersApi.deleteHomeroomAssignment(existingHomeroomId)
               }
             }
-            onSuccess();
+            onSuccess()
           } finally {
-            setIsSubmitting(false);
+            setIsSubmitting(false)
           }
         }}
       />
     </ModalFrame>
-  );
+  )
 }
 
 function DeleteModal({
@@ -889,17 +1615,15 @@ function DeleteModal({
   onClose,
   onConfirm,
 }: {
-  label: string;
-  onClose: () => void;
-  onConfirm: () => Promise<void>;
+  label: string
+  onClose: () => void
+  onConfirm: () => Promise<void>
 }) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   return (
     <ModalFrame title={`Delete ${label}?`} onClose={onClose}>
-      <p className="text-sm text-slate-500">
-        This action cannot be undone.
-      </p>
+      <p className="text-sm text-slate-500">This action cannot be undone.</p>
       <div className="mt-6 flex justify-end gap-3">
         <button
           type="button"
@@ -912,11 +1636,11 @@ function DeleteModal({
           type="button"
           disabled={isSubmitting}
           onClick={async () => {
-            setIsSubmitting(true);
+            setIsSubmitting(true)
             try {
-              await onConfirm();
+              await onConfirm()
             } finally {
-              setIsSubmitting(false);
+              setIsSubmitting(false)
             }
           }}
           className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-black text-white"
@@ -925,7 +1649,7 @@ function DeleteModal({
         </button>
       </div>
     </ModalFrame>
-  );
+  )
 }
 
 function ModalFrame({
@@ -933,9 +1657,9 @@ function ModalFrame({
   children,
   onClose,
 }: {
-  title: string;
-  children: React.ReactNode;
-  onClose: () => void;
+  title: string
+  children: React.ReactNode
+  onClose: () => void
 }) {
   return (
     <motion.div
@@ -952,26 +1676,29 @@ function ModalFrame({
       >
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
           <h3 className="text-lg font-black text-slate-900">{title}</h3>
-          <button onClick={onClose} className="rounded-xl p-2 hover:bg-slate-50">
+          <button
+            onClick={onClose}
+            className="rounded-xl p-2 hover:bg-slate-50"
+          >
             <X className="h-5 w-5 text-slate-400" />
           </button>
         </div>
         <div className="space-y-5 p-6">{children}</div>
       </motion.div>
     </motion.div>
-  );
+  )
 }
 
 function ModalActions({
   onClose,
   onSubmit,
   disabled,
-  submitLabel = 'Save',
+  submitLabel = "Save",
 }: {
-  onClose: () => void;
-  onSubmit: () => Promise<void>;
-  disabled: boolean;
-  submitLabel?: string;
+  onClose: () => void
+  onSubmit: () => Promise<void>
+  disabled: boolean
+  submitLabel?: string
 }) {
   return (
     <div className="flex justify-end gap-3 pt-2">
@@ -991,7 +1718,7 @@ function ModalActions({
         {submitLabel}
       </button>
     </div>
-  );
+  )
 }
 
 function SelectField({
@@ -1000,17 +1727,21 @@ function SelectField({
   onChange,
   options,
 }: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: Array<{ value: string; label: string }>;
+  label: string
+  value: string
+  onChange: (value: string) => void
+  options: Array<{ value: string; label: string }>
 }) {
   return (
     <label className="block space-y-2">
-      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+      <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
         {label}
       </span>
-      <select value={value} onChange={(event) => onChange(event.target.value)} className="field">
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="field"
+      >
         <option value="">Select</option>
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -1019,32 +1750,38 @@ function SelectField({
         ))}
       </select>
     </label>
-  );
+  )
 }
 
 function buildSectionOptions(
   sections: ApiSection[],
-  grades: ApiGrade[],
+  grades: ApiGrade[]
 ): Array<{ value: string; label: string }> {
   return sections
     .map((section) => ({
       value: section.id,
       sectionName: section.name,
-      gradeName: grades.find((grade) => grade.id === section.grade)?.name ?? 'Unknown Grade',
+      gradeName:
+        grades.find((grade) => grade.id === section.grade)?.name ??
+        "Unknown Grade",
     }))
     .sort((left, right) => {
-      const gradeComparison = left.gradeName.localeCompare(right.gradeName, undefined, {
-        numeric: true,
-      });
-      if (gradeComparison !== 0) return gradeComparison;
+      const gradeComparison = left.gradeName.localeCompare(
+        right.gradeName,
+        undefined,
+        {
+          numeric: true,
+        }
+      )
+      if (gradeComparison !== 0) return gradeComparison
       return left.sectionName.localeCompare(right.sectionName, undefined, {
         numeric: true,
-      });
+      })
     })
     .map((section) => ({
       value: section.value,
       label: `${section.gradeName} - Section ${section.sectionName}`,
-    }));
+    }))
 }
 
 function InputField({
@@ -1052,13 +1789,13 @@ function InputField({
   value,
   onChange,
 }: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
+  label: string
+  value: string
+  onChange: (value: string) => void
 }) {
   return (
     <label className="block space-y-2">
-      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+      <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
         {label}
       </span>
       <input
@@ -1067,7 +1804,7 @@ function InputField({
         className="field"
       />
     </label>
-  );
+  )
 }
 
 function StatCard({
@@ -1075,21 +1812,21 @@ function StatCard({
   value,
   icon: Icon,
 }: {
-  label: string;
-  value: number;
-  icon: React.ComponentType<{ className?: string }>;
+  label: string
+  value: number
+  icon: React.ComponentType<{ className?: string }>
 }) {
   return (
     <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
       <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-slate-100 bg-white text-primary shadow-sm">
         <Icon className="h-4 w-4" />
       </div>
-      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+      <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
         {label}
       </p>
       <p className="mt-1 text-2xl font-black text-slate-900">{value}</p>
     </div>
-  );
+  )
 }
 
 function EmptyState({ message }: { message: string }) {
@@ -1097,5 +1834,5 @@ function EmptyState({ message }: { message: string }) {
     <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-500">
       {message}
     </div>
-  );
+  )
 }

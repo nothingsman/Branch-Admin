@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from "react"
 import {
   AlertCircle,
   Clock,
@@ -12,84 +12,85 @@ import {
   Trash2,
   Users,
   X,
-} from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
-import { MediaUploader, MediaUploaderState } from './MediaUploader';
-import { deleteQueuedMedia } from '../lib/media/deleteQueuedMedia';
-import { resolveMediaUrl } from '../lib/media/resolveMediaUrl';
-import { format, parseISO } from 'date-fns';
+} from "lucide-react"
+import { AnimatePresence, motion } from "motion/react"
+import { MediaUploader, MediaUploaderState } from "./MediaUploader"
+import { deleteQueuedMedia } from "../lib/media/deleteQueuedMedia"
+import { resolveMediaUrl } from "../lib/media/resolveMediaUrl"
+import { format, parseISO } from "date-fns"
 import {
   announcementsApi,
   ApiAnnouncement,
   ApiAnnouncementTargetingCriteria,
   ApiAnnouncementWrite,
   PaginatedResponse,
-} from '../lib/api';
-import { useApiQuery } from '../hooks/useApiQuery';
+} from "../lib/api"
+import { useApiQuery } from "../hooks/useApiQuery"
 
 interface AnnouncementsProps {
-  branchId: string | null;
-  organizationId: string | null;
-  academicYearId: string | null;
+  branchId: string | null
+  organizationId: string | null
+  academicYearId: string | null
 }
 
 type AnnouncementDraftState = {
-  subject: string;
-  message: string;
-  amharicSubject: string;
-  amharicBody: string;
-  targetRoles: ApiAnnouncementWrite['target_roles'];
-  targetedGradeIds: string[];
-  targetedSectionIds: string[];
-  isUrgent: boolean;
-  scheduledAt: string;
-};
+  subject: string
+  message: string
+  amharicSubject: string
+  amharicBody: string
+  targetRoles: ApiAnnouncementWrite["target_roles"]
+  targetedGradeIds: string[]
+  targetedSectionIds: string[]
+  isUrgent: boolean
+  scheduledAt: string
+}
 
 const emptyDraft: AnnouncementDraftState = {
-  subject: '',
-  message: '',
-  amharicSubject: '',
-  amharicBody: '',
-  targetRoles: 'BOTH',
+  subject: "",
+  message: "",
+  amharicSubject: "",
+  amharicBody: "",
+  targetRoles: "BOTH",
   targetedGradeIds: [],
   targetedSectionIds: [],
   isUrgent: false,
-  scheduledAt: '',
-};
+  scheduledAt: "",
+}
 
 const emptyMediaUploaderState: MediaUploaderState = {
   hasChanges: false,
   mediaId: null,
   pendingRemovalIds: [],
-};
+}
 
 export const Announcements: React.FC<AnnouncementsProps> = ({
   branchId,
   organizationId,
   academicYearId,
 }) => {
-  void academicYearId;
+  void academicYearId
 
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<
-    'all' | 'DRAFT' | 'SENT' | 'SCHEDULED' | 'urgent'
-  >('all');
-  const [selectedAnnouncementId, setSelectedAnnouncementId] = useState<string | null>(
-    null,
-  );
-  const [editingAnnouncement, setEditingAnnouncement] = useState<ApiAnnouncement | null>(
-    null,
-  );
-  const [composerOpen, setComposerOpen] = useState(false);
+    "all" | "DRAFT" | "SENT" | "SCHEDULED" | "urgent"
+  >("all")
+  const [selectedAnnouncementId, setSelectedAnnouncementId] = useState<
+    string | null
+  >(null)
+  const [editingAnnouncement, setEditingAnnouncement] =
+    useState<ApiAnnouncement | null>(null)
+  const [composerOpen, setComposerOpen] = useState(false)
 
   const {
     data: targetingCriteria,
     isLoading: targetingLoading,
     error: targetingError,
   } = useApiQuery<ApiAnnouncementTargetingCriteria>(
-    branchId && organizationId ? () => announcementsApi.getTargetingCriteria() : null,
-    [branchId, organizationId],
-  );
+    branchId && organizationId
+      ? () => announcementsApi.getTargetingCriteria()
+      : null,
+    [branchId, organizationId]
+  )
 
   const {
     data,
@@ -102,21 +103,22 @@ export const Announcements: React.FC<AnnouncementsProps> = ({
           announcementsApi.list({
             branch: branchId,
             organization: organizationId,
-            ordering: '-created_at',
+            ordering: "-created_at",
           })
       : null,
-    [branchId, organizationId],
-  );
+    [branchId, organizationId]
+  )
 
-  const grades = targetingCriteria?.grades ?? [];
-  const sections = targetingCriteria?.sections ?? [];
-  const announcements = useMemo(() => data?.results ?? [], [data]);
+  const grades = targetingCriteria?.grades ?? []
+  const sections = targetingCriteria?.sections ?? []
+  const announcements = useMemo(() => data?.results ?? [], [data])
   const selectedAnnouncement = useMemo(
     () =>
-      announcements.find((announcement) => announcement.id === selectedAnnouncementId) ??
-      null,
-    [announcements, selectedAnnouncementId],
-  );
+      announcements.find(
+        (announcement) => announcement.id === selectedAnnouncementId
+      ) ?? null,
+    [announcements, selectedAnnouncementId]
+  )
 
   const filteredAnnouncements = useMemo(() => {
     return announcements.filter((announcement) => {
@@ -125,41 +127,44 @@ export const Announcements: React.FC<AnnouncementsProps> = ({
         announcement.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
         recipientLabel(announcement, grades, sections)
           .toLowerCase()
-          .includes(searchTerm.toLowerCase());
-      if (statusFilter === 'all') return matchesSearch;
-      if (statusFilter === 'urgent') return matchesSearch && announcement.is_urgent;
-      return matchesSearch && announcement.status === statusFilter;
-    });
-  }, [announcements, grades, searchTerm, sections, statusFilter]);
+          .includes(searchTerm.toLowerCase())
+      if (statusFilter === "all") return matchesSearch
+      if (statusFilter === "urgent")
+        return matchesSearch && announcement.is_urgent
+      return matchesSearch && announcement.status === statusFilter
+    })
+  }, [announcements, grades, searchTerm, sections, statusFilter])
 
   const stats = useMemo(
     () => ({
       total: announcements.length,
-      sent: announcements.filter((announcement) => announcement.status === 'SENT')
-        .length,
-      scheduled: announcements.filter(
-        (announcement) => announcement.status === 'SCHEDULED',
+      sent: announcements.filter(
+        (announcement) => announcement.status === "SENT"
       ).length,
-      drafts: announcements.filter((announcement) => announcement.status === 'DRAFT')
-        .length,
+      scheduled: announcements.filter(
+        (announcement) => announcement.status === "SCHEDULED"
+      ).length,
+      drafts: announcements.filter(
+        (announcement) => announcement.status === "DRAFT"
+      ).length,
     }),
-    [announcements],
-  );
+    [announcements]
+  )
 
-  const isLoading = targetingLoading || announcementsLoading;
-  const error = targetingError || announcementsError;
+  const isLoading = targetingLoading || announcementsLoading
+  const error = targetingError || announcementsError
 
   if (isLoading) {
     return (
-      <div className="flex h-full items-center justify-center bg-slate-50">
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-xs font-black uppercase tracking-widest text-slate-500">
+          <p className="text-xs font-black tracking-widest text-slate-500 uppercase">
             Loading announcements
           </p>
         </div>
       </div>
-    );
+    )
   }
 
   if (error) {
@@ -167,11 +172,13 @@ export const Announcements: React.FC<AnnouncementsProps> = ({
       <div className="flex h-full items-center justify-center bg-slate-50 p-6">
         <div className="max-w-md rounded-3xl border border-red-100 bg-red-50 p-6 text-center">
           <AlertCircle className="mx-auto mb-3 h-8 w-8 text-red-500" />
-          <p className="font-black text-red-700">Failed to load announcements</p>
+          <p className="font-black text-red-700">
+            Failed to load announcements
+          </p>
           <p className="mt-2 text-sm text-red-600">{error}</p>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -189,8 +196,8 @@ export const Announcements: React.FC<AnnouncementsProps> = ({
             </div>
             <button
               onClick={() => {
-                setEditingAnnouncement(null);
-                setComposerOpen(true);
+                setEditingAnnouncement(null)
+                setComposerOpen(true)
               }}
               className="flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-black text-white shadow-lg shadow-primary/20"
             >
@@ -209,29 +216,29 @@ export const Announcements: React.FC<AnnouncementsProps> = ({
           <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
             <div className="flex flex-col gap-4 md:flex-row">
               <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Search className="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <input
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder="Search announcements"
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm outline-none focus:border-primary/30 focus:bg-white focus:ring-4 focus:ring-primary/5"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pr-4 pl-11 text-sm outline-none focus:border-primary/30 focus:bg-white focus:ring-4 focus:ring-primary/5"
                 />
               </div>
               <div className="flex flex-wrap gap-2">
-                {(['all', 'SENT', 'SCHEDULED', 'DRAFT', 'urgent'] as const).map(
+                {(["all", "SENT", "SCHEDULED", "DRAFT", "urgent"] as const).map(
                   (filter) => (
                     <button
                       key={filter}
                       onClick={() => setStatusFilter(filter)}
-                      className={`rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest ${
+                      className={`rounded-xl px-4 py-3 text-xs font-black tracking-widest uppercase ${
                         statusFilter === filter
-                          ? 'bg-primary text-white'
-                          : 'border border-slate-200 bg-white text-slate-600'
+                          ? "bg-primary text-white"
+                          : "border border-slate-200 bg-white text-slate-600"
                       }`}
                     >
-                      {filter === 'all' ? 'All' : filter}
+                      {filter === "all" ? "All" : filter}
                     </button>
-                  ),
+                  )
                 )}
               </div>
             </div>
@@ -243,8 +250,8 @@ export const Announcements: React.FC<AnnouncementsProps> = ({
                   onClick={() => setSelectedAnnouncementId(announcement.id)}
                   className={`w-full rounded-2xl border p-5 text-left transition ${
                     selectedAnnouncementId === announcement.id
-                      ? 'border-primary/30 bg-primary/5'
-                      : 'border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50'
+                      ? "border-primary/30 bg-primary/5"
+                      : "border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50"
                   }`}
                 >
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -253,7 +260,10 @@ export const Announcements: React.FC<AnnouncementsProps> = ({
                         <AnnouncementBadge
                           label={recipientLabel(announcement, grades, sections)}
                         />
-                        <StatusBadge status={announcement.status} urgent={announcement.is_urgent} />
+                        <StatusBadge
+                          status={announcement.status}
+                          urgent={announcement.is_urgent}
+                        />
                       </div>
                       <h2 className="mt-3 text-lg font-black text-slate-900">
                         {announcement.subject}
@@ -289,11 +299,11 @@ export const Announcements: React.FC<AnnouncementsProps> = ({
               onClick={() => setSelectedAnnouncementId(null)}
             />
             <motion.div
-              initial={{ x: '100%' }}
+              initial={{ x: "100%" }}
               animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 220 }}
-              className="fixed right-0 top-0 z-[100] flex h-full w-full max-w-md flex-col bg-white shadow-2xl"
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 28, stiffness: 220 }}
+              className="fixed top-0 right-0 z-[100] flex h-full w-full max-w-md flex-col bg-white shadow-2xl"
             >
               <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
                 <div>
@@ -325,7 +335,7 @@ export const Announcements: React.FC<AnnouncementsProps> = ({
                   <h3 className="mt-4 text-2xl font-black text-slate-900">
                     {selectedAnnouncement.subject}
                   </h3>
-                  <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-slate-600">
+                  <p className="mt-4 text-sm leading-6 whitespace-pre-wrap text-slate-600">
                     {selectedAnnouncement.message}
                   </p>
                 </div>
@@ -336,13 +346,13 @@ export const Announcements: React.FC<AnnouncementsProps> = ({
                   />
                 )}
                 <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
                     Delivery
                   </p>
                   <p className="mt-2 text-sm font-bold text-slate-700">
-                    {selectedAnnouncement.status === 'SCHEDULED' &&
+                    {selectedAnnouncement.status === "SCHEDULED" &&
                     selectedAnnouncement.scheduled_at
-                      ? `Scheduled for ${format(parseISO(selectedAnnouncement.scheduled_at), 'MMM d, yyyy HH:mm')}`
+                      ? `Scheduled for ${format(parseISO(selectedAnnouncement.scheduled_at), "MMM d, yyyy HH:mm")}`
                       : `Created ${displayDate(selectedAnnouncement)}`}
                   </p>
                 </div>
@@ -351,8 +361,8 @@ export const Announcements: React.FC<AnnouncementsProps> = ({
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => {
-                      setEditingAnnouncement(selectedAnnouncement);
-                      setComposerOpen(true);
+                      setEditingAnnouncement(selectedAnnouncement)
+                      setComposerOpen(true)
                     }}
                     className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700"
                   >
@@ -361,9 +371,9 @@ export const Announcements: React.FC<AnnouncementsProps> = ({
                   </button>
                   <button
                     onClick={async () => {
-                      await announcementsApi.delete(selectedAnnouncement.id);
-                      setSelectedAnnouncementId(null);
-                      refetch();
+                      await announcementsApi.delete(selectedAnnouncement.id)
+                      setSelectedAnnouncementId(null)
+                      refetch()
                     }}
                     className="flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-black text-white"
                   >
@@ -386,20 +396,20 @@ export const Announcements: React.FC<AnnouncementsProps> = ({
             sections={sections}
             initialAnnouncement={editingAnnouncement}
             onClose={() => {
-              setComposerOpen(false);
-              setEditingAnnouncement(null);
+              setComposerOpen(false)
+              setEditingAnnouncement(null)
             }}
             onSuccess={() => {
-              setComposerOpen(false);
-              setEditingAnnouncement(null);
-              refetch();
+              setComposerOpen(false)
+              setEditingAnnouncement(null)
+              refetch()
             }}
           />
         )}
       </AnimatePresence>
     </div>
-  );
-};
+  )
+}
 
 function AnnouncementComposer({
   branchId,
@@ -410,61 +420,65 @@ function AnnouncementComposer({
   onClose,
   onSuccess,
 }: {
-  branchId: string;
-  organizationId: string;
-  grades: ApiAnnouncementTargetingCriteria['grades'];
-  sections: ApiAnnouncementTargetingCriteria['sections'];
-  initialAnnouncement: ApiAnnouncement | null;
-  onClose: () => void;
-  onSuccess: () => void;
+  branchId: string
+  organizationId: string
+  grades: ApiAnnouncementTargetingCriteria["grades"]
+  sections: ApiAnnouncementTargetingCriteria["sections"]
+  initialAnnouncement: ApiAnnouncement | null
+  onClose: () => void
+  onSuccess: () => void
 }) {
   const [draft, setDraft] = useState<AnnouncementDraftState>(
     initialAnnouncement
       ? {
           subject: initialAnnouncement.subject,
           message: initialAnnouncement.message,
-          amharicSubject: '',
-          amharicBody: '',
+          amharicSubject: "",
+          amharicBody: "",
           targetRoles: initialAnnouncement.target_roles,
           targetedGradeIds: initialAnnouncement.targeted_grades ?? [],
           targetedSectionIds: initialAnnouncement.targeted_sections ?? [],
           isUrgent: initialAnnouncement.is_urgent,
-          scheduledAt: toDateTimeLocal(initialAnnouncement.scheduled_at ?? ''),
+          scheduledAt: toDateTimeLocal(initialAnnouncement.scheduled_at ?? ""),
         }
-      : emptyDraft,
-  );
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [attachmentState, setAttachmentState] =
-    useState<MediaUploaderState>(emptyMediaUploaderState);
-  const [isAttachmentBusy, setIsAttachmentBusy] = useState(false);
+      : emptyDraft
+  )
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [attachmentState, setAttachmentState] = useState<MediaUploaderState>(
+    emptyMediaUploaderState
+  )
+  const [isAttachmentBusy, setIsAttachmentBusy] = useState(false)
 
-  const initialAttachmentId = initialAnnouncement?.attachment ?? null;
+  const initialAttachmentId = initialAnnouncement?.attachment ?? null
 
   async function handleClose() {
     if (isSubmitting || isAttachmentBusy) {
-      return;
+      return
     }
 
     try {
-      const mediaIdsToDelete = new Set<string>();
+      const mediaIdsToDelete = new Set<string>()
 
-      if (attachmentState.mediaId && attachmentState.mediaId !== initialAttachmentId) {
-        mediaIdsToDelete.add(attachmentState.mediaId);
+      if (
+        attachmentState.mediaId &&
+        attachmentState.mediaId !== initialAttachmentId
+      ) {
+        mediaIdsToDelete.add(attachmentState.mediaId)
       }
 
       if (mediaIdsToDelete.size > 0) {
-        await deleteQueuedMedia([...mediaIdsToDelete]);
+        await deleteQueuedMedia([...mediaIdsToDelete])
       }
     } finally {
-      setAttachmentState(emptyMediaUploaderState);
-      onClose();
+      setAttachmentState(emptyMediaUploaderState)
+      onClose()
     }
   }
 
-  async function submit(status: ApiAnnouncementWrite['status']) {
-    setIsSubmitting(true);
-    setError(null);
+  async function submit(status: ApiAnnouncementWrite["status"]) {
+    setIsSubmitting(true)
+    setError(null)
 
     const payload: ApiAnnouncementWrite = {
       organization: organizationId,
@@ -478,28 +492,28 @@ function AnnouncementComposer({
       targeted_sections: draft.targetedSectionIds,
       attachment: attachmentState.mediaId,
       scheduled_at:
-        status === 'SCHEDULED' && draft.scheduledAt
+        status === "SCHEDULED" && draft.scheduledAt
           ? new Date(draft.scheduledAt).toISOString()
           : null,
-    };
+    }
 
     try {
       if (initialAnnouncement) {
-        await announcementsApi.update(initialAnnouncement.id, payload);
+        await announcementsApi.update(initialAnnouncement.id, payload)
       } else {
-        await announcementsApi.create(payload);
+        await announcementsApi.create(payload)
       }
-      await deleteQueuedMedia(attachmentState.pendingRemovalIds);
-      setAttachmentState(emptyMediaUploaderState);
-      onSuccess();
+      await deleteQueuedMedia(attachmentState.pendingRemovalIds)
+      setAttachmentState(emptyMediaUploaderState)
+      onSuccess()
     } catch (submitError) {
       setError(
         submitError instanceof Error
           ? submitError.message
-          : 'Failed to save announcement.',
-      );
+          : "Failed to save announcement."
+      )
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false)
     }
   }
 
@@ -519,13 +533,18 @@ function AnnouncementComposer({
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
           <div>
             <h2 className="text-lg font-black text-slate-900">
-              {initialAnnouncement ? 'Edit Announcement' : 'Compose Announcement'}
+              {initialAnnouncement
+                ? "Edit Announcement"
+                : "Compose Announcement"}
             </h2>
             <p className="text-xs text-slate-500">
               Target grades and sections using the live backend criteria.
             </p>
           </div>
-          <button onClick={() => void handleClose()} className="rounded-xl p-2 hover:bg-slate-50">
+          <button
+            onClick={() => void handleClose()}
+            className="rounded-xl p-2 hover:bg-slate-50"
+          >
             <X className="h-5 w-5 text-slate-400" />
           </button>
         </div>
@@ -538,7 +557,8 @@ function AnnouncementComposer({
                 onChange={(event) =>
                   setDraft({
                     ...draft,
-                    targetRoles: event.target.value as AnnouncementDraftState['targetRoles'],
+                    targetRoles: event.target
+                      .value as AnnouncementDraftState["targetRoles"],
                   })
                 }
                 className="field"
@@ -602,13 +622,16 @@ function AnnouncementComposer({
           </div>
 
           <p className="text-xs text-slate-500">
-            Leave both targeting lists empty to send to the full selected audience.
+            Leave both targeting lists empty to send to the full selected
+            audience.
           </p>
 
           <Field label="Subject">
             <input
               value={draft.subject}
-              onChange={(event) => setDraft({ ...draft, subject: event.target.value })}
+              onChange={(event) =>
+                setDraft({ ...draft, subject: event.target.value })
+              }
               className="field"
             />
           </Field>
@@ -616,13 +639,15 @@ function AnnouncementComposer({
             <textarea
               rows={5}
               value={draft.message}
-              onChange={(event) => setDraft({ ...draft, message: event.target.value })}
+              onChange={(event) =>
+                setDraft({ ...draft, message: event.target.value })
+              }
               className="field min-h-[140px]"
             />
           </Field>
 
           <div className="flex items-center justify-between">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+            <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
               Local Translation Draft
             </p>
             <button
@@ -706,7 +731,7 @@ function AnnouncementComposer({
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 bg-slate-50 px-6 py-5">
           <button
             type="button"
-            onClick={() => submit('DRAFT')}
+            onClick={() => submit("DRAFT")}
             disabled={
               isSubmitting ||
               isAttachmentBusy ||
@@ -727,7 +752,7 @@ function AnnouncementComposer({
                 !draft.message.trim() ||
                 !draft.scheduledAt
               }
-              onClick={() => submit('SCHEDULED')}
+              onClick={() => submit("SCHEDULED")}
               className="rounded-xl border border-primary/20 bg-primary/10 px-4 py-2.5 text-sm font-black text-primary disabled:opacity-60"
             >
               <span className="flex items-center gap-2">
@@ -743,85 +768,87 @@ function AnnouncementComposer({
                 !draft.subject.trim() ||
                 !draft.message.trim()
               }
-              onClick={() => submit('SENT')}
+              onClick={() => submit("SENT")}
               className="rounded-xl bg-primary px-4 py-2.5 text-sm font-black text-white disabled:opacity-60"
             >
               <span className="flex items-center gap-2">
                 <Send className="h-4 w-4" />
-                {isSubmitting ? 'Saving...' : 'Send'}
+                {isSubmitting ? "Saving..." : "Send"}
               </span>
             </button>
           </div>
         </div>
       </motion.div>
     </motion.div>
-  );
+  )
 }
 
 function Field({
   label,
   children,
 }: {
-  label: string;
-  children: React.ReactNode;
+  label: string
+  children: React.ReactNode
 }) {
   return (
     <label className="block space-y-2">
-      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+      <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
         {label}
       </span>
       {children}
     </label>
-  );
+  )
 }
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+      <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
         {label}
       </p>
       <p className="mt-2 text-2xl font-black text-slate-900">{value}</p>
     </div>
-  );
+  )
 }
 
 function AnnouncementBadge({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-primary">
+    <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-[10px] font-black tracking-widest text-primary uppercase">
       <Users className="h-3.5 w-3.5" />
       {label}
     </span>
-  );
+  )
 }
 
 function StatusBadge({
   status,
   urgent,
 }: {
-  status: ApiAnnouncement['status'];
-  urgent: boolean;
+  status: ApiAnnouncement["status"]
+  urgent: boolean
 }) {
   if (urgent) {
     return (
-      <span className="rounded-full bg-red-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-red-700">
+      <span className="rounded-full bg-red-50 px-3 py-1 text-[10px] font-black tracking-widest text-red-700 uppercase">
         Urgent
       </span>
-    );
+    )
   }
 
   const styles =
-    status === 'SENT'
-      ? 'bg-emerald-50 text-emerald-700'
-      : status === 'SCHEDULED'
-        ? 'bg-amber-50 text-amber-700'
-        : 'bg-slate-100 text-slate-600';
+    status === "SENT"
+      ? "bg-emerald-50 text-emerald-700"
+      : status === "SCHEDULED"
+        ? "bg-amber-50 text-amber-700"
+        : "bg-slate-100 text-slate-600"
 
   return (
-    <span className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest ${styles}`}>
+    <span
+      className={`rounded-full px-3 py-1 text-[10px] font-black tracking-widest uppercase ${styles}`}
+    >
       {status}
     </span>
-  );
+  )
 }
 
 function EmptyState({ message }: { message: string }) {
@@ -829,42 +856,42 @@ function EmptyState({ message }: { message: string }) {
     <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-500">
       {message}
     </div>
-  );
+  )
 }
 
 function ResolvedMediaLink({
   mediaId,
   label,
 }: {
-  mediaId: string;
-  label: string;
+  mediaId: string
+  label: string
 }) {
-  const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
+  const [resolvedUrl, setResolvedUrl] = useState<string | null>(null)
 
   useEffect(() => {
-    let cancelled = false;
+    let cancelled = false
 
     resolveMediaUrl(mediaId)
       .then((url) => {
         if (!cancelled) {
-          setResolvedUrl(url);
+          setResolvedUrl(url)
         }
       })
       .catch((error) => {
-        console.error('Failed to resolve attachment URL:', error);
-      });
+        console.error("Failed to resolve attachment URL:", error)
+      })
 
     return () => {
-      cancelled = true;
-    };
-  }, [mediaId]);
+      cancelled = true
+    }
+  }, [mediaId])
 
   if (!resolvedUrl) {
     return (
       <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-500">
         Attachment available, but the download link could not be resolved.
       </div>
-    );
+    )
   }
 
   return (
@@ -877,61 +904,63 @@ function ResolvedMediaLink({
       <span>{label}</span>
       <ExternalLink className="h-4 w-4" />
     </a>
-  );
+  )
 }
 
 function displayDate(announcement: ApiAnnouncement) {
   const value =
-    announcement.scheduled_at ?? announcement.updated_at ?? announcement.created_at;
+    announcement.scheduled_at ??
+    announcement.updated_at ??
+    announcement.created_at
 
-  if (!value) return 'Unknown date';
+  if (!value) return "Unknown date"
 
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return format(date, 'MMM d, yyyy HH:mm');
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return format(date, "MMM d, yyyy HH:mm")
 }
 
-function audienceLabel(audience: ApiAnnouncement['target_roles']) {
-  if (audience === 'PARENTS') return 'Parents Only';
-  if (audience === 'TEACHERS') return 'Teachers Only';
-  return 'Parents and Teachers';
+function audienceLabel(audience: ApiAnnouncement["target_roles"]) {
+  if (audience === "PARENTS") return "Parents Only"
+  if (audience === "TEACHERS") return "Teachers Only"
+  return "Parents and Teachers"
 }
 
 function recipientLabel(
   announcement: ApiAnnouncement,
-  grades: ApiAnnouncementTargetingCriteria['grades'],
-  sections: ApiAnnouncementTargetingCriteria['sections'],
+  grades: ApiAnnouncementTargetingCriteria["grades"],
+  sections: ApiAnnouncementTargetingCriteria["sections"]
 ) {
   const gradeLabels = announcement.targeted_grades
     .map((gradeId) => grades.find((grade) => grade.id === gradeId)?.name)
-    .filter((value): value is string => Boolean(value));
+    .filter((value): value is string => Boolean(value))
   const sectionLabels = announcement.targeted_sections
     .map((sectionId) => {
-      const section = sections.find((item) => item.id === sectionId);
-      return section ? `${section.grade_name} - Section ${section.name}` : null;
+      const section = sections.find((item) => item.id === sectionId)
+      return section ? `${section.grade_name} - Section ${section.name}` : null
     })
-    .filter((value): value is string => Boolean(value));
+    .filter((value): value is string => Boolean(value))
 
   if (gradeLabels.length === 0 && sectionLabels.length === 0) {
-    if (announcement.target_roles === 'PARENTS') return 'All Parents';
-    if (announcement.target_roles === 'TEACHERS') return 'All Teachers';
-    return 'Whole School';
+    if (announcement.target_roles === "PARENTS") return "All Parents"
+    if (announcement.target_roles === "TEACHERS") return "All Teachers"
+    return "Whole School"
   }
 
-  return [...gradeLabels, ...sectionLabels].join(', ');
+  return [...gradeLabels, ...sectionLabels].join(", ")
 }
 
 function selectedValues(options: HTMLOptionsCollection) {
   return Array.from(options)
     .filter((option) => option.selected)
-    .map((option) => option.value);
+    .map((option) => option.value)
 }
 
 function toDateTimeLocal(value: string) {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
+  if (!value) return ""
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ""
   return new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
     .toISOString()
-    .slice(0, 16);
+    .slice(0, 16)
 }

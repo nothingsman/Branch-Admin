@@ -39,21 +39,26 @@ export interface Student {
 // ---------------------------------------------------------------------------
 // Parent
 // ---------------------------------------------------------------------------
-export type ParentStatus = 'Active' | 'Invited' | 'Pending Linkage';
+export type ParentStatus = 'Active' | 'Pending' | 'Unlinked';
 
 export interface Parent {
   id: string;
   name: string;       // user_details.name from API
+  fatherName?: string;
+  grandfatherName?: string;
   phone: string;      // user_details.phone_number from API
   email: string;      // user_details.email from API
   status: ParentStatus;
   /** UUIDs of linked students (from student_details) */
   linkedStudents: string[];
+  linkedStudentCount?: number;
+  linkedGrades?: string[];
   languagePreference: LanguagePreference;
   relationship?: 'Father' | 'Mother' | 'Guardian';
   isPrimaryContact: boolean;
   photoUrl?: string;
   isActive: boolean;
+  isInviteEligible?: boolean;
   occupation?: string;
   emergencyContactName?: string;
   emergencyContactPhone?: string;
