@@ -1,8 +1,11 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState } from "react"
 import {
   AlertCircle,
+  ArrowUpDown,
+  ChevronLeft,
   Check,
   FileUp,
+  FileText,
   Link2,
   Link2Off,
   Loader2,
@@ -10,78 +13,78 @@ import {
   Pencil,
   Phone,
   Plus,
+  RefreshCw,
   Search,
+  Send,
   ShieldCheck,
   User,
   Users,
   X,
-} from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
-import { Parent, Student } from '../types';
+} from "lucide-react"
+import { AnimatePresence, motion } from "motion/react"
+import { Parent, Student } from "../types"
 import {
+  extractApiError,
+  extractUserReadableErrorMessages,
   ApiParent,
+  ApiParentInvitePayload,
   ApiParentLink,
   ApiStudent,
-  authApi,
   importApi,
   parentsApi,
-} from '../lib/api';
-import { useApiQuery } from '../hooks/useApiQuery';
-import { useGrades } from '../hooks/useGrades';
-import { useParents } from '../hooks/useParents';
-import { useStudents } from '../hooks/useStudents';
+} from "../lib/api"
+import { useApiQuery } from "../hooks/useApiQuery"
+import { useGrades } from "../hooks/useGrades"
+import { useParents } from "../hooks/useParents"
+import { useStudents } from "../hooks/useStudents"
 
 interface ParentsProps {
-  academicYear: string;
-  branchId: string | null;
-  organizationId: string | null;
+  academicYear: string
+  branchId: string | null
+  organizationId: string | null
 }
 
+type ParentFilter = "all" | "active" | "pending" | "unlinked"
+
 type ParentFormState = {
-  name: string;
-  fatherName: string;
-  grandfatherName: string;
-  email: string;
-  phone: string;
-  password: string;
-  address: string;
-  occupation: string;
-  workAddress: string;
-  relationshipNotes: string;
-  emergencyContactName: string;
-  emergencyContactPhone: string;
-  isActive: boolean;
-};
+  name: string
+  fatherName: string
+  grandfatherName: string
+  phone: string
+  secondaryPhone: string
+  occupation: string
+  workAddress: string
+  relationshipNotes: string
+  emergencyContactName: string
+  emergencyContactPhone: string
+}
 
 const emptyParentForm: ParentFormState = {
-  name: '',
-  fatherName: '',
-  grandfatherName: '',
-  email: '',
-  phone: '',
-  password: '',
-  address: '',
-  occupation: '',
-  workAddress: '',
-  relationshipNotes: '',
-  emergencyContactName: '',
-  emergencyContactPhone: '',
-  isActive: true,
-};
+  name: "",
+  fatherName: "",
+  grandfatherName: "",
+  phone: "",
+  secondaryPhone: "",
+  occupation: "",
+  workAddress: "",
+  relationshipNotes: "",
+  emergencyContactName: "",
+  emergencyContactPhone: "",
+}
 
 function getInitials(name: string) {
   return name
-    .split(' ')
+    .split(" ")
     .map((part) => part[0])
-    .join('')
+    .join("")
     .toUpperCase()
-    .slice(0, 2);
+    .slice(0, 2)
 }
 
 function mapStudent(student: ApiStudent, links: ApiParentLink[]): Student {
-  const studentLinks = links.filter((link) => link.student === student.id);
+  const studentLinks = links.filter((link) => link.student === student.id)
   const primaryLink =
-    studentLinks.find((link) => link.is_primary_contact) ?? studentLinks[0];
+    studentLinks.find((link) => link.is_primary_contact) ?? studentLinks[0]
 
   return {
     id: student.id,
@@ -91,58 +94,115 @@ function mapStudent(student: ApiStudent, links: ApiParentLink[]): Student {
     grade: student.grade_name,
     gradeId: student.grade_id,
     section: student.section_name,
-    sectionId: student.current_section ?? '',
+    sectionId: student.current_section ?? "",
     rollNo: student.roll_no,
     gender: student.gender,
     dateOfBirth: student.date_of_birth,
     admissionDate: student.admission_date,
     photoUrl: student.photo,
     registrationStatus:
-      student.status === 'ACTIVE'
-        ? 'Registered'
-        : student.status === 'WITHDRAWN'
-          ? 'Withdrawn'
-          : student.status === 'GRADUATED'
-            ? 'Graduated'
-            : 'Pending',
-    languagePreference: 'English',
+      student.status === "ACTIVE"
+        ? "Registered"
+        : student.status === "WITHDRAWN"
+          ? "Withdrawn"
+          : student.status === "GRADUATED"
+            ? "Graduated"
+            : "Pending",
+    languagePreference: "English",
     parentId: primaryLink?.parent,
     academicYearId: student.academic_year_id,
     branchId: student.branch,
     organizationId: student.organization,
-  };
+  }
 }
 
 function mapParent(parent: ApiParent, links: ApiParentLink[]): Parent {
-  const parentLinks = links.filter((link) => link.parent === parent.id);
+  const parentLinks = links.filter((link) => link.parent === parent.id)
   const primaryLink =
-    parentLinks.find((link) => link.is_primary_contact) ?? parentLinks[0];
+    parentLinks.find((link) => link.is_primary_contact) ?? parentLinks[0]
+  const linkedStudentCount = parentLinks.length
+  const linkedGrades = Array.from(
+    new Set(
+      parent.student_details
+        ?.map((student) => student.grade_name)
+        .filter(Boolean) ?? []
+    )
+  )
+  const status =
+    linkedStudentCount === 0 ? "Unlinked" : parent.is_active ? "Active" : "Pending"
+  const phoneNumber = parent.user_details?.phone_number ?? ""
 
   return {
     id: parent.id,
-    name: parent.user_details?.name ?? '',
-    phone: parent.user_details?.phone_number ?? '',
-    email: parent.user_details?.email ?? '',
-    status:
-      parentLinks.length === 0
-        ? 'Pending Linkage'
-        : parent.is_active
-          ? 'Active'
-          : 'Invited',
+    name: parent.user_details?.name ?? "",
+    fatherName: parent.user_details?.father_name ?? "",
+    grandfatherName: parent.user_details?.grandfather_name ?? "",
+    phone: phoneNumber,
+    email: parent.user_details?.email ?? "",
+    status,
     linkedStudents: parentLinks.map((link) => link.student),
-    languagePreference: 'English',
+    linkedStudentCount,
+    linkedGrades,
+    languagePreference: "English",
     relationship:
-      primaryLink?.relationship_type === 'Mother'
-        ? 'Mother'
-        : primaryLink?.relationship_type === 'Guardian'
-          ? 'Guardian'
-          : 'Father',
+      primaryLink?.relationship_type === "Mother"
+        ? "Mother"
+        : primaryLink?.relationship_type === "Guardian"
+          ? "Guardian"
+          : "Father",
     isPrimaryContact: primaryLink?.is_primary_contact ?? false,
     isActive: parent.is_active,
+    isInviteEligible: !parent.is_active && phoneNumber.trim().length > 0,
     occupation: parent.occupation,
     emergencyContactName: parent.emergency_contact_name,
     emergencyContactPhone: parent.emergency_contact_phone,
-  };
+  }
+}
+
+function buildParentLineage(parent: Pick<Parent, "name" | "fatherName" | "grandfatherName">) {
+  return [parent.name, parent.fatherName, parent.grandfatherName]
+    .map((value) => value?.trim())
+    .filter(Boolean)
+    .join(" ")
+}
+
+function normalizeOptionalValue(value: string) {
+  const normalized = value.trim()
+  return normalized.length > 0 ? normalized : undefined
+}
+
+function buildParentInvitePayload(
+  form: ParentFormState,
+  branchId: string
+): ApiParentInvitePayload {
+  return {
+    name: form.name.trim(),
+    father_name: form.fatherName.trim(),
+    grandfather_name: form.grandfatherName.trim(),
+    phone_number: form.phone.trim(),
+    branch: branchId,
+    secondary_phone_number: normalizeOptionalValue(form.secondaryPhone),
+    occupation: normalizeOptionalValue(form.occupation),
+    work_address: normalizeOptionalValue(form.workAddress),
+    relationship_notes: normalizeOptionalValue(form.relationshipNotes),
+    emergency_contact_name: normalizeOptionalValue(form.emergencyContactName),
+    emergency_contact_phone: normalizeOptionalValue(form.emergencyContactPhone),
+  }
+}
+
+function buildParentFormState(parent: ApiParent): ParentFormState {
+  return {
+    name: parent.user_details?.name ?? "",
+    fatherName: parent.user_details?.father_name ?? "",
+    grandfatherName: parent.user_details?.grandfather_name ?? "",
+    phone: parent.user_details?.phone_number ?? "",
+    secondaryPhone: parent.secondary_phone_number ?? "",
+    occupation: parent.occupation ?? "",
+    workAddress: parent.work_address ?? "",
+    relationshipNotes: parent.relationship_notes ?? "",
+    emergencyContactName: parent.emergency_contact_name ?? "",
+    emergencyContactPhone: parent.emergency_contact_phone ?? "",
+  }
 }
 
 function ParentAvatar({ name }: { name: string }) {
@@ -150,7 +210,7 @@ function ParentAvatar({ name }: { name: string }) {
     <div className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-xs font-black text-slate-500">
       {getInitials(name)}
     </div>
-  );
+  )
 }
 
 export const Parents: React.FC<ParentsProps> = ({
@@ -158,27 +218,37 @@ export const Parents: React.FC<ParentsProps> = ({
   branchId,
   organizationId,
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
-  const [showInviteModal, setShowInviteModal] = useState(false);
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [studentToLink, setStudentToLink] = useState<Student | null>(null);
-  const [editingParent, setEditingParent] = useState<Parent | null>(null);
-  const [gradeFilter, setGradeFilter] = useState('All Grades');
+  const [searchQuery, setSearchQuery] = useState("")
+  const [parentFilter, setParentFilter] = useState<ParentFilter>("all")
+  const [selectedParentId, setSelectedParentId] = useState<string | null>(null)
+  const [showInviteModal, setShowInviteModal] = useState(false)
+  const [showImportModal, setShowImportModal] = useState(false)
+  const [linkingParentId, setLinkingParentId] = useState<string | null>(null)
+  const [invitingParentId, setInvitingParentId] = useState<string | null>(null)
+  const [editingParent, setEditingParent] = useState<Parent | null>(null)
+  const [gradeFilter, setGradeFilter] = useState("All Grades")
+  const [inviteActionError, setInviteActionError] = useState<string | null>(null)
+  const [inviteActionMessage, setInviteActionMessage] = useState<string | null>(
+    null
+  )
+  const [inviteActionLink, setInviteActionLink] = useState<string | null>(null)
+  const [inviteSubmittingParentId, setInviteSubmittingParentId] = useState<
+    string | null
+  >(null)
 
   const {
     parents: rawParents,
     isLoading: parentsLoading,
     error: parentsError,
     refetch: refetchParents,
-  } = useParents({ branchId, organizationId, search: searchQuery || undefined });
+  } = useParents({ branchId, organizationId, search: searchQuery || undefined })
   const {
     students: rawStudents,
     isLoading: studentsLoading,
     error: studentsError,
     refetch: refetchStudents,
-  } = useStudents({ branchId, organizationId });
-  const { grades } = useGrades(branchId);
+  } = useStudents({ branchId, organizationId })
+  const { grades } = useGrades(branchId)
 
   const {
     data: linkResponse,
@@ -187,104 +257,180 @@ export const Parents: React.FC<ParentsProps> = ({
     refetch: refetchLinks,
   } = useApiQuery<{ results: ApiParentLink[] } | null>(
     branchId || organizationId ? () => parentsApi.listLinks({}) : null,
-    [branchId, organizationId],
-  );
+    [branchId, organizationId]
+  )
 
-  const links = useMemo(() => linkResponse?.results ?? [], [linkResponse]);
+  const links = useMemo(() => linkResponse?.results ?? [], [linkResponse])
   const parents = useMemo(
     () => rawParents.map((parent) => mapParent(parent, links)),
-    [rawParents, links],
-  );
+    [rawParents, links]
+  )
   const students = useMemo(
     () => rawStudents.map((student) => mapStudent(student, links)),
-    [rawStudents, links],
-  );
+    [rawStudents, links]
+  )
 
   const selectedParent = useMemo(
     () => parents.find((parent) => parent.id === selectedParentId) ?? null,
-    [parents, selectedParentId],
-  );
+    [parents, selectedParentId]
+  )
+  const linkingParent = useMemo(
+    () => parents.find((parent) => parent.id === linkingParentId) ?? null,
+    [parents, linkingParentId]
+  )
+  const invitingParent = useMemo(
+    () => rawParents.find((parent) => parent.id === invitingParentId) ?? null,
+    [rawParents, invitingParentId]
+  )
 
   const filteredParents = useMemo(() => {
-    return parents.filter((parent) => {
+    return parents
+      .filter((parent) => {
       const matchesSearch =
         parent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         parent.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        parent.phone.includes(searchQuery);
+        parent.phone.includes(searchQuery)
       const matchesGrade =
-        gradeFilter === 'All Grades' ||
-        students.some(
-          (student) =>
-            parent.linkedStudents.includes(student.id) &&
-            student.grade === gradeFilter,
-        );
-      return matchesSearch && matchesGrade;
-    });
-  }, [gradeFilter, parents, searchQuery, students]);
+        gradeFilter === "All Grades" ||
+        parent.status === "Unlinked" ||
+        parent.linkedGrades?.includes(gradeFilter)
+      const matchesStatus =
+        parentFilter === "all" ||
+        (parentFilter === "active" && parent.status === "Active") ||
+        (parentFilter === "pending" && parent.status === "Pending") ||
+        (parentFilter === "unlinked" && parent.status === "Unlinked")
+      return matchesSearch && matchesGrade && matchesStatus
+      })
+      .sort((left, right) =>
+        left.name.localeCompare(right.name, undefined, {
+          sensitivity: "base",
+        })
+      )
+  }, [gradeFilter, parentFilter, parents, searchQuery])
 
-  const unlinkedStudents = useMemo(
-    () => students.filter((student) => !student.parentId),
-    [students],
-  );
+  const unlinkedParents = useMemo(
+    () => parents.filter((parent) => parent.status === "Unlinked"),
+    [parents]
+  )
 
   const stats = useMemo(
     () => ({
       totalParents: parents.length,
-      activeParents: parents.filter((parent) => parent.status === 'Active').length,
-      pendingLinkage: parents.filter((parent) => parent.status === 'Pending Linkage')
+      activeParents: parents.filter((parent) => parent.status === "Active")
         .length,
-      unlinkedStudents: unlinkedStudents.length,
+      pendingParents: parents.filter((parent) => parent.status === "Pending")
+        .length,
+      unlinkedParents: unlinkedParents.length,
     }),
-    [parents, unlinkedStudents.length],
-  );
+    [parents, unlinkedParents.length]
+  )
+
+  const filterOptions = useMemo(
+    () => [
+      { id: "all" as const, label: "All Parents", count: parents.length },
+      {
+        id: "active" as const,
+        label: "Active",
+        count: stats.activeParents,
+      },
+      {
+        id: "pending" as const,
+        label: "Pending",
+        count: stats.pendingParents,
+      },
+      {
+        id: "unlinked" as const,
+        label: "Unlinked Parents",
+        count: stats.unlinkedParents,
+      },
+    ],
+    [parents.length, stats.activeParents, stats.pendingParents, stats.unlinkedParents]
+  )
 
   const refreshAll = () => {
-    refetchParents();
-    refetchStudents();
-    refetchLinks();
-  };
+    refetchParents()
+    refetchStudents()
+    refetchLinks()
+  }
 
   async function handleLinkStudent(
     studentId: string,
     parentId: string,
-    relationship: Parent['relationship'] = 'Father',
-    isPrimaryContact = true,
+    relationship: Parent["relationship"] = "Father",
+    isPrimaryContact = true
   ) {
     await parentsApi.createLink({
       student: studentId,
       parent: parentId,
       relationship_type:
-        relationship === 'Mother'
-          ? 'MOTHER'
-          : relationship === 'Guardian'
-            ? 'GUARDIAN'
-            : 'FATHER',
+        relationship === "Mother"
+          ? "MOTHER"
+          : relationship === "Guardian"
+            ? "GUARDIAN"
+            : "FATHER",
       is_primary_contact: isPrimaryContact,
-    });
-    refreshAll();
+    })
+    refreshAll()
   }
 
   async function handleUnlinkStudent(studentId: string, parentId: string) {
     const link = links.find(
       (candidate) =>
-        candidate.student === studentId && candidate.parent === parentId,
-    );
-    if (!link) return;
-    await parentsApi.deleteLink(link.id);
-    refreshAll();
+        candidate.student === studentId && candidate.parent === parentId
+    )
+    if (!link) return
+    await parentsApi.deleteLink(link.id)
+    refreshAll()
+  }
+
+  async function submitParentInvite(
+    form: ParentFormState,
+    options?: { parentId?: string; onSuccess?: () => void }
+  ) {
+    if (!branchId) return
+
+    setInviteSubmittingParentId(options?.parentId ?? null)
+    setInviteActionError(null)
+    setInviteActionMessage(null)
+    setInviteActionLink(null)
+    try {
+      const payload = buildParentInvitePayload(form, branchId)
+
+      if (!payload.phone_number) {
+        throw new Error("A valid phone number is required before sending an invitation.")
+      }
+      if (!payload.father_name || !payload.grandfather_name) {
+        throw new Error(
+          "Parent record is missing father or grandfather name. Update the parent details before inviting."
+        )
+      }
+
+      const response = await parentsApi.invite(payload)
+      setInviteActionMessage(
+        response.message ??
+          `Invitation sent to ${form.name.trim() || "parent"}.`
+      )
+      setInviteActionLink(response.invitation_url ?? null)
+      options?.onSuccess?.()
+      refreshAll()
+    } catch (error) {
+      setInviteActionError(extractApiError(error))
+    } finally {
+      setInviteSubmittingParentId(null)
+    }
   }
 
   if (parentsLoading || studentsLoading || linksLoading) {
     return (
-      <div className="flex h-full items-center justify-center bg-slate-50">
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-xs font-black uppercase tracking-widest text-slate-500">
+          <p className="text-xs font-black tracking-widest text-slate-500 uppercase">
             Loading parent directory
           </p>
         </div>
       </div>
-    );
+    )
   }
 
   if (parentsError || studentsError || linksError) {
@@ -298,7 +444,7 @@ export const Parents: React.FC<ParentsProps> = ({
           </p>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -323,6 +469,15 @@ export const Parents: React.FC<ParentsProps> = ({
                 Bulk Import
               </button>
               <button
+                type="button"
+                disabled
+                title="Bulk parent invitations are not available yet."
+                className="flex cursor-not-allowed items-center gap-2 rounded-xl bg-amber-200 px-4 py-2.5 text-sm font-bold text-white shadow-none"
+              >
+                <Mail className="h-4 w-4" />
+                Bulk Invite Unavailable
+              </button>
+              <button
                 onClick={() => setShowInviteModal(true)}
                 className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary/20"
               >
@@ -333,32 +488,36 @@ export const Parents: React.FC<ParentsProps> = ({
           </div>
 
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <StatCard label="Total Parents" value={stats.totalParents} icon={Users} />
+            <StatCard
+              label="Total Parents"
+              value={stats.totalParents}
+              icon={Users}
+            />
             <StatCard
               label="Active Parents"
               value={stats.activeParents}
               icon={ShieldCheck}
             />
             <StatCard
-              label="Pending Linkage"
-              value={stats.pendingLinkage}
+              label="Pending Parents"
+              value={stats.pendingParents}
               icon={Mail}
             />
             <StatCard
-              label="Unlinked Students"
-              value={stats.unlinkedStudents}
+              label="Unlinked Parents"
+              value={stats.unlinkedParents}
               icon={Link2Off}
             />
           </div>
 
           <div className="flex flex-col gap-3 md:flex-row">
             <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Search className="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder="Search parents by name, email, or phone"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm outline-none transition focus:border-primary/30 focus:bg-white focus:ring-4 focus:ring-primary/5"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pr-4 pl-11 text-sm transition outline-none focus:border-primary/30 focus:bg-white focus:ring-4 focus:ring-primary/5"
               />
             </div>
             <select
@@ -372,167 +531,200 @@ export const Parents: React.FC<ParentsProps> = ({
               ))}
             </select>
           </div>
+          <div className="flex flex-wrap gap-2">
+            {filterOptions.map((option) => (
+              <button
+                key={option.id}
+                onClick={() => setParentFilter(option.id)}
+                className={`rounded-2xl border px-4 py-2.5 text-sm font-bold transition ${
+                  parentFilter === option.id
+                    ? "border-primary bg-primary text-white shadow-lg shadow-primary/20"
+                    : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:bg-white"
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  {option.label}
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
+                      parentFilter === option.id
+                        ? "bg-white/20 text-white"
+                        : "bg-slate-200 text-slate-600"
+                    }`}
+                  >
+                    {option.count}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+          {(inviteActionError || inviteActionMessage) && (
+            <div
+              className={`rounded-2xl border p-3 text-sm font-medium ${
+                inviteActionError
+                  ? "border-red-100 bg-red-50 text-red-700"
+                  : "border-emerald-100 bg-emerald-50 text-emerald-700"
+              }`}
+            >
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-2">
+                {inviteActionError ? (
+                  <AlertCircle className="h-4 w-4" />
+                ) : (
+                  <Check className="h-4 w-4" />
+                )}
+                  <span>{inviteActionError ?? inviteActionMessage}</span>
+                </div>
+                {!inviteActionError && inviteActionLink && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(inviteActionLink)
+                    }}
+                    className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-black tracking-wide text-emerald-700 transition hover:bg-emerald-50"
+                  >
+                    Copy Invitation Link
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="grid flex-1 gap-6 overflow-hidden p-4 md:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)] md:p-6">
-        <div className="space-y-4 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6">
+        <div className="mx-auto max-w-5xl space-y-4">
           <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-black uppercase tracking-widest text-slate-900">
+                <h2 className="text-sm font-black tracking-widest text-slate-900 uppercase">
                   Parent Directory
                 </h2>
                 <p className="text-xs font-medium text-slate-500">
-                  {filteredParents.length} records
+                  {filteredParents.length} record
+                  {filteredParents.length === 1 ? "" : "s"}
                 </p>
               </div>
             </div>
             <div className="space-y-3">
               {filteredParents.map((parent) => (
-                <button
+                <div
                   key={parent.id}
-                  onClick={() => setSelectedParentId(parent.id)}
                   className={`flex w-full items-center gap-4 rounded-2xl border p-4 text-left transition ${
                     selectedParentId === parent.id
-                      ? 'border-primary/30 bg-primary/5'
-                      : 'border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50'
+                      ? "border-primary/30 bg-primary/5"
+                      : "border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50"
                   }`}
                 >
-                  <ParentAvatar name={parent.name} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="truncate text-sm font-black text-slate-900">
-                        {parent.name}
+                  <button
+                    onClick={() => setSelectedParentId(parent.id)}
+                    className="flex min-w-0 flex-1 items-center gap-4 text-left"
+                  >
+                    <ParentAvatar name={parent.name} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="truncate text-sm font-black text-slate-900">
+                          {buildParentLineage({
+                            name: parent.name,
+                            fatherName: parent.fatherName,
+                            grandfatherName: undefined,
+                          })}
+                        </p>
+                        <ParentStatusBadge
+                          status={parent.status}
+                          isActive={parent.isActive}
+                        />
+                      </div>
+                      <div className="mt-1 flex flex-wrap gap-3 text-xs font-medium text-slate-500">
+                        <span className="flex items-center gap-1">
+                          <Mail className="h-3.5 w-3.5" />
+                          {parent.email || "No email"}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Phone className="h-3.5 w-3.5" />
+                          {parent.phone || "No phone"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-black text-slate-900">
+                        {parent.linkedStudentCount ?? parent.linkedStudents.length}
                       </p>
-                      <ParentStatusBadge status={parent.status} />
+                      <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                        linked students
+                      </p>
                     </div>
-                    <div className="mt-1 flex flex-wrap gap-3 text-xs font-medium text-slate-500">
-                      <span className="flex items-center gap-1">
-                        <Mail className="h-3.5 w-3.5" />
-                        {parent.email || 'No email'}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Phone className="h-3.5 w-3.5" />
-                        {parent.phone || 'No phone'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-black text-slate-900">
-                      {parent.linkedStudents.length}
-                    </p>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                      linked students
-                    </p>
-                  </div>
-                </button>
+                  </button>
+                  {!parent.isActive && (
+                    <button
+                      onClick={() => setInvitingParentId(parent.id)}
+                      disabled={
+                        inviteSubmittingParentId === parent.id
+                      }
+                      title={
+                        parent.status === "Pending"
+                          ? "Review details and resend parent SMS invitation"
+                          : "Review details and send parent SMS invitation"
+                      }
+                      className="rounded-xl border border-amber-100 bg-amber-50 p-3 text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {inviteSubmittingParentId === parent.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : parent.status === "Pending" ? (
+                        <RefreshCw className="h-4 w-4" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                    </button>
+                  )}
+                </div>
               ))}
               {filteredParents.length === 0 && (
                 <EmptyState
                   title="No parents found"
-                  message="Try a different search or invite a new parent."
-                />
-              )}
-            </div>
-          </section>
-
-          <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-sm font-black uppercase tracking-widest text-slate-900">
-                  Students Needing Linkage
-                </h2>
-                <p className="text-xs font-medium text-slate-500">
-                  {unlinkedStudents.length} without a linked parent
-                </p>
-              </div>
-            </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              {unlinkedStudents.map((student) => (
-                <div
-                  key={student.id}
-                  className="rounded-2xl border border-slate-100 bg-slate-50 p-4"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-black text-slate-900">{student.name}</p>
-                      <p className="mt-1 text-xs font-medium text-slate-500">
-                        {student.grade} • Section {student.section}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => setStudentToLink(student)}
-                      className="rounded-xl bg-primary px-3 py-2 text-xs font-black text-white shadow-lg shadow-primary/20"
-                    >
-                      Link
-                    </button>
-                  </div>
-                </div>
-              ))}
-              {unlinkedStudents.length === 0 && (
-                <EmptyState
-                  title="All students linked"
-                  message="No outstanding parent linkage work right now."
+                  message="Try a different search, status filter, or invite a new parent."
                 />
               )}
             </div>
           </section>
         </div>
-
-        <section className="overflow-y-auto rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
-          {selectedParent ? (
-            <ParentDetailPanel
-              parent={selectedParent}
-              students={students.filter((student) =>
-                selectedParent.linkedStudents.includes(student.id),
-              )}
-              allStudents={students}
-              onEdit={() => setEditingParent(selectedParent)}
-              onLinkStudent={() => setStudentToLink(null)}
-              onLink={handleLinkStudent}
-              onUnlink={handleUnlinkStudent}
-            />
-          ) : (
-            <EmptyState
-              title="Select a parent"
-              message="Choose a parent from the directory to view and manage their linked students."
-            />
-          )}
-        </section>
       </div>
 
       <AnimatePresence>
-        {showInviteModal && branchId && organizationId && (
+        {selectedParent && (
+          <ParentDetailDrawer
+            parent={selectedParent}
+            students={students.filter((student) =>
+              selectedParent.linkedStudents.includes(student.id)
+            )}
+            onClose={() => setSelectedParentId(null)}
+            onEdit={() => setEditingParent(selectedParent)}
+            onLinkStudent={() => setLinkingParentId(selectedParent.id)}
+            onInvite={() => setInvitingParentId(selectedParent.id)}
+            onUnlink={handleUnlinkStudent}
+          />
+        )}
+        {showInviteModal && branchId && (
           <ParentFormModal
             title="Invite Parent"
             initialValue={emptyParentForm}
             onClose={() => setShowInviteModal(false)}
             onSubmit={async (form) => {
-              const user = await authApi.registerUser({
-                email: form.email,
-                password: form.password,
-                name: form.name,
-                father_name: form.fatherName,
-                grandfather_name: form.grandfatherName,
-                phone_number: form.phone,
-                address: form.address,
-                role: 'PARENT',
-              });
-              await parentsApi.create({
-                user: user.id,
-                branches: [branchId],
-                organizations: [organizationId],
-                is_active: form.isActive,
-                occupation: form.occupation,
-                work_address: form.workAddress,
-                relationship_notes: form.relationshipNotes,
-                emergency_contact_name: form.emergencyContactName,
-                emergency_contact_phone: form.emergencyContactPhone,
-                secondary_phone_number: form.phone,
-              });
-              setShowInviteModal(false);
-              refreshAll();
+              await submitParentInvite(form, {
+                onSuccess: () => setShowInviteModal(false),
+              })
+            }}
+          />
+        )}
+        {invitingParent && branchId && (
+          <ParentFormModal
+            title={invitingParent.is_active ? "Send Parent Invitation" : "Review Parent Invitation"}
+            initialValue={buildParentFormState(invitingParent)}
+            onClose={() => setInvitingParentId(null)}
+            onSubmit={async (form) => {
+              await submitParentInvite(form, {
+                parentId: invitingParent.id,
+                onSuccess: () => setInvitingParentId(null),
+              })
             }}
           />
         )}
@@ -541,54 +733,63 @@ export const Parents: React.FC<ParentsProps> = ({
             title="Edit Parent"
             initialValue={{
               name: editingParent.name,
-              fatherName: '',
-              grandfatherName: '',
-              email: editingParent.email,
+              fatherName:
+                rawParents.find((parent) => parent.id === editingParent.id)
+                  ?.user_details?.father_name ?? "",
+              grandfatherName:
+                rawParents.find((parent) => parent.id === editingParent.id)
+                  ?.user_details?.grandfather_name ?? "",
               phone: editingParent.phone,
-              password: '',
-              address: '',
-              occupation: editingParent.occupation ?? '',
-              workAddress: '',
-              relationshipNotes: editingParent.relationship ?? '',
-              emergencyContactName: editingParent.emergencyContactName ?? '',
-              emergencyContactPhone: editingParent.emergencyContactPhone ?? '',
-              isActive: editingParent.isActive,
+              secondaryPhone:
+                rawParents.find((parent) => parent.id === editingParent.id)
+                  ?.secondary_phone_number ?? "",
+              occupation: editingParent.occupation ?? "",
+              workAddress:
+                rawParents.find((parent) => parent.id === editingParent.id)
+                  ?.work_address ?? "",
+              relationshipNotes:
+                rawParents.find((parent) => parent.id === editingParent.id)
+                  ?.relationship_notes ?? "",
+              emergencyContactName: editingParent.emergencyContactName ?? "",
+              emergencyContactPhone: editingParent.emergencyContactPhone ?? "",
             }}
             onClose={() => setEditingParent(null)}
             onSubmit={async (form) => {
               await parentsApi.update(editingParent.id, {
-                is_active: form.isActive,
                 occupation: form.occupation,
                 work_address: form.workAddress,
                 relationship_notes: form.relationshipNotes,
                 emergency_contact_name: form.emergencyContactName,
                 emergency_contact_phone: form.emergencyContactPhone,
-                secondary_phone_number: form.phone,
-                user: rawParents.find((parent) => parent.id === editingParent.id)?.user ?? '',
+                secondary_phone_number: form.secondaryPhone,
+                user:
+                  rawParents.find((parent) => parent.id === editingParent.id)
+                    ?.user ?? "",
                 organizations:
-                  rawParents.find((parent) => parent.id === editingParent.id)?.organizations ??
-                  [],
+                  rawParents.find((parent) => parent.id === editingParent.id)
+                    ?.organizations ?? [],
                 branches:
-                  rawParents.find((parent) => parent.id === editingParent.id)?.branches ?? [],
-              });
-              setEditingParent(null);
-              refreshAll();
+                  rawParents.find((parent) => parent.id === editingParent.id)
+                    ?.branches ?? [],
+              })
+              setEditingParent(null)
+              refreshAll()
             }}
           />
         )}
-        {studentToLink && (
+        {linkingParent && (
           <LinkStudentModal
-            student={studentToLink}
-            parents={parents}
-            onClose={() => setStudentToLink(null)}
+            parent={linkingParent}
+            students={students.filter((student) => !student.parentId)}
+            onClose={() => setLinkingParentId(null)}
             onSubmit={async (payload) => {
               await handleLinkStudent(
-                studentToLink.id,
-                payload.parentId,
+                payload.studentId,
+                linkingParent.id,
                 payload.relationship,
-                payload.isPrimaryContact,
-              );
-              setStudentToLink(null);
+                payload.isPrimaryContact
+              )
+              setLinkingParentId(null)
             }}
           />
         )}
@@ -598,53 +799,67 @@ export const Parents: React.FC<ParentsProps> = ({
             organizationId={organizationId}
             onClose={() => setShowImportModal(false)}
             onSuccess={() => {
-              setShowImportModal(false);
-              refreshAll();
+              setShowImportModal(false)
+              refreshAll()
             }}
           />
         )}
       </AnimatePresence>
     </div>
-  );
-};
+  )
+}
 
 function StatCard({
   label,
   value,
   icon: Icon,
 }: {
-  label: string;
-  value: number;
-  icon: React.ComponentType<{ className?: string }>;
+  label: string
+  value: number
+  icon: React.ComponentType<{ className?: string }>
 }) {
   return (
     <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
       <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-slate-100 bg-white text-primary shadow-sm">
         <Icon className="h-4 w-4" />
       </div>
-      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+      <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
         {label}
       </p>
       <p className="mt-1 text-2xl font-black text-slate-900">{value}</p>
     </div>
-  );
+  )
 }
 
-function ParentStatusBadge({ status }: { status: Parent['status'] }) {
-  const classes =
-    status === 'Active'
-      ? 'border-emerald-100 bg-emerald-50 text-emerald-700'
-      : status === 'Invited'
-        ? 'border-amber-100 bg-amber-50 text-amber-700'
-        : 'border-slate-200 bg-slate-100 text-slate-600';
+function ParentStatusBadge({
+  status,
+  isActive,
+}: {
+  status: Parent["status"]
+  isActive: boolean
+}) {
+  const isLinked = status !== "Unlinked"
+  const activeClasses = isActive
+    ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+    : "border-amber-100 bg-amber-50 text-amber-700"
+  const linkClasses = isLinked
+    ? "border-sky-100 bg-sky-50 text-sky-700"
+    : "border-slate-200 bg-slate-100 text-slate-600"
 
   return (
-    <span
-      className={`rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${classes}`}
-    >
-      {status}
-    </span>
-  );
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span
+        className={`rounded-full border px-2 py-0.5 text-[10px] font-black tracking-widest uppercase ${activeClasses}`}
+      >
+        {isActive ? "Active" : "Inactive"}
+      </span>
+      <span
+        className={`rounded-full border px-2 py-0.5 text-[10px] font-black tracking-widest uppercase ${linkClasses}`}
+      >
+        {isLinked ? "Linked" : "Unlinked"}
+      </span>
+    </div>
+  )
 }
 
 function EmptyState({ title, message }: { title: string; message: string }) {
@@ -653,182 +868,216 @@ function EmptyState({ title, message }: { title: string; message: string }) {
       <p className="font-black text-slate-700">{title}</p>
       <p className="mt-2 text-sm text-slate-500">{message}</p>
     </div>
-  );
+  )
 }
 
-function ParentDetailPanel({
+function ParentDetailDrawer({
   parent,
   students,
-  allStudents,
+  onClose,
   onEdit,
   onLinkStudent,
-  onLink,
+  onInvite,
   onUnlink,
 }: {
-  parent: Parent;
-  students: Student[];
-  allStudents: Student[];
-  onEdit: () => void;
-  onLinkStudent: () => void;
-  onLink: (
-    studentId: string,
-    parentId: string,
-    relationship?: Parent['relationship'],
-    isPrimaryContact?: boolean,
-  ) => Promise<void>;
-  onUnlink: (studentId: string, parentId: string) => Promise<void>;
+  parent: Parent
+  students: Student[]
+  onClose: () => void
+  onEdit: () => void
+  onLinkStudent: () => void
+  onInvite: () => void
+  onUnlink: (studentId: string, parentId: string) => Promise<void>
 }) {
-  const [linkingOpen, setLinkingOpen] = useState(false);
-  const [selectedStudentId, setSelectedStudentId] = useState('');
-  const availableStudents = allStudents.filter((student) => !student.parentId);
+  const parentLineage = buildParentLineage(parent)
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-4">
-          <ParentAvatar name={parent.name} />
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-lg font-black text-slate-900">{parent.name}</h2>
-              <ParentStatusBadge status={parent.status} />
-            </div>
-            <p className="mt-1 text-sm text-slate-500">{parent.relationship}</p>
-          </div>
-        </div>
-        <button
-          onClick={onEdit}
-          className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-700"
-        >
-          <span className="flex items-center gap-2">
-            <Pencil className="h-3.5 w-3.5" />
-            Edit
-          </span>
-        </button>
-      </div>
-
-      <div className="grid gap-3">
-        <InfoRow icon={Mail} label="Email" value={parent.email || 'Not provided'} />
-        <InfoRow icon={Phone} label="Phone" value={parent.phone || 'Not provided'} />
-        <InfoRow
-          icon={ShieldCheck}
-          label="Primary Contact"
-          value={parent.isPrimaryContact ? 'Yes' : 'No'}
-        />
-        <InfoRow
-          icon={User}
-          label="Occupation"
-          value={parent.occupation || 'Not provided'}
-        />
-      </div>
-
-      <div>
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">
-            Linked Students
-          </h3>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[70] flex justify-end bg-slate-950/35 backdrop-blur-[1px]"
+    >
+      <button
+        aria-label="Close parent details"
+        className="flex-1 cursor-default"
+        onClick={onClose}
+      />
+      <motion.aside
+        initial={{ x: 420 }}
+        animate={{ x: 0 }}
+        exit={{ x: 420 }}
+        transition={{ type: "spring", damping: 28, stiffness: 260 }}
+        className="flex h-full w-full max-w-[560px] flex-col overflow-hidden bg-white shadow-2xl"
+      >
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
           <button
-            onClick={() => {
-              onLinkStudent();
-              setLinkingOpen((current) => !current);
-            }}
-            className="rounded-xl bg-primary px-3 py-2 text-xs font-black text-white"
+            onClick={onClose}
+            className="rounded-xl p-2 text-slate-400 transition hover:bg-slate-50 hover:text-slate-600"
           >
-            <span className="flex items-center gap-2">
-              <Link2 className="h-3.5 w-3.5" />
-              Link Student
-            </span>
+            <ChevronLeft className="h-5 w-5" />
           </button>
-        </div>
-        <div className="space-y-3">
-          {students.map((student) => (
-            <div
-              key={student.id}
-              className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 p-3"
-            >
-              <div>
-                <p className="text-sm font-black text-slate-900">{student.name}</p>
-                <p className="text-xs text-slate-500">
-                  {student.grade} • Section {student.section}
-                </p>
-              </div>
-              <button
-                onClick={() => onUnlink(student.id, parent.id)}
-                className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs font-black text-red-700"
-              >
-                <span className="flex items-center gap-2">
-                  <Link2Off className="h-3.5 w-3.5" />
-                  Unlink
-                </span>
-              </button>
-            </div>
-          ))}
-          {students.length === 0 && (
-            <EmptyState
-              title="No linked students"
-              message="Link this parent to a student to enable communication and attendance follow-up."
-            />
-          )}
-        </div>
-      </div>
-
-      {linkingOpen && (
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <p className="text-xs font-black uppercase tracking-widest text-slate-500">
-            Quick Link
-          </p>
-          <div className="mt-3 flex gap-2">
-            <select
-              value={selectedStudentId}
-              onChange={(event) => setSelectedStudentId(event.target.value)}
-              className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none"
-            >
-              <option value="">Select a student</option>
-              {availableStudents.map((student) => (
-                <option key={student.id} value={student.id}>
-                  {student.name} - {student.grade} {student.section}
-                </option>
-              ))}
-            </select>
+          <div className="flex items-center gap-3">
+            <span className="rounded-full bg-primary px-3 py-1 text-[10px] font-black tracking-widest text-white uppercase shadow-sm">
+              AY 2024-25
+            </span>
             <button
-              onClick={async () => {
-                if (!selectedStudentId) return;
-                await onLink(selectedStudentId, parent.id, parent.relationship, true);
-                setSelectedStudentId('');
-                setLinkingOpen(false);
-              }}
-              className="rounded-xl bg-primary px-4 py-2 text-sm font-black text-white"
+              onClick={onEdit}
+              className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
             >
-              Link
+              Edit
+            </button>
+            <button
+              onClick={onLinkStudent}
+              className="rounded-2xl bg-primary px-5 py-3 text-sm font-black text-white shadow-lg shadow-primary/20 transition hover:shadow-xl hover:shadow-primary/30"
+            >
+              Link Student
             </button>
           </div>
         </div>
-      )}
-    </div>
-  );
+
+        <div className="flex-1 overflow-y-auto">
+          <div className="border-b border-slate-100 px-8 py-8">
+            <div className="flex items-start gap-4">
+              <ParentAvatar name={parent.name} />
+              <div className="min-w-0">
+                <h2 className="text-2xl font-black tracking-tight text-slate-900">
+                  {parentLineage}
+                </h2>
+                <div className="mt-3 flex flex-wrap items-center gap-3 text-sm font-semibold text-slate-500">
+                  <span className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-primary" />
+                    {parent.phone || "Not provided"}
+                  </span>
+                  <span className="hidden h-1 w-1 rounded-full bg-slate-300 sm:block" />
+                  <span className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-primary" />
+                    {parent.email || "Not provided"}
+                  </span>
+                </div>
+                <div className="mt-4">
+                  <ParentStatusBadge
+                    status={parent.status}
+                    isActive={parent.isActive}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid min-h-[320px] gap-0 md:grid-cols-[0.95fr_1.05fr]">
+            <section className="border-b border-slate-100 px-6 py-6 md:border-r md:border-b-0">
+              <div className="mb-5 flex items-center justify-between">
+                <h3 className="text-xs font-black tracking-[0.22em] text-slate-400 uppercase">
+                  Contact Info
+                </h3>
+              </div>
+              <div className="space-y-3">
+                <DrawerInfoCard
+                  icon={User}
+                  value={parentLineage}
+                />
+                <DrawerInfoCard
+                  icon={User}
+                  value={
+                    parent.grandfatherName?.trim()
+                      ? `Grandfather: ${parent.grandfatherName}`
+                      : "Grandfather: Not provided"
+                  }
+                />
+                <DrawerInfoCard
+                  icon={Phone}
+                  value={parent.phone || "Not provided"}
+                />
+                <DrawerInfoCard
+                  icon={Mail}
+                  value={parent.email || "Not provided"}
+                />
+              </div>
+            </section>
+
+            <section className="px-6 py-6">
+              <div className="mb-5 flex items-center justify-between">
+                <h3 className="text-xs font-black tracking-[0.22em] text-slate-400 uppercase">
+                  Linked Children
+                </h3>
+                <span className="text-xs font-black text-primary">
+                  {students.length} Total
+                </span>
+              </div>
+              <div className="space-y-3">
+                {students.map((student) => (
+                  <div
+                    key={student.id}
+                    className="flex items-center justify-between gap-3 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-100 bg-slate-50 text-slate-400">
+                        <User className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-black text-slate-900">
+                          {student.name}
+                        </p>
+                        <p className="mt-1 text-xs font-bold tracking-wide text-slate-500 uppercase">
+                          {student.grade} • {student.section || "No Section"} • ID:{" "}
+                          {student.rollNo}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => onUnlink(student.id, parent.id)}
+                      className="rounded-xl p-2 text-slate-300 transition hover:bg-red-50 hover:text-red-600"
+                      title="Unlink student"
+                    >
+                      <Link2Off className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+                {students.length === 0 && (
+                  <EmptyState
+                    title="No linked children"
+                    message="Use the link student action to attach this parent to a student."
+                  />
+                )}
+              </div>
+            </section>
+          </div>
+        </div>
+        {!parent.isActive && (
+          <div className="border-t border-slate-100 px-6 py-5">
+            <button
+              onClick={onInvite}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-black text-amber-700 transition hover:bg-amber-100"
+            >
+              {parent.status === "Pending" ? (
+                <RefreshCw className="h-4 w-4" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              {parent.status === "Pending"
+                ? "Reinvite Parent"
+                : "Invite Parent"}
+            </button>
+          </div>
+        )}
+      </motion.aside>
+    </motion.div>
+  )
 }
 
-function InfoRow({
+function DrawerInfoCard({
   icon: Icon,
-  label,
   value,
 }: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: string;
+  icon: React.ComponentType<{ className?: string }>
+  value: string
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-3">
-      <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-100 bg-white text-primary">
-        <Icon className="h-4 w-4" />
-      </div>
-      <div>
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-          {label}
-        </p>
-        <p className="text-sm font-bold text-slate-800">{value}</p>
-      </div>
+    <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+      <Icon className="h-4 w-4 text-primary" />
+      <span className="text-sm font-bold text-slate-700">{value}</span>
     </div>
-  );
+  )
 }
 
 function ModalFrame({
@@ -836,9 +1085,9 @@ function ModalFrame({
   children,
   onClose,
 }: {
-  title: string;
-  children: React.ReactNode;
-  onClose: () => void;
+  title: string
+  children: React.ReactNode
+  onClose: () => void
 }) {
   return (
     <motion.div
@@ -855,14 +1104,17 @@ function ModalFrame({
       >
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
           <h3 className="text-lg font-black text-slate-900">{title}</h3>
-          <button onClick={onClose} className="rounded-xl p-2 hover:bg-slate-50">
+          <button
+            onClick={onClose}
+            className="rounded-xl p-2 hover:bg-slate-50"
+          >
             <X className="h-5 w-5 text-slate-400" />
           </button>
         </div>
         <div className="p-6">{children}</div>
       </motion.div>
     </motion.div>
-  );
+  )
 }
 
 function ParentFormModal({
@@ -871,33 +1123,29 @@ function ParentFormModal({
   onClose,
   onSubmit,
 }: {
-  title: string;
-  initialValue: ParentFormState;
-  onClose: () => void;
-  onSubmit: (form: ParentFormState) => Promise<void>;
+  title: string
+  initialValue: ParentFormState
+  onClose: () => void
+  onSubmit: (form: ParentFormState) => Promise<void>
 }) {
-  const [form, setForm] = useState(initialValue);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [form, setForm] = useState(initialValue)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   return (
     <ModalFrame title={title} onClose={onClose}>
       <form
         className="space-y-4"
         onSubmit={async (event) => {
-          event.preventDefault();
-          setIsSubmitting(true);
-          setError(null);
+          event.preventDefault()
+          setIsSubmitting(true)
+          setError(null)
           try {
-            await onSubmit(form);
+            await onSubmit(form)
           } catch (submitError) {
-            setError(
-              submitError instanceof Error
-                ? submitError.message
-                : 'Failed to save parent.',
-            );
+            setError(extractApiError(submitError))
           } finally {
-            setIsSubmitting(false);
+            setIsSubmitting(false)
           }
         }}
       >
@@ -920,34 +1168,23 @@ function ParentFormModal({
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <InputField
-            label="Email"
-            value={form.email}
-            onChange={(value) => setForm({ ...form, email: value })}
-          />
-          <InputField
-            label="Phone"
+            label="Phone Number"
             value={form.phone}
             onChange={(value) => setForm({ ...form, phone: value })}
+          />
+          <InputField
+            label="Secondary Phone"
+            value={form.secondaryPhone}
+            onChange={(value) => setForm({ ...form, secondaryPhone: value })}
           />
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <InputField
-            label="Password"
-            type="password"
-            value={form.password}
-            onChange={(value) => setForm({ ...form, password: value })}
-          />
-          <InputField
-            label="Address"
-            value={form.address}
-            onChange={(value) => setForm({ ...form, address: value })}
+            label="Occupation"
+            value={form.occupation}
+            onChange={(value) => setForm({ ...form, occupation: value })}
           />
         </div>
-        <InputField
-          label="Occupation"
-          value={form.occupation}
-          onChange={(value) => setForm({ ...form, occupation: value })}
-        />
         <InputField
           label="Work Address"
           value={form.workAddress}
@@ -974,16 +1211,6 @@ function ParentFormModal({
             }
           />
         </div>
-        <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <input
-            type="checkbox"
-            checked={form.isActive}
-            onChange={(event) =>
-              setForm({ ...form, isActive: event.target.checked })
-            }
-          />
-          <span className="text-sm font-bold text-slate-700">Parent is active</span>
-        </label>
         {error && (
           <div className="rounded-2xl border border-red-100 bg-red-50 p-3 text-sm font-medium text-red-700">
             {error}
@@ -1004,63 +1231,123 @@ function ParentFormModal({
               !form.name ||
               !form.fatherName ||
               !form.grandfatherName ||
-              !form.email ||
-              !form.phone ||
-              (!title.includes('Edit') && !form.password) ||
-              !form.address
+              !form.phone
             }
             className="rounded-xl bg-primary px-4 py-2.5 text-sm font-black text-white disabled:opacity-60"
           >
-            {isSubmitting ? 'Saving...' : 'Save Parent'}
+            {isSubmitting
+              ? title === "Invite Parent"
+                ? "Sending..."
+                : "Saving..."
+              : title === "Invite Parent"
+                ? "Send Invitation"
+                : "Save Parent"}
           </button>
         </div>
       </form>
     </ModalFrame>
-  );
+  )
 }
 
 function LinkStudentModal({
-  student,
-  parents,
+  parent,
+  students,
   onClose,
   onSubmit,
 }: {
-  student: Student;
-  parents: Parent[];
-  onClose: () => void;
+  parent: Parent
+  students: Student[]
+  onClose: () => void
   onSubmit: (payload: {
-    parentId: string;
-    relationship: Parent['relationship'];
-    isPrimaryContact: boolean;
-  }) => Promise<void>;
+    studentId: string
+    relationship: Parent["relationship"]
+    isPrimaryContact: boolean
+  }) => Promise<void>
 }) {
-  const [parentId, setParentId] = useState('');
-  const [relationship, setRelationship] = useState<Parent['relationship']>('Father');
-  const [isPrimaryContact, setIsPrimaryContact] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("")
+  const [studentId, setStudentId] = useState("")
+  const [relationship, setRelationship] =
+    useState<Parent["relationship"]>("Father")
+  const [isPrimaryContact, setIsPrimaryContact] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const filteredStudents = useMemo(
+    () =>
+      students.filter((student) => {
+        const query = searchQuery.trim().toLowerCase()
+        if (!query) return true
+        return student.name.toLowerCase().includes(query)
+      }),
+    [searchQuery, students]
+  )
 
   return (
-    <ModalFrame title={`Link ${student.name}`} onClose={onClose}>
-      <div className="space-y-4">
-        <p className="text-sm text-slate-500">
-          {student.grade} • Section {student.section}
-        </p>
-        <select
-          value={parentId}
-          onChange={(event) => setParentId(event.target.value)}
-          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none"
-        >
-          <option value="">Select parent</option>
-          {parents.map((parent) => (
-            <option key={parent.id} value={parent.id}>
-              {parent.name} - {parent.phone || parent.email}
-            </option>
-          ))}
-        </select>
+    <ModalFrame title="Link New Student" onClose={onClose}>
+      <div className="space-y-5">
+        <div className="flex items-start gap-4 rounded-2xl bg-slate-50 p-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-primary shadow-sm">
+            <Link2 className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-[11px] font-black tracking-[0.22em] text-slate-400 uppercase">
+              Select a student to link to {parent.name}
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-2 block text-[10px] font-black tracking-widest text-slate-400 uppercase">
+            Search Student
+          </label>
+          <div className="relative">
+            <Search className="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              value={searchQuery}
+              onChange={(event) => {
+                setSearchQuery(event.target.value)
+                setStudentId("")
+              }}
+              placeholder="Search by student name..."
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pr-4 pl-11 text-sm outline-none transition focus:border-primary/30 focus:bg-white focus:ring-4 focus:ring-primary/5"
+            />
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50/60 p-4">
+          {filteredStudents.length === 0 ? (
+            <div className="flex min-h-32 items-center justify-center text-center text-sm font-bold text-slate-500">
+              {searchQuery.trim().length === 0
+                ? "No unlinked students are available."
+                : "No unlinked students match your search."}
+            </div>
+          ) : (
+            <div className="max-h-56 space-y-2 overflow-y-auto">
+              {filteredStudents.map((student) => (
+                <button
+                  key={student.id}
+                  type="button"
+                  onClick={() => setStudentId(student.id)}
+                  className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
+                    studentId === student.id
+                      ? "border-primary bg-primary/5"
+                      : "border-slate-200 bg-white hover:border-slate-300"
+                  }`}
+                >
+                  <p className="text-sm font-black text-slate-900">
+                    {student.name}
+                  </p>
+                  <p className="mt-1 text-xs font-medium text-slate-500">
+                    {student.grade} • Section {student.section || "N/A"}
+                  </p>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         <select
           value={relationship}
           onChange={(event) =>
-            setRelationship(event.target.value as Parent['relationship'])
+            setRelationship(event.target.value as Parent["relationship"])
           }
           className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none"
         >
@@ -1088,23 +1375,23 @@ function LinkStudentModal({
           </button>
           <button
             type="button"
-            disabled={!parentId || isSubmitting}
+            disabled={!studentId || isSubmitting}
             onClick={async () => {
-              setIsSubmitting(true);
+              setIsSubmitting(true)
               try {
-                await onSubmit({ parentId, relationship, isPrimaryContact });
+                await onSubmit({ studentId, relationship, isPrimaryContact })
               } finally {
-                setIsSubmitting(false);
+                setIsSubmitting(false)
               }
             }}
             className="rounded-xl bg-primary px-4 py-2.5 text-sm font-black text-white disabled:opacity-60"
           >
-            {isSubmitting ? 'Linking...' : 'Link Parent'}
+            {isSubmitting ? "Linking..." : "Confirm Link"}
           </button>
         </div>
       </div>
     </ModalFrame>
-  );
+  )
 }
 
 function ImportParentsModal({
@@ -1113,36 +1400,66 @@ function ImportParentsModal({
   onClose,
   onSuccess,
 }: {
-  branchId: string;
-  organizationId: string;
-  onClose: () => void;
-  onSuccess: () => void;
+  branchId: string
+  organizationId: string
+  onClose: () => void
+  onSuccess: () => void
 }) {
-  const [file, setFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [progress, setProgress] = useState(0);
-  const [taskId, setTaskId] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [errorMessages, setErrorMessages] = useState<string[]>([])
+  const [progress, setProgress] = useState(0)
+  const [taskId, setTaskId] = useState<string | null>(null)
 
   return (
     <ModalFrame title="Bulk Import Parents" onClose={onClose}>
-      <div className="space-y-4">
-        <input
-          type="file"
-          accept=".csv,.xlsx,.xls"
-          onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-          className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm"
-        />
+      <div className="space-y-6 text-center">
+        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[2rem] border border-primary/10 bg-primary/5 shadow-sm">
+          <FileText className="h-10 w-10 text-primary" />
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-2xl font-black tracking-tight text-slate-900">
+            Bulk Parent Import
+          </h3>
+          <p className="text-sm font-medium text-slate-500">
+            Upload Excel or CSV file to import parent directory
+          </p>
+        </div>
+        <label className="block">
+          <div className="group cursor-pointer rounded-[2rem] border-2 border-dashed border-slate-200 p-12 transition-all hover:border-primary/50 hover:bg-primary/[0.02]">
+            <div className="space-y-4">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-100 bg-white shadow-sm transition-transform group-hover:scale-110">
+                <ArrowUpDown className="h-6 w-6 text-slate-300 transition-colors group-hover:text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-black tracking-tight text-slate-900">
+                  {file ? file.name : "Click or drag file to upload"}
+                </p>
+                <p className="mt-1 text-xs font-bold tracking-widest text-slate-400 uppercase">
+                  .xlsx, .csv supported
+                </p>
+              </div>
+            </div>
+          </div>
+          <input
+            type="file"
+            accept=".csv,.xlsx,.xls"
+            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+            className="hidden"
+          />
+        </label>
         <p className="text-xs text-slate-500">
-          Upload a parent import file. The backend will validate and create the records.
+          The backend will validate the uploaded parent file before creating records.
         </p>
         {(isUploading || taskId) && (
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm font-bold text-slate-700">
-                {taskId ? `Import job ${taskId.slice(0, 8)}...` : 'Starting import...'}
+                {taskId
+                  ? `Import job ${taskId.slice(0, 8)}...`
+                  : "Starting import..."}
               </p>
-              <span className="text-xs font-black uppercase tracking-widest text-primary">
+              <span className="text-xs font-black tracking-widest text-primary uppercase">
                 {progress}%
               </span>
             </div>
@@ -1154,104 +1471,105 @@ function ImportParentsModal({
             </div>
           </div>
         )}
-        {error && (
-          <div className="rounded-2xl border border-red-100 bg-red-50 p-3 text-sm text-red-700">
-            {error}
+        {errorMessages.length > 0 && (
+          <div className="rounded-2xl border border-red-100 bg-red-50 p-3 text-left text-sm text-red-700">
+            <div className="space-y-1">
+              {errorMessages.map((message) => (
+                <p key={message}>{message}</p>
+              ))}
+            </div>
           </div>
         )}
-        <div className="flex justify-end gap-3">
+        <div className="flex items-center justify-center gap-6 pt-2">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700"
+            className="text-[10px] font-black tracking-widest text-slate-400 uppercase hover:text-slate-600"
           >
             Cancel
           </button>
+          <div className="h-4 w-px bg-slate-100" />
           <button
             type="button"
             disabled={!file || isUploading}
             onClick={async () => {
-              if (!file) return;
-              setIsUploading(true);
-              setError(null);
-              setProgress(25);
-              setTaskId(null);
+              if (!file) return
+              setIsUploading(true)
+              setErrorMessages([])
+              setProgress(25)
+              setTaskId(null)
               try {
                 const started = await importApi.uploadBulkFile(
-                  'parents',
+                  "parents",
                   file,
                   organizationId,
-                  branchId,
-                );
+                  branchId
+                )
                 if (!started.task_id) {
-                  throw new Error('Bulk import started without a task id.');
+                  throw new Error("Bulk import started without a task id.")
                 }
-                setTaskId(started.task_id);
-                setProgress(50);
-                let attempts = 0;
+                setTaskId(started.task_id)
+                setProgress(50)
+                let attempts = 0
                 while (attempts < 60) {
-                  const job = await importApi.getStatus(started.task_id);
-                  setProgress(Math.max(55, Math.min(job.progress || 0, 100)));
-                  if (job.status === 'success') {
-                    setProgress(100);
-                    onSuccess();
-                    return;
+                  const job = await importApi.getStatus(started.task_id)
+                  setProgress(Math.max(55, Math.min(job.progress || 0, 100)))
+                  if (job.status === "success") {
+                    setProgress(100)
+                    onSuccess()
+                    return
                   }
-                  if (job.status === 'failed') {
-                    const jobErrors =
-                      typeof job.errors === 'string'
-                        ? job.errors
-                        : JSON.stringify(job.errors);
-                    throw new Error(jobErrors || 'Bulk import failed.');
+                  if (job.status === "failed") {
+                    throw new Error(
+                      extractUserReadableErrorMessages(job.errors).join("\n")
+                    )
                   }
-                  attempts += 1;
-                  await new Promise((resolve) => setTimeout(resolve, 2000));
+                  attempts += 1
+                  await new Promise((resolve) => setTimeout(resolve, 2000))
                 }
-                throw new Error('Bulk import is still processing. Check again shortly.');
+                throw new Error(
+                  "Bulk import is still processing. Check again shortly."
+                )
               } catch (uploadError) {
-                setError(
-                  uploadError instanceof Error
-                    ? uploadError.message
-                    : 'Failed to upload parent file.',
-                );
-                setTaskId(null);
-                setProgress(0);
+                setErrorMessages(extractUserReadableErrorMessages(uploadError))
+                setTaskId(null)
+                setProgress(0)
               } finally {
-                setIsUploading(false);
+                setIsUploading(false)
               }
             }}
-            className="rounded-xl bg-primary px-4 py-2.5 text-sm font-black text-white disabled:opacity-60"
+            className="text-[10px] font-black tracking-widest text-primary uppercase hover:underline disabled:cursor-not-allowed disabled:opacity-50 disabled:no-underline"
           >
-            {isUploading ? 'Importing...' : 'Upload File'}
+            {isUploading ? "Importing..." : "Upload File"}
           </button>
         </div>
       </div>
     </ModalFrame>
-  );
+  )
 }
 
 function InputField({
   label,
-  type = 'text',
+  type = "text",
   value,
   onChange,
 }: {
-  label: string;
-  type?: string;
-  value: string;
-  onChange: (value: string) => void;
+  label: string
+  type?: string
+  value: string
+  onChange: (value: string) => void
 }) {
   return (
     <label className="block space-y-2">
-      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+      <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
         {label}
       </span>
       <input
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-primary/30 focus:bg-white focus:ring-4 focus:ring-primary/5"
+        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm transition outline-none focus:border-primary/30 focus:bg-white focus:ring-4 focus:ring-primary/5"
       />
     </label>
-  );
+  )
 }

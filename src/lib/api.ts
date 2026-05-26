@@ -23,16 +23,131 @@ export class ApiError extends Error {
 
 /** Extract a human-readable message from any thrown value. */
 export function extractApiError(err: unknown): string {
-  if (!err) return 'An unexpected error occurred.';
-  const e = err as Record<string, any>;
-  if (e?.data?.errors?.length) {
-    return (e.data.errors as Array<{ field?: string; detail?: string }>)
-      .map((x) => (x.field ? `${x.field}: ${x.detail}` : x.detail))
-      .join(' · ');
+  return extractUserReadableErrorMessages(err).join(' · ');
+}
+
+function humanizeErrorField(field: string): string {
+  const labels: Record<string, string> = {
+    email: 'Email',
+    phone_number: 'Phone number',
+    father_name: 'Father name',
+    grandfather_name: 'Grandfather name',
+    emergency_contact_name: 'Emergency contact name',
+    emergency_contact_phone: 'Emergency contact phone',
+    secondary_phone_number: 'Secondary phone',
+    work_address: 'Work address',
+    relationship_notes: 'Relationship notes',
+  };
+  return labels[field] ?? field.replaceAll('_', ' ');
+}
+
+function parseStructuredErrorMessages(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.flatMap((entry) => {
+      if (
+        entry &&
+        typeof entry === 'object' &&
+        'row' in entry &&
+        'errors' in entry &&
+        entry.errors &&
+        typeof entry.errors === 'object'
+      ) {
+        const rowMessages = Object.entries(entry.errors as Record<string, unknown>)
+          .flatMap(([field, fieldValue]) => {
+            const messages = Array.isArray(fieldValue) ? fieldValue : [fieldValue];
+            return messages.map((message) => `${humanizeErrorField(field)}: ${String(message)}`);
+          });
+        return rowMessages.length > 0
+          ? [`Row ${String(entry.row)}: ${rowMessages.join(' | ')}`]
+          : [`Row ${String(entry.row)}: Invalid data.`];
+      }
+      if (entry && typeof entry === 'object') {
+        return Object.entries(entry as Record<string, unknown>).flatMap(([field, fieldValue]) => {
+          const messages = Array.isArray(fieldValue) ? fieldValue : [fieldValue];
+          return messages.map((message) => `${humanizeErrorField(field)}: ${String(message)}`);
+        });
+      }
+      return String(entry).trim() ? [String(entry)] : [];
+    });
   }
-  if (e?.data?.detail) return String(e.data.detail);
-  if (e?.message) return String(e.message);
-  return 'An unexpected error occurred.';
+
+  if (value && typeof value === 'object') {
+    return Object.entries(value as Record<string, unknown>).flatMap(([field, fieldValue]) => {
+      const messages = Array.isArray(fieldValue) ? fieldValue : [fieldValue];
+      return messages.map((message) => `${humanizeErrorField(field)}: ${String(message)}`);
+    });
+  }
+
+  return [];
+}
+
+export function extractUserReadableErrorMessages(err: unknown): string[] {
+  const e = err as Record<string, any>;
+  const structuredData = e?.data?.errors ?? e?.data ?? err;
+  const serializedError = (() => {
+    try {
+      return JSON.stringify(err);
+    } catch {
+      return '';
+    }
+  })();
+
+  const rawDetail =
+    (typeof e?.data?.detail === 'string' && e.data.detail) ||
+    (typeof e?.detail === 'string' && e.detail) ||
+    (typeof e?.message === 'string' && e.message) ||
+    '';
+
+  if (
+    /upload_not_pending/i.test(rawDetail) ||
+    /multipart upload is not available for this media item/i.test(rawDetail) ||
+    /upload_not_pending/i.test(serializedError) ||
+    /multipart upload is not available for this media item/i.test(serializedError)
+  ) {
+    return ['Something went wrong. Try again later.'];
+  }
+
+  const structuredMessages = parseStructuredErrorMessages(structuredData);
+  if (structuredMessages.length > 0) return structuredMessages;
+
+  const rawMessage =
+    (typeof structuredData === 'string' && structuredData) ||
+    e?.data?.detail ||
+    e?.message ||
+    '';
+
+  if (typeof rawMessage === 'string' && rawMessage.trim()) {
+    try {
+      const parsed = JSON.parse(rawMessage);
+      const parsedMessages = parseStructuredErrorMessages(parsed);
+      if (parsedMessages.length > 0) return parsedMessages;
+    } catch {
+      // ignore parse failure and continue
+    }
+
+    if (/API request failed with status 400/i.test(rawMessage)) {
+      return ['The server could not process this file. Check the data and try again.'];
+    }
+    if (/API request failed with status 401|403/i.test(rawMessage)) {
+      return ['You do not have permission to complete this import.'];
+    }
+    if (/API request failed with status 404/i.test(rawMessage)) {
+      return ['The import service could not be reached. Try again shortly.'];
+    }
+    if (/API request failed with status 413/i.test(rawMessage)) {
+      return ['The selected file is too large. Use a smaller file and try again.'];
+    }
+    if (/API request failed with status 5\d\d/i.test(rawMessage)) {
+      return ['The server ran into a problem while processing the import. Try again shortly.'];
+    }
+
+    return rawMessage
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+  }
+
+  return ['Something went wrong while processing your request. Please try again.'];
 }
 
 // ---------------------------------------------------------------------------
@@ -64,15 +179,37 @@ export interface ApiUser {
 export interface BranchAdminProfile {
   id: string;
   organization: string;
+  organization_name?: string;
   branch: string;
+  branch_name?: string;
   user: string;
   role_title: string;
   status: string;
 }
 
+export interface ApiBranch {
+  id: string;
+  organization: string;
+  school: string;
+  name: string;
+  address: string;
+  city: string;
+  region: string;
+  contact_phone: string;
+  contact_email: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface JWTResponse {
   access: string;
   refresh: string;
+}
+
+export interface RefreshTokenResponse {
+  access: string;
+  refresh?: string;
 }
 
 export type UserRole = 'ORGANIZATION' | 'BRANCH_ADMIN' | 'TEACHER' | 'PARENT';
@@ -191,6 +328,8 @@ export interface ApiParent {
     id: string;
     name: string;
     email: string;
+    father_name?: string;
+    grandfather_name?: string;
     phone_number: string;
   };
   student_details: Array<{
@@ -215,6 +354,26 @@ export interface ApiParentWrite {
   is_active?: boolean;
 }
 
+export interface ApiParentInvitePayload {
+  name: string;
+  father_name: string;
+  grandfather_name: string;
+  phone_number: string;
+  branch: string;
+  secondary_phone_number?: string;
+  occupation?: string;
+  work_address?: string;
+  relationship_notes?: string;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+}
+
+export interface ApiActionResponse {
+  success?: boolean;
+  message?: string;
+  invitation_url?: string;
+}
+
 // ---------------------------------------------------------------------------
 // Teacher types
 // ---------------------------------------------------------------------------
@@ -227,10 +386,24 @@ export interface ApiTeacher {
   bio: string;
   specialization: string;
   joining_date: string;
+  is_active?: boolean | number | string | null;
+  father_name?: string;
+  grandfather_name?: string;
+  invitation_status?: string;
   // Read extras
   user_name: string;
+  user_father_name?: string;
+  user_grandfather_name?: string;
   user_email: string;
+  user_phone_number?: string;
   qualifications: ApiTeacherQualification[];
+}
+
+export interface ApiTeacherStatus {
+  teacher_id: string;
+  user_id: string;
+  is_active: boolean;
+  verified_at: string | null;
 }
 
 export interface ApiTeacherWrite {
@@ -241,6 +414,16 @@ export interface ApiTeacherWrite {
   bio?: string;
   specialization?: string;
   joining_date?: string;
+}
+
+export interface ApiTeacherInvitePayload {
+  email: string;
+  name: string;
+  father_name: string;
+  grandfather_name: string;
+  phone_number: string;
+  specialization?: string;
+  branch: string;
 }
 
 export interface ApiTeacherQualification {
@@ -524,6 +707,78 @@ export const tokenManager = {
   },
 };
 
+let refreshPromise: Promise<string | null> | null = null;
+
+async function readResponseBody(response: Response): Promise<unknown> {
+  try {
+    return await response.json();
+  } catch {
+    try {
+      return await response.text();
+    } catch {
+      return null;
+    }
+  }
+}
+
+async function parseResponseData<T>(response: Response): Promise<T> {
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    return (await response.json()) as T;
+  }
+  return null as unknown as T;
+}
+
+export async function refreshAccessToken(): Promise<string | null> {
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  refreshPromise = (async () => {
+    const refresh = tokenManager.getRefreshToken();
+    if (!refresh) {
+      tokenManager.clearTokens();
+      return null;
+    }
+
+    try {
+      const refreshRes = await fetch(
+        `${API_BASE_URL.replace(/\/$/, '')}/auth/jwt/refresh/`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh }),
+        },
+      );
+
+      if (!refreshRes.ok) {
+        tokenManager.clearTokens();
+        return null;
+      }
+
+      const data = (await parseResponseData<RefreshTokenResponse>(refreshRes)) || null;
+      if (!data?.access) {
+        tokenManager.clearTokens();
+        return null;
+      }
+
+      tokenManager.setAccessToken(data.access);
+      if (data.refresh) {
+        tokenManager.setRefreshToken(data.refresh);
+      }
+
+      return data.access;
+    } catch {
+      tokenManager.clearTokens();
+      return null;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
 // ---------------------------------------------------------------------------
 // Core fetch wrapper
 // ---------------------------------------------------------------------------
@@ -551,47 +806,28 @@ export async function request<T>(
   const fetchOptions: RequestInit = { ...options, headers };
   const response = await fetch(url, fetchOptions);
 
+  if (response.status === 401 && !skipAuth) {
+    const refreshedAccessToken = await refreshAccessToken();
+    if (refreshedAccessToken) {
+      const retryHeaders = new Headers(headers);
+      retryHeaders.set('Authorization', `Bearer ${refreshedAccessToken}`);
+      const retryResponse = await fetch(url, { ...fetchOptions, headers: retryHeaders });
+      if (retryResponse.ok) {
+        return parseResponseData<T>(retryResponse);
+      }
+
+      const retryErrorData = await readResponseBody(retryResponse);
+      const retryError = retryErrorData as Record<string, any> | null;
+      throw new ApiError(
+        retryError?.detail || retryError?.message || `API request failed with status ${retryResponse.status}`,
+        retryResponse.status,
+        retryErrorData,
+      );
+    }
+  }
+
   if (!response.ok) {
-    let errData: unknown;
-    try {
-      errData = await response.json();
-    } catch {
-      try {
-        errData = await response.text();
-      } catch {
-        errData = null;
-      }
-    }
-
-    // Automatic token refresh on 401
-    if (response.status === 401 && !skipAuth) {
-      const refresh = tokenManager.getRefreshToken();
-      if (refresh) {
-        try {
-          const refreshRes = await fetch(
-            `${API_BASE_URL.replace(/\/$/, '')}/auth/jwt/refresh/`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ refresh }),
-            },
-          );
-          if (refreshRes.ok) {
-            const data = (await refreshRes.json()) as { access: string };
-            tokenManager.setAccessToken(data.access);
-            headers.set('Authorization', `Bearer ${data.access}`);
-            const retryResponse = await fetch(url, { ...fetchOptions, headers });
-            if (retryResponse.ok) {
-              return (await retryResponse.json()) as T;
-            }
-          }
-        } catch {
-          // refresh failed — fall through to clearTokens + throw
-        }
-      }
-      tokenManager.clearTokens();
-    }
-
+    const errData = await readResponseBody(response);
     const e = errData as Record<string, any> | null;
     throw new ApiError(
       e?.detail || e?.message || `API request failed with status ${response.status}`,
@@ -600,11 +836,7 @@ export async function request<T>(
     );
   }
 
-  const contentType = response.headers.get('content-type') || '';
-  if (contentType.includes('application/json')) {
-    return (await response.json()) as T;
-  }
-  return null as unknown as T;
+  return parseResponseData<T>(response);
 }
 
 function unwrapEnvelope<T>(payload: T | { data?: T } | { message?: string; data?: T }): T {
@@ -647,6 +879,11 @@ export const authApi = {
     return request<ApiUser>('/api/users/me/', { method: 'GET' });
   },
 
+  async refreshSession(): Promise<boolean> {
+    const access = await refreshAccessToken();
+    return Boolean(access);
+  },
+
   async completeInvitation(
     uid: string,
     token: string,
@@ -672,6 +909,12 @@ export const authApi = {
       { method: 'GET' },
     );
     return res?.results?.[0] || null;
+  },
+};
+
+export const branchesApi = {
+  async getBranch(branchId: string): Promise<ApiBranch> {
+    return request<ApiBranch>(`/api/branches/${branchId}/`, { method: 'GET' });
   },
 };
 
@@ -871,6 +1114,13 @@ export const parentsApi = {
     });
   },
 
+  async invite(data: ApiParentInvitePayload): Promise<ApiActionResponse> {
+    return request<ApiActionResponse>('/api/parents/invite/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
   async byBranch(branchId: string): Promise<ApiParent[]> {
     return request<ApiParent[]>(`/api/parents/by-branch/?branch=${branchId}`);
   },
@@ -931,11 +1181,33 @@ export const teachersApi = {
     return request<ApiTeacher>(`/api/teachers/${id}/`);
   },
 
+  async getStatus(id: string): Promise<ApiTeacherStatus> {
+    return request<ApiTeacherStatus>(`/api/teachers/${id}/status/`);
+  },
+
   async create(data: ApiTeacherWrite): Promise<ApiTeacher> {
     return request<ApiTeacher>('/api/teachers/', {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  },
+
+  async invite(data: ApiTeacherInvitePayload): Promise<ApiActionResponse> {
+    return request<ApiActionResponse>('/api/teachers/invite/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async completeInvitation(
+    uid: string,
+    token: string,
+    newPassword: string,
+  ): Promise<ApiActionResponse> {
+    return request<ApiActionResponse>('/api/teachers/complete-invitation/', {
+      method: 'POST',
+      body: JSON.stringify({ uid, token, new_password: newPassword }),
+    }, true);
   },
 
   async getAssignments(teacherId: string): Promise<ApiTeacherAssignment[]> {
@@ -1093,6 +1365,7 @@ export const importApi = {
     mediaFileId: string,
     organizationId: string,
     branchId: string,
+    extraData?: Record<string, string>,
   ): Promise<{ task_id: string; detail: string }> {
     return request<{ task_id: string; detail: string }>(`/api/${endpoint}/bulk-import/`, {
       method: 'POST',
@@ -1100,6 +1373,7 @@ export const importApi = {
         file: mediaFileId,
         organization: organizationId,
         branch: branchId,
+        ...(extraData ?? {}),
       }),
     });
   },
@@ -1109,9 +1383,10 @@ export const importApi = {
     file: File,
     organizationId: string,
     branchId: string,
+    extraData?: Record<string, string>,
   ): Promise<{ task_id: string; detail: string }> {
     const media = await mediaClient.uploadFile({ file });
-    return this.startBulkImport(endpoint, media.id, organizationId, branchId);
+    return this.startBulkImport(endpoint, media.id, organizationId, branchId, extraData);
   },
 };
 

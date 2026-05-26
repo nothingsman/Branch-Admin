@@ -1,7 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Noto+Sans+Ethiopic:wght@400;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Noto+Sans+Ethiopic:wght@400;700&display=swap");
 @import "tailwindcss";
-
-@custom-variant dark (&:is(.dark *));
+/* `react-phone-number-input/style.css` is intentionally omitted here:
+   the package is not installed or used in this project. */
 
 :root {
   /* ── Background & Foreground ── */
@@ -61,9 +61,9 @@
   /* ── Radius ── */
   --radius: 0.75rem;
 
-  /* ── Fonts & Shadows (Preserved from frontend theme) ── */
-  --font-sans: 'Outfit', sans-serif;
-  --font-amharic: 'Noto Sans Ethiopic', sans-serif;
+  /* ── Fonts & Shadows (Merged from frontend theme) ── */
+  --font-sans: "Outfit", sans-serif;
+  --font-amharic: "Noto Sans Ethiopic", sans-serif;
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono: monospace;
   --shadow-x: 0px;
@@ -74,62 +74,19 @@
   --shadow-color: #000000;
   --shadow-2xs: 0px 1px 3px 0px hsl(0 0% 0% / 0.09);
   --shadow-xs: 0px 1px 3px 0px hsl(0 0% 0% / 0.09);
-  --shadow-sm: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 1px 2px -1px hsl(0 0% 0% / 0.17);
-  --shadow: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 1px 2px -1px hsl(0 0% 0% / 0.17);
-  --shadow-md: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 2px 4px -1px hsl(0 0% 0% / 0.17);
-  --shadow-lg: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 4px 6px -1px hsl(0 0% 0% / 0.17);
-  --shadow-xl: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 8px 10px -1px hsl(0 0% 0% / 0.17);
+  --shadow-sm:
+    0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 1px 2px -1px hsl(0 0% 0% / 0.17);
+  --shadow:
+    0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 1px 2px -1px hsl(0 0% 0% / 0.17);
+  --shadow-md:
+    0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 2px 4px -1px hsl(0 0% 0% / 0.17);
+  --shadow-lg:
+    0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 4px 6px -1px hsl(0 0% 0% / 0.17);
+  --shadow-xl:
+    0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 8px 10px -1px hsl(0 0% 0% / 0.17);
   --shadow-2xl: 0px 1px 3px 0px hsl(0 0% 0% / 0.43);
   --tracking-normal: 0.025em;
   --spacing: 0.25rem;
-}
-
-.dark {
-  --background: hsl(231 39% 8%);
-  --foreground: hsl(210 40% 96%);
-  --card: hsl(231 39% 11%);
-  --card-foreground: hsl(210 40% 96%);
-  --popover: hsl(231 39% 11%);
-  --popover-foreground: hsl(210 40% 96%);
-  --primary: hsl(221 83% 65%);
-  --primary-foreground: hsl(231 66% 10%);
-  --secondary: hsl(231 39% 16%);
-  --secondary-foreground: hsl(210 40% 96%);
-  --muted: hsl(231 39% 16%);
-  --muted-foreground: hsl(215 20% 60%);
-  --accent: hsl(221 83% 65%);
-  --accent-foreground: hsl(231 66% 10%);
-  --destructive: hsl(0 72% 51%);
-  --destructive-foreground: hsl(0 0% 100%);
-  --border: hsl(231 39% 20%);
-  --input: hsl(231 39% 20%);
-  --ring: hsl(221 83% 65%);
-
-  /* ── Chart Colors ── */
-  --chart-1: hsl(221 83% 65%);
-  --chart-2: hsl(160 84% 50%);
-  --chart-3: hsl(38 92% 60%);
-  --chart-4: hsl(280 65% 65%);
-  --chart-5: hsl(0 84% 65%);
-
-  /* ── Sidebar ── */
-  --sidebar: hsl(231 39% 8%);
-  --sidebar-foreground: hsl(210 40% 96%);
-  --sidebar-primary: hsl(221 83% 65%);
-  --sidebar-primary-foreground: hsl(231 66% 10%);
-  --sidebar-accent: hsl(231 39% 16%);
-  --sidebar-accent-foreground: hsl(210 40% 96%);
-  --sidebar-border: hsl(231 39% 20%);
-  --sidebar-ring: hsl(221 83% 65%);
-
-  --shadow-2xs: 0px 1px 3px 0px hsl(0 0% 0% / 0.09);
-  --shadow-xs: 0px 1px 3px 0px hsl(0 0% 0% / 0.09);
-  --shadow-sm: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 1px 2px -1px hsl(0 0% 0% / 0.17);
-  --shadow: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 1px 2px -1px hsl(0 0% 0% / 0.17);
-  --shadow-md: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 2px 4px -1px hsl(0 0% 0% / 0.17);
-  --shadow-lg: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 4px 6px -1px hsl(0 0% 0% / 0.17);
-  --shadow-xl: 0px 1px 3px 0px hsl(0 0% 0% / 0.17), 0px 8px 10px -1px hsl(0 0% 0% / 0.17);
-  --shadow-2xl: 0px 1px 3px 0px hsl(0 0% 0% / 0.43);
 }
 
 @theme inline {
@@ -217,34 +174,34 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-background font-sans text-foreground;
     letter-spacing: var(--tracking-normal);
   }
 }
 
 @layer components {
   .card-elevated {
-    @apply bg-surface-white rounded-[var(--radius-school)] shadow-[0_20px_50px_rgba(0,0,0,0.03),0_10px_30px_rgba(0,0,0,0.02)] border border-black/[0.02] p-8 md:p-10;
+    @apply rounded-[var(--radius-school)] border border-black/[0.02] bg-surface-white p-8 shadow-[0_20px_50px_rgba(0,0,0,0.03),0_10px_30px_rgba(0,0,0,0.02)] md:p-10;
   }
 
   .card-base {
-    @apply bg-surface-white rounded-[var(--radius-school)] shadow-[0_20px_50px_rgba(0,0,0,0.03),0_10px_30px_rgba(0,0,0,0.02)] border border-black/[0.02] p-6;
+    @apply rounded-[var(--radius-school)] border border-black/[0.02] bg-surface-white p-6 shadow-[0_20px_50px_rgba(0,0,0,0.03),0_10px_30px_rgba(0,0,0,0.02)];
   }
 
   .btn-primary {
-    @apply bg-primary-navy text-white px-7 py-3.5 rounded-full font-bold tracking-wide transition-all hover:bg-[#151B63] hover:shadow-[0_15px_30px_-5px_rgba(26,35,126,0.5)] hover:-translate-y-0.5 active:scale-[0.97] active:translate-y-0 disabled:opacity-50 flex items-center justify-center gap-2;
+    @apply flex items-center justify-center gap-2 rounded-full bg-primary-navy px-7 py-3.5 font-bold tracking-wide text-white transition-all hover:-translate-y-0.5 hover:bg-[#151B63] hover:shadow-[0_15px_30px_-5px_rgba(26,35,126,0.5)] active:translate-y-0 active:scale-[0.97] disabled:opacity-50;
   }
 
   .btn-secondary {
-    @apply bg-white/40 backdrop-blur-sm text-primary-navy border border-primary-navy/10 px-7 py-3.5 rounded-full font-bold transition-all hover:bg-white hover:border-primary-navy/30 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.97] active:translate-y-0 disabled:opacity-50 flex items-center justify-center gap-2;
+    @apply flex items-center justify-center gap-2 rounded-full border border-primary-navy/10 bg-white/40 px-7 py-3.5 font-bold text-primary-navy backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-primary-navy/30 hover:bg-white hover:shadow-lg active:translate-y-0 active:scale-[0.97] disabled:opacity-50;
   }
 
   .input-field {
-    @apply w-full px-5 py-3.5 rounded-[var(--radius-school)] border border-gray-100 bg-gray-50/30 focus:bg-white focus:border-primary-navy focus:ring-8 focus:ring-primary-navy/[0.03] outline-none transition-all placeholder:text-gray-400 text-base text-gray-900;
+    @apply w-full rounded-[var(--radius-school)] border border-gray-100 bg-gray-50/30 px-5 py-3.5 text-base text-gray-900 transition-all outline-none placeholder:text-gray-400 focus:border-primary-navy focus:bg-white focus:ring-8 focus:ring-primary-navy/[0.03];
   }
 
   .field {
-    @apply w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-primary/30 focus:bg-white focus:ring-4 focus:ring-primary/5;
+    @apply w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 transition outline-none focus:border-primary/30 focus:bg-white focus:ring-4 focus:ring-primary/5;
   }
 
   .dashboard-surface {
@@ -252,11 +209,11 @@
   }
 
   .sidebar-link-active {
-    @apply bg-white text-primary-navy rounded-[var(--radius-school)] shadow-[0_18px_34px_rgba(26,35,126,0.08)] border border-primary-navy/10;
+    @apply bg-primary text-white shadow-[0_14px_28px_rgba(26,35,126,0.22)];
   }
 
   .dropdown-menu {
-    @apply mt-2 overflow-hidden rounded-[var(--radius-school)] border border-black/[0.04] bg-white shadow-[0_20px_50px_rgba(15,23,42,0.12)] p-1;
+    @apply mt-2 overflow-hidden rounded-[var(--radius-school)] border border-black/[0.04] bg-white p-1 shadow-[0_20px_50px_rgba(15,23,42,0.12)];
   }
 
   .dropdown-item {

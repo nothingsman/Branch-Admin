@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import {
   teachersApi,
   ApiTeacher,
+  ApiTeacherStatus,
   ApiTeacherAssignment,
   ApiHomeroomAssignment,
   PaginatedResponse,
@@ -48,6 +49,88 @@ export function useTeachers(params: UseTeachersParams): UseTeachersResult {
   return {
     teachers: data?.results ?? [],
     count: data?.count ?? 0,
+    isLoading,
+    error,
+    refetch,
+  };
+}
+
+export function useTeacherStatuses(teacherIds: string[]): {
+  statuses: Record<string, ApiTeacherStatus>;
+  isLoading: boolean;
+  error: string | null;
+  refetch: () => void;
+} {
+  const sortedTeacherIds = useMemo(
+    () => [...teacherIds].sort((left, right) => left.localeCompare(right)),
+    [teacherIds],
+  );
+
+  const fetcher = useMemo(() => {
+    if (sortedTeacherIds.length === 0) return null;
+
+    return async () => {
+      const settled = await Promise.allSettled(
+        sortedTeacherIds.map((teacherId) => teachersApi.getStatus(teacherId)),
+      );
+
+      return settled.reduce<Record<string, ApiTeacherStatus>>((acc, result) => {
+        if (result.status === 'fulfilled') {
+          acc[result.value.teacher_id] = result.value;
+        }
+        return acc;
+      }, {});
+    };
+  }, [sortedTeacherIds]);
+
+  const { data, isLoading, error, refetch } = useApiQuery<Record<string, ApiTeacherStatus>>(
+    fetcher,
+    sortedTeacherIds,
+  );
+
+  return {
+    statuses: data ?? {},
+    isLoading,
+    error,
+    refetch,
+  };
+}
+
+export function useTeacherDetails(teacherIds: string[]): {
+  teachersById: Record<string, ApiTeacher>;
+  isLoading: boolean;
+  error: string | null;
+  refetch: () => void;
+} {
+  const sortedTeacherIds = useMemo(
+    () => [...teacherIds].sort((left, right) => left.localeCompare(right)),
+    [teacherIds],
+  );
+
+  const fetcher = useMemo(() => {
+    if (sortedTeacherIds.length === 0) return null;
+
+    return async () => {
+      const settled = await Promise.allSettled(
+        sortedTeacherIds.map((teacherId) => teachersApi.get(teacherId)),
+      );
+
+      return settled.reduce<Record<string, ApiTeacher>>((acc, result) => {
+        if (result.status === 'fulfilled') {
+          acc[result.value.id] = result.value;
+        }
+        return acc;
+      }, {});
+    };
+  }, [sortedTeacherIds]);
+
+  const { data, isLoading, error, refetch } = useApiQuery<Record<string, ApiTeacher>>(
+    fetcher,
+    sortedTeacherIds,
+  );
+
+  return {
+    teachersById: data ?? {},
     isLoading,
     error,
     refetch,
