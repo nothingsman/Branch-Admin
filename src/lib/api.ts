@@ -804,7 +804,14 @@ export async function request<T>(
   }
 
   const fetchOptions: RequestInit = { ...options, headers };
-  const response = await fetch(url, fetchOptions);
+  let response: Response;
+  try {
+    response = await fetch(url, fetchOptions);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Unable to reach the server.';
+    throw new ApiError(message, 0, error);
+  }
 
   if (response.status === 401 && !skipAuth) {
     const refreshedAccessToken = await refreshAccessToken();

@@ -5,7 +5,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Mail, Lock, AlertCircle, Loader2, KeyRound, CheckCircle } from 'lucide-react';
-import { authApi, ApiUser } from '../lib/api';
+import { authApi, ApiError, ApiUser } from '../lib/api';
 
 interface LoginProps {
   onLoginSuccess: (user: ApiUser) => void;
@@ -17,6 +17,18 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!error) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setError(null);
+    }, 3000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [error]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -31,6 +43,71 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       }
     }
   }, []);
+
+  const getLoginErrorMessage = (err: unknown) => {
+    const invalidCredentialsMessage = 'Invalid email or password. Please try again.';
+    const unreachableBackendMessage = 'Network error, try again later.';
+
+    if (err instanceof ApiError) {
+      if (err.status === 400 || err.status === 401) {
+        return invalidCredentialsMessage;
+      }
+
+      if (err.status === 0) {
+        return unreachableBackendMessage;
+      }
+
+      if (err.data && typeof err.data === 'object') {
+        const errorData = err.data as Record<string, unknown>;
+
+        if (Array.isArray(errorData.errors) && errorData.errors.length > 0) {
+          const firstError = errorData.errors[0] as Record<string, unknown>;
+          if (firstError.code === 'no_active_account') {
+            return invalidCredentialsMessage;
+          }
+          if (typeof firstError.detail === 'string' && firstError.detail.trim()) {
+            return firstError.detail;
+          }
+        }
+
+        if (Array.isArray(errorData.non_field_errors) && errorData.non_field_errors[0]) {
+          return String(errorData.non_field_errors[0]);
+        }
+
+        if (typeof errorData.detail === 'string' && errorData.detail.trim()) {
+          return errorData.detail;
+        }
+      }
+
+      if (typeof err.message === 'string') {
+        const normalizedMessage = err.message.toLowerCase();
+        if (
+          normalizedMessage.includes('failed to fetch') ||
+          normalizedMessage.includes('network error') ||
+          normalizedMessage.includes('load failed')
+        ) {
+          return unreachableBackendMessage;
+        }
+      }
+
+      return err.message || 'Unable to sign in right now. Please try again.';
+    }
+
+    if (err instanceof Error) {
+      const normalizedMessage = err.message.toLowerCase();
+      if (
+        normalizedMessage.includes('failed to fetch') ||
+        normalizedMessage.includes('network error') ||
+        normalizedMessage.includes('load failed')
+      ) {
+        return unreachableBackendMessage;
+      }
+
+      return err.message || 'Unable to sign in right now. Please try again.';
+    }
+
+    return 'Unable to sign in right now. Please try again.';
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,58 +137,8 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
       // 4. Success! Propagate profile back to App
       onLoginSuccess(user);
-    } catch (err: any) {
-      // Handle various Djoser error formats
-      let errMsg = 'Unable to connect to the authentication server. Please check your internet connection.';
-      
-      if (err.status === 400 || err.status === 401) {
-        errMsg = 'Invalid email address or password. Please verify and try again.';
-      } else if (err.message && (
-        err.message.toLowerCase().includes('failed to fetch') || 
-        err.message.toLowerCase().includes('network error') ||
-        err.message.toLowerCase().includes('load failed')
-      )) {
-        errMsg = 'Authentication failed. Please verify that your email and password are correct and that the backend is running at http://localhost:8000.';
-      } else if (err.message) {
-        errMsg = typeof err.message === 'object' 
-          ? (err.message.detail || JSON.stringify(err.message)) 
-          : String(err.message);
-      }
-      
-      // Parse field-specific validation errors from Djoser if present
-      if (err.data && typeof err.data === 'object') {
-        if (err.data.errors && Array.isArray(err.data.errors) && err.data.errors.length > 0) {
-          const firstErr = err.data.errors[0];
-          if (firstErr.code === 'no_active_account') {
-            errMsg = 'Incorrect email or password';
-          } else {
-            errMsg = firstErr.detail ? String(firstErr.detail) : JSON.stringify(firstErr);
-          }
-        } else {
-          const firstErrorKey = Object.keys(err.data)[0];
-          if (firstErrorKey && Array.isArray(err.data[firstErrorKey])) {
-            const firstErrorVal = err.data[firstErrorKey][0];
-            errMsg = typeof firstErrorVal === 'object' ? JSON.stringify(firstErrorVal) : String(firstErrorVal);
-          } else if (err.data.detail) {
-            if (typeof err.data.detail === 'object') {
-              errMsg = err.data.detail.detail ? String(err.data.detail.detail) : JSON.stringify(err.data.detail);
-            } else {
-              errMsg = String(err.data.detail);
-            }
-          } else if (err.data.non_field_errors) {
-            errMsg = String(err.data.non_field_errors[0]);
-          }
-        }
-      }
-
-      // Final fallback to guarantee errMsg is a string and not a React child object
-      if (typeof errMsg === 'object' && errMsg !== null) {
-        errMsg = (errMsg as any).detail || JSON.stringify(errMsg);
-      } else {
-        errMsg = String(errMsg);
-      }
-      
-      setError(errMsg);
+    } catch (err: unknown) {
+      setError(getLoginErrorMessage(err));
       setIsLoading(false);
     }
   };
