@@ -36,6 +36,7 @@ export default function App() {
   const [branchProfile, setBranchProfile] = useState<BranchAdminProfile | null>(
     null
   )
+  const [schoolName, setSchoolName] = useState<string | null>(null)
   const [branchName, setBranchName] = useState<string | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
@@ -82,16 +83,22 @@ export default function App() {
       const profile = await authApi.getBranchAdminProfile()
       if (profile) {
         setBranchProfile(profile)
-        const [branch] = await Promise.all([
+        const [branch, fetchedSchoolName] = await Promise.all([
           branchesApi.getBranch(profile.branch),
+          branchesApi.getSchoolName(profile.branch),
           loadAcademicYears(profile.branch),
         ])
+        setSchoolName(
+          fetchedSchoolName ?? profile.organization_name ?? branch.name ?? null
+        )
         setBranchName(branch.name)
       } else {
+        setSchoolName(null)
         setBranchName(null)
       }
     } catch {
       // non-fatal — branch context will be null
+      setSchoolName(null)
       setBranchName(null)
     }
   }
@@ -115,6 +122,7 @@ export default function App() {
     authApi.logout()
     setUser(null)
     setBranchProfile(null)
+    setSchoolName(null)
     setBranchName(null)
     setAcademicYears([])
     setSelectedAcademicYear(null)
@@ -129,11 +137,8 @@ export default function App() {
   }
 
   const academicYearLabel = selectedAcademicYear?.name ?? "No Academic Year"
-  const schoolName =
-    branchName ??
-    branchProfile?.branch_name ??
-    branchProfile?.organization_name ??
-    null
+  const resolvedSchoolName = schoolName ?? branchProfile?.organization_name ?? null
+  const resolvedBranchName = branchName ?? branchProfile?.branch_name ?? null
 
   // Shared context IDs — passed down to every module that needs them
   const branchId = branchProfile?.branch ?? null
@@ -213,7 +218,14 @@ export default function App() {
         )
 
       case "calendar":
-        return <AcademicCalendar academicYear={academicYearLabel} />
+        return (
+          <AcademicCalendar
+            academicYear={academicYearLabel}
+            branchId={branchId}
+            organizationId={organizationId}
+            academicYearId={academicYearId}
+          />
+        )
 
       default:
         return <Placeholder moduleId={activeModule} />
@@ -247,7 +259,8 @@ export default function App() {
       academicYear={
         isLoadingYears ? "Loading academic year..." : academicYearLabel
       }
-      schoolName={schoolName}
+      schoolName={resolvedSchoolName}
+      branchName={resolvedBranchName}
       user={user}
       onLogout={handleLogout}
     >

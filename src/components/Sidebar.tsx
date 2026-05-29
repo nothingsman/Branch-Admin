@@ -24,6 +24,7 @@ interface SidebarProps {
   setActiveModule: (module: ModuleId) => void
   academicYear: string
   schoolName?: string | null
+  branchName?: string | null
   isOpen?: boolean
   onClose?: () => void
   user: ApiUser
@@ -47,6 +48,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setActiveModule,
   academicYear,
   schoolName,
+  branchName,
   isOpen,
   onClose,
   user,
@@ -92,11 +94,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="border-b border-slate-200 px-5 py-7">
           <div className="mb-4 text-center">
             <p className="text-[10px] font-black tracking-[0.28em] text-slate-400 uppercase">
-              Branch
+              School
             </p>
             <h2 className="mt-2 text-base leading-tight font-black text-primary-navy">
-              {schoolName || "Branch"}
+              {schoolName || "School"}
             </h2>
+            <p className="mt-3 text-[10px] font-black tracking-[0.28em] text-slate-400 uppercase">
+              Branch
+            </p>
+            <p className="mt-2 text-sm font-bold text-slate-600">
+              {branchName || "Branch"}
+            </p>
           </div>
           <div className="mb-5 flex w-full flex-col items-center gap-3 text-center">
             <button

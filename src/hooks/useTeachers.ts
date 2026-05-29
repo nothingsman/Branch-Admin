@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo } from "react"
 import {
   teachersApi,
   ApiTeacher,
@@ -6,159 +6,163 @@ import {
   ApiTeacherAssignment,
   ApiHomeroomAssignment,
   PaginatedResponse,
-} from '../lib/api';
-import { useApiQuery } from './useApiQuery';
+} from "../lib/api"
+import { useApiQuery } from "./useApiQuery"
 
 export interface UseTeachersParams {
-  branchId?: string | null;
-  organizationId?: string | null;
-  search?: string;
-  page?: number;
+  branchId?: string | null
+  organizationId?: string | null
+  search?: string
+  page?: number
 }
 
 export interface UseTeachersResult {
-  teachers: ApiTeacher[];
-  count: number;
-  isLoading: boolean;
-  error: string | null;
-  refetch: () => void;
+  teachers: ApiTeacher[]
+  count: number
+  hasNextPage: boolean
+  hasPreviousPage: boolean
+  isLoading: boolean
+  error: string | null
+  refetch: () => void
 }
 
 export function useTeachers(params: UseTeachersParams): UseTeachersResult {
-  const { branchId, organizationId, search, page } = params;
+  const { branchId, organizationId, search, page } = params
 
   const fetcher = useMemo(() => {
-    if (!branchId && !organizationId) return null;
+    if (!branchId && !organizationId) return null
     return () =>
       teachersApi.list({
         branch: branchId ?? undefined,
         organization: organizationId ?? undefined,
         search: search ?? undefined,
         page: page ?? undefined,
-      });
-  }, [branchId, organizationId, search, page]);
+      })
+  }, [branchId, organizationId, search, page])
 
-  const { data, isLoading, error, refetch } =
-    useApiQuery<PaginatedResponse<ApiTeacher>>(fetcher, [
-      branchId,
-      organizationId,
-      search,
-      page,
-    ]);
+  const { data, isLoading, error, refetch } = useApiQuery<
+    PaginatedResponse<ApiTeacher>
+  >(fetcher, [branchId, organizationId, search, page])
 
   return {
     teachers: data?.results ?? [],
     count: data?.count ?? 0,
+    hasNextPage: data?.next != null,
+    hasPreviousPage: data?.previous != null,
     isLoading,
     error,
     refetch,
-  };
+  }
 }
 
 export function useTeacherStatuses(teacherIds: string[]): {
-  statuses: Record<string, ApiTeacherStatus>;
-  isLoading: boolean;
-  error: string | null;
-  refetch: () => void;
+  statuses: Record<string, ApiTeacherStatus>
+  isLoading: boolean
+  error: string | null
+  refetch: () => void
 } {
   const sortedTeacherIds = useMemo(
     () => [...teacherIds].sort((left, right) => left.localeCompare(right)),
-    [teacherIds],
-  );
+    [teacherIds]
+  )
+  const teacherIdsKey = useMemo(
+    () => sortedTeacherIds.join("|"),
+    [sortedTeacherIds]
+  )
 
   const fetcher = useMemo(() => {
-    if (sortedTeacherIds.length === 0) return null;
+    if (sortedTeacherIds.length === 0) return null
 
     return async () => {
       const settled = await Promise.allSettled(
-        sortedTeacherIds.map((teacherId) => teachersApi.getStatus(teacherId)),
-      );
+        sortedTeacherIds.map((teacherId) => teachersApi.getStatus(teacherId))
+      )
 
       return settled.reduce<Record<string, ApiTeacherStatus>>((acc, result) => {
-        if (result.status === 'fulfilled') {
-          acc[result.value.teacher_id] = result.value;
+        if (result.status === "fulfilled") {
+          acc[result.value.teacher_id] = result.value
         }
-        return acc;
-      }, {});
-    };
-  }, [sortedTeacherIds]);
+        return acc
+      }, {})
+    }
+  }, [sortedTeacherIds])
 
-  const { data, isLoading, error, refetch } = useApiQuery<Record<string, ApiTeacherStatus>>(
-    fetcher,
-    sortedTeacherIds,
-  );
+  const { data, isLoading, error, refetch } = useApiQuery<
+    Record<string, ApiTeacherStatus>
+  >(fetcher, [teacherIdsKey])
 
   return {
     statuses: data ?? {},
     isLoading,
     error,
     refetch,
-  };
+  }
 }
 
 export function useTeacherDetails(teacherIds: string[]): {
-  teachersById: Record<string, ApiTeacher>;
-  isLoading: boolean;
-  error: string | null;
-  refetch: () => void;
+  teachersById: Record<string, ApiTeacher>
+  isLoading: boolean
+  error: string | null
+  refetch: () => void
 } {
   const sortedTeacherIds = useMemo(
     () => [...teacherIds].sort((left, right) => left.localeCompare(right)),
-    [teacherIds],
-  );
+    [teacherIds]
+  )
+  const teacherIdsKey = useMemo(
+    () => sortedTeacherIds.join("|"),
+    [sortedTeacherIds]
+  )
 
   const fetcher = useMemo(() => {
-    if (sortedTeacherIds.length === 0) return null;
+    if (sortedTeacherIds.length === 0) return null
 
     return async () => {
       const settled = await Promise.allSettled(
-        sortedTeacherIds.map((teacherId) => teachersApi.get(teacherId)),
-      );
+        sortedTeacherIds.map((teacherId) => teachersApi.get(teacherId))
+      )
 
       return settled.reduce<Record<string, ApiTeacher>>((acc, result) => {
-        if (result.status === 'fulfilled') {
-          acc[result.value.id] = result.value;
+        if (result.status === "fulfilled") {
+          acc[result.value.id] = result.value
         }
-        return acc;
-      }, {});
-    };
-  }, [sortedTeacherIds]);
+        return acc
+      }, {})
+    }
+  }, [sortedTeacherIds])
 
-  const { data, isLoading, error, refetch } = useApiQuery<Record<string, ApiTeacher>>(
-    fetcher,
-    sortedTeacherIds,
-  );
+  const { data, isLoading, error, refetch } = useApiQuery<
+    Record<string, ApiTeacher>
+  >(fetcher, [teacherIdsKey])
 
   return {
     teachersById: data ?? {},
     isLoading,
     error,
     refetch,
-  };
+  }
 }
 
 // ---------------------------------------------------------------------------
 // Teacher assignments hook
 // ---------------------------------------------------------------------------
 export interface UseTeacherAssignmentsParams {
-  teacherId?: string | null;
-  sectionId?: string | null;
-  academicYearId?: string | null;
-  organizationId?: string | null;
+  teacherId?: string | null
+  sectionId?: string | null
+  academicYearId?: string | null
+  organizationId?: string | null
 }
 
-export function useTeacherAssignments(
-  params: UseTeacherAssignmentsParams,
-): {
-  assignments: ApiTeacherAssignment[];
-  isLoading: boolean;
-  error: string | null;
-  refetch: () => void;
+export function useTeacherAssignments(params: UseTeacherAssignmentsParams): {
+  assignments: ApiTeacherAssignment[]
+  isLoading: boolean
+  error: string | null
+  refetch: () => void
 } {
-  const { teacherId, sectionId, academicYearId, organizationId } = params;
+  const { teacherId, sectionId, academicYearId, organizationId } = params
 
   const fetcher = useMemo(() => {
-    if (!teacherId && !sectionId && !organizationId) return null;
+    if (!teacherId && !sectionId && !organizationId) return null
     return () =>
       teachersApi
         .listAssignments({
@@ -167,34 +171,33 @@ export function useTeacherAssignments(
           academic_year: academicYearId ?? undefined,
           organization: organizationId ?? undefined,
         })
-        .then((r) => r.results);
-  }, [teacherId, sectionId, academicYearId, organizationId]);
+        .then((r) => r.results)
+  }, [teacherId, sectionId, academicYearId, organizationId])
 
-  const { data, isLoading, error, refetch } = useApiQuery<ApiTeacherAssignment[]>(
-    fetcher,
-    [teacherId, sectionId, academicYearId, organizationId],
-  );
+  const { data, isLoading, error, refetch } = useApiQuery<
+    ApiTeacherAssignment[]
+  >(fetcher, [teacherId, sectionId, academicYearId, organizationId])
 
-  return { assignments: data ?? [], isLoading, error, refetch };
+  return { assignments: data ?? [], isLoading, error, refetch }
 }
 
 // ---------------------------------------------------------------------------
 // Homeroom assignments hook
 // ---------------------------------------------------------------------------
 export function useHomeroomAssignments(params: {
-  branchId?: string | null;
-  organizationId?: string | null;
-  academicYearId?: string | null;
+  branchId?: string | null
+  organizationId?: string | null
+  academicYearId?: string | null
 }): {
-  homeroomAssignments: ApiHomeroomAssignment[];
-  isLoading: boolean;
-  error: string | null;
-  refetch: () => void;
+  homeroomAssignments: ApiHomeroomAssignment[]
+  isLoading: boolean
+  error: string | null
+  refetch: () => void
 } {
-  const { branchId, organizationId, academicYearId } = params;
+  const { branchId, organizationId, academicYearId } = params
 
   const fetcher = useMemo(() => {
-    if (!branchId && !organizationId) return null;
+    if (!branchId && !organizationId) return null
     return () =>
       teachersApi
         .listHomeroomAssignments({
@@ -202,13 +205,12 @@ export function useHomeroomAssignments(params: {
           organization: organizationId ?? undefined,
           academic_year: academicYearId ?? undefined,
         })
-        .then((r) => r.results);
-  }, [branchId, organizationId, academicYearId]);
+        .then((r) => r.results)
+  }, [branchId, organizationId, academicYearId])
 
-  const { data, isLoading, error, refetch } = useApiQuery<ApiHomeroomAssignment[]>(
-    fetcher,
-    [branchId, organizationId, academicYearId],
-  );
+  const { data, isLoading, error, refetch } = useApiQuery<
+    ApiHomeroomAssignment[]
+  >(fetcher, [branchId, organizationId, academicYearId])
 
-  return { homeroomAssignments: data ?? [], isLoading, error, refetch };
+  return { homeroomAssignments: data ?? [], isLoading, error, refetch }
 }

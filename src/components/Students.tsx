@@ -6,7 +6,6 @@ import {
   UserPlus,
   Link2,
   Link2Off,
-  MoreVertical,
   GraduationCap,
   ChevronRight,
   ShieldCheck,
@@ -18,6 +17,7 @@ import {
   ArrowUpDown,
   X,
   Loader2,
+  Trash2,
 } from "lucide-react"
 import { motion, AnimatePresence } from "motion/react"
 import { MediaUploader, MediaUploaderState } from "./MediaUploader"
@@ -26,6 +26,7 @@ import { resolveMediaUrl } from "../lib/media/resolveMediaUrl"
 import { Student, Parent } from "../types"
 import {
   ApiParentLink,
+  PaginatedResponse,
   ApiStudent,
   ApiParent,
   extractApiError,
@@ -36,8 +37,8 @@ import {
   StudentGender,
   StudentStatus,
 } from "../lib/api"
+import { useBackfilledFilteredPagination } from "../hooks/useBackfilledFilteredPagination"
 import { useApiQuery } from "../hooks/useApiQuery"
-import { useStudents } from "../hooks/useStudents"
 import { useParents } from "../hooks/useParents"
 import { useGrades } from "../hooks/useGrades"
 import { useSections } from "../hooks/useSections"
@@ -55,9 +56,9 @@ function mapStudent(s: ApiStudent, links: ApiParentLink[]): Student {
     name: `${s.first_name} ${s.last_name}`.trim(),
     firstName: s.first_name,
     lastName: s.last_name,
-    grade: s.grade_name,
-    gradeId: s.grade_id,
-    section: s.section_name,
+    grade: s.grade_name ?? "",
+    gradeId: s.grade_id ?? "",
+    section: s.section_name ?? "",
     sectionId: s.current_section ?? "",
     rollNo: s.roll_no,
     gender: s.gender,
@@ -91,6 +92,7 @@ function mapParent(p: ApiParent, links: ApiParentLink[]): Parent {
   return {
     id: p.id,
     name: p.user_details?.name ?? "",
+    fatherName: p.user_details?.father_name ?? "",
     phone: p.user_details?.phone_number ?? "",
     email: p.user_details?.email ?? "",
     status,
@@ -126,17 +128,93 @@ const emptyMediaUploaderState: MediaUploaderState = {
   pendingRemovalIds: [],
 }
 
+async function fetchLinkedStudentCount(): Promise<number> {
+  const linkedStudentIds = new Set<string>()
+  let page = 1
+
+  while (true) {
+    const response = await parentsApi.listLinks({ page })
+    response.results.forEach((link) => linkedStudentIds.add(link.student))
+
+    if (!response.next) break
+    page += 1
+  }
+
+  return linkedStudentIds.size
+}
+
+async function fetchAllParentLinks(): Promise<ApiParentLink[]> {
+  const links: ApiParentLink[] = []
+  let page = 1
+
+  while (true) {
+    const response = await parentsApi.listLinks({ page })
+    links.push(...response.results)
+
+    if (!response.next) break
+    page += 1
+  }
+
+  return links
+}
+
+async function fetchUnassignedStudentCount(params: {
+  branchId?: string | null
+  organizationId?: string | null
+  academicYearId?: string | null
+}): Promise<number> {
+  const unassignedStudentIds = new Set<string>()
+  let page = 1
+
+  while (true) {
+    const response = await studentsApi.list({
+      branch: params.branchId ?? undefined,
+      organization: params.organizationId ?? undefined,
+      academic_year: params.academicYearId ?? undefined,
+      page,
+    })
+
+    response.results.forEach((student) => {
+      if (!student.current_section) {
+        unassignedStudentIds.add(student.id)
+      }
+    })
+
+    if (!response.next) break
+    page += 1
+  }
+
+  return unassignedStudentIds.size
+}
+
 export const Students: React.FC<StudentsProps> = ({
   academicYear,
   branchId,
   organizationId,
   academicYearId,
 }) => {
+  const normalizeRollNo = (value: string) => value.trim().toLowerCase()
+
   const [searchQuery, setSearchQuery] = useState("")
-  const [activeTab, setActiveTab] = useState<"all" | "unlinked">("all")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [hasResolvedInitialLoad, setHasResolvedInitialLoad] = useState(false)
+  const [activeTab, setActiveTab] = useState<
+    "all" | "linked" | "unlinked" | "unassigned"
+  >("all")
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [studentToAssign, setStudentToAssign] = useState<Student | null>(null)
+  const [studentToDelete, setStudentToDelete] = useState<Student | null>(null)
+  const [assignForm, setAssignForm] = useState({
+    gradeId: "",
+    sectionId: "",
+    rollNo: "",
+  })
+  const [isAssigningStudent, setIsAssigningStudent] = useState(false)
+  const [assignStudentError, setAssignStudentError] = useState<string | null>(
+    null
+  )
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [importFile, setImportFile] = useState<File | null>(null)
   const [importGradeId, setImportGradeId] = useState("")
@@ -171,37 +249,130 @@ export const Students: React.FC<StudentsProps> = ({
   const [studentPhotoState, setStudentPhotoState] =
     useState<MediaUploaderState>(emptyMediaUploaderState)
   const [isStudentMediaBusy, setIsStudentMediaBusy] = useState(false)
+  const [isDeletingStudent, setIsDeletingStudent] = useState(false)
+  const [deleteStudentError, setDeleteStudentError] = useState<string | null>(
+    null
+  )
 
   // API hooks
-  const {
-    students: rawStudents,
-    isLoading: studentsLoading,
-    error: studentsError,
-    refetch: refetchStudents,
-  } = useStudents({ branchId, organizationId, academicYearId })
   const { parents: rawParents } = useParents({ branchId, organizationId })
   const {
-    data: linkResponse,
+    data: links,
     isLoading: linksLoading,
     error: linksError,
     refetch: refetchLinks,
-  } = useApiQuery<{ results: ApiParentLink[] } | null>(
-    branchId || organizationId ? () => parentsApi.listLinks({}) : null,
+  } = useApiQuery<ApiParentLink[]>(
+    branchId || organizationId ? () => fetchAllParentLinks() : null,
     [branchId, organizationId]
   )
   const { grades } = useGrades(branchId)
   const { sections } = useSections(branchId, academicYearId)
+  const { data: linkedStudentCount } = useApiQuery<number>(
+    branchId || organizationId ? () => fetchLinkedStudentCount() : null,
+    [branchId, organizationId]
+  )
+  const {
+    data: unassignedStudentCount,
+    refetch: refetchUnassignedStudentCount,
+  } = useApiQuery<number>(
+    branchId || organizationId
+      ? () =>
+          fetchUnassignedStudentCount({
+            branchId,
+            organizationId,
+            academicYearId,
+          })
+      : null,
+    [academicYearId, branchId, organizationId]
+  )
 
   // Map to UI shapes
-  const links = useMemo(() => linkResponse?.results ?? [], [linkResponse])
-  const students = useMemo(
-    () => rawStudents.map((student) => mapStudent(student, links)),
-    [rawStudents, links]
+  const studentFilterQuery = searchQuery.trim().toLowerCase()
+  const studentFilterFn = useMemo(
+    () => (student: Student) => {
+      const matchesSearch =
+        student.name.toLowerCase().includes(studentFilterQuery) ||
+        student.id.toLowerCase().includes(studentFilterQuery)
+      const matchesTab =
+        activeTab === "all" ||
+        (activeTab === "linked" && Boolean(student.parentId)) ||
+        (activeTab === "unlinked" && !student.parentId) ||
+        (activeTab === "unassigned" && !student.sectionId)
+      const matchesGrade = gradeFilter === "All" || student.grade === gradeFilter
+      const matchesSection =
+        sectionFilter === "All"
+          ? true
+          : sectionFilter === "Unassigned"
+            ? !student.sectionId
+            : student.section === sectionFilter
+
+      return matchesSearch && matchesTab && matchesGrade && matchesSection
+    },
+    [activeTab, gradeFilter, sectionFilter, studentFilterQuery]
   )
+  const {
+    items: filteredStudents,
+    totalSourceCount: studentCount,
+    hasNextPage,
+    hasPreviousPage,
+    isLoading: studentsLoading,
+    error: studentsError,
+    refetch: refetchStudents,
+    isPageOutOfRange,
+  } = useBackfilledFilteredPagination<Student>({
+    fetchPage:
+      branchId || organizationId
+        ? async (page) => {
+            const response = await studentsApi.list({
+              branch: branchId ?? undefined,
+              organization: organizationId ?? undefined,
+              academic_year: academicYearId ?? undefined,
+              page,
+            })
+
+            return {
+              ...response,
+              results: response.results.map((student) => mapStudent(student, links ?? [])),
+            } satisfies PaginatedResponse<Student>
+          }
+        : null,
+    currentPage,
+    deps: [academicYearId, branchId, gradeFilter, links, organizationId, sectionFilter, searchQuery, activeTab],
+    filterFn: studentFilterFn,
+    sortFn: (left, right) =>
+      left.name.localeCompare(right.name, undefined, {
+        sensitivity: "base",
+      }),
+  })
   const parents = useMemo(
-    () => rawParents.map((parent) => mapParent(parent, links)),
+    () => rawParents.map((parent) => mapParent(parent, links ?? [])),
     [rawParents, links]
   )
+  const selectedStudentParent = useMemo(
+    () =>
+      selectedStudent?.parentId
+        ? parents.find((parent) => parent.id === selectedStudent.parentId) ?? null
+        : null,
+    [parents, selectedStudent]
+  )
+  const studentsForStats = filteredStudents
+  useEffect(() => {
+    if (isPageOutOfRange) {
+      setCurrentPage((page) => Math.max(1, page - 1))
+    }
+  }, [isPageOutOfRange])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [academicYearId, branchId, organizationId])
+
+  useEffect(() => {
+    setSelectedStudent(null)
+    setStudentToAssign(null)
+    setStudentToLink(null)
+    setStudentToDelete(null)
+    setDeleteStudentError(null)
+  }, [currentPage])
   const filteredParents = useMemo(() => {
     const query = parentSearchQuery.trim().toLowerCase()
     if (!query) return parents
@@ -236,33 +407,43 @@ export const Students: React.FC<StudentsProps> = ({
         : [],
     [importGradeId, sections]
   )
-
-  const filteredStudents = useMemo(
+  const assignSectionsForSelectedGrade = useMemo(
     () =>
-      students.filter((student) => {
-        const matchesSearch =
-          student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          student.id.toLowerCase().includes(searchQuery.toLowerCase())
-        const matchesTab = activeTab === "all" || !student.parentId
-        const matchesGrade =
-          gradeFilter === "All" || student.grade === gradeFilter
-        const matchesSection =
-          sectionFilter === "All" || student.section === sectionFilter
-        return matchesSearch && matchesTab && matchesGrade && matchesSection
-      }),
-    [students, searchQuery, activeTab, gradeFilter, sectionFilter]
+      assignForm.gradeId
+        ? sections.filter((section) => section.grade === assignForm.gradeId)
+        : [],
+    [assignForm.gradeId, sections]
   )
 
   const stats = useMemo(
     () => ({
-      total: students.length,
-      linked: students.filter((s) => s.parentId).length,
-      unlinked: students.filter((s) => !s.parentId).length,
-      withdrawn: students.filter((s) => s.registrationStatus === "Withdrawn")
-        .length,
+      total: studentCount,
+      linked:
+        linkedStudentCount ??
+        studentsForStats.filter((student) => student.parentId).length,
+      unlinked:
+        linkedStudentCount != null
+          ? Math.max(0, studentCount - linkedStudentCount)
+          : studentsForStats.filter((student) => !student.parentId).length,
+      unassigned:
+        unassignedStudentCount ??
+        studentsForStats.filter((student) => !student.sectionId).length,
+      withdrawn: studentsForStats.filter(
+        (student) => student.registrationStatus === "Withdrawn"
+      ).length,
     }),
-    [students]
+    [linkedStudentCount, studentCount, studentsForStats, unassignedStudentCount]
   )
+
+  const isLoading = studentsLoading || linksLoading
+  const isInitialLoading = !hasResolvedInitialLoad && isLoading
+  const isBackgroundRefreshing = hasResolvedInitialLoad && isLoading
+
+  useEffect(() => {
+    if (!isLoading) {
+      setHasResolvedInitialLoad(true)
+    }
+  }, [isLoading])
 
   const resetStudentForm = () => {
     setNewStudentForm({
@@ -314,6 +495,33 @@ export const Students: React.FC<StudentsProps> = ({
     setLinkingParentId(null)
   }
 
+  const openAssignStudentModal = (student: Student) => {
+    setStudentToAssign(student)
+    setAssignForm({
+      gradeId: student.gradeId || "",
+      sectionId: "",
+      rollNo: student.rollNo || "",
+    })
+    setAssignStudentError(null)
+  }
+
+  const closeAssignStudentModal = () => {
+    if (isAssigningStudent) return
+    setStudentToAssign(null)
+    setAssignForm({
+      gradeId: "",
+      sectionId: "",
+      rollNo: "",
+    })
+    setAssignStudentError(null)
+  }
+
+  const closeDeleteStudentModal = () => {
+    if (isDeletingStudent) return
+    setStudentToDelete(null)
+    setDeleteStudentError(null)
+  }
+
   const closeImportModal = () => {
     if (isImporting) return
     setIsImportModalOpen(false)
@@ -353,7 +561,14 @@ export const Students: React.FC<StudentsProps> = ({
   }
 
   async function handleStudentImport() {
-    if (!importFile || !branchId || !organizationId || !importSectionId) return
+    if (!importFile || !branchId || !organizationId) return
+
+    if (importGradeId && !importSectionId) {
+      setImportErrorMessages([
+        "Select a section after choosing a grade, or leave both blank.",
+      ])
+      return
+    }
 
     setIsImporting(true)
     setImportErrorMessages([])
@@ -366,9 +581,11 @@ export const Students: React.FC<StudentsProps> = ({
         importFile,
         organizationId,
         branchId,
-        {
-          current_section: importSectionId,
-        }
+        importSectionId
+          ? {
+              current_section: importSectionId,
+            }
+          : undefined
       )
 
       if (!started.task_id) {
@@ -400,9 +617,7 @@ export const Students: React.FC<StudentsProps> = ({
         await new Promise((resolve) => setTimeout(resolve, 2000))
       }
 
-      throw new Error(
-        "Bulk import is still processing. Check again shortly."
-      )
+      throw new Error("Bulk import is still processing. Check again shortly.")
     } catch (error) {
       setImportErrorMessages(extractUserReadableErrorMessages(error))
       setImportTaskId(null)
@@ -412,8 +627,102 @@ export const Students: React.FC<StudentsProps> = ({
     }
   }
 
+  async function handleAssignStudent() {
+    const trimmedRollNo = assignForm.rollNo.trim()
+
+    if (
+      !studentToAssign ||
+      !academicYearId ||
+      !assignForm.sectionId ||
+      !trimmedRollNo
+    ) {
+      setAssignStudentError(
+        "Academic year, section, and roll number are required."
+      )
+      return
+    }
+
+    setIsAssigningStudent(true)
+    setAssignStudentError(null)
+
+    try {
+      const sectionStudents = await studentsApi.bySection(assignForm.sectionId)
+      const duplicateRollNo = sectionStudents.some(
+        (student) =>
+          student.id !== studentToAssign.id &&
+          normalizeRollNo(student.roll_no) === normalizeRollNo(trimmedRollNo)
+      )
+
+      if (duplicateRollNo) {
+        setAssignStudentError(
+          "That roll number is already in use in the selected section."
+        )
+        return
+      }
+
+      await studentsApi.update(studentToAssign.id, {
+        academic_year: academicYearId,
+        current_section: assignForm.sectionId,
+        roll_no: trimmedRollNo,
+      })
+      refetchStudents()
+      refetchUnassignedStudentCount()
+      if (selectedStudent?.id === studentToAssign.id) {
+        const assignedSection = sections.find(
+          (section) => section.id === assignForm.sectionId
+        )
+        const assignedGrade = grades.find(
+          (grade) => grade.id === assignedSection?.grade
+        )
+        setSelectedStudent({
+          ...selectedStudent,
+          grade: assignedGrade?.name ?? selectedStudent.grade,
+          gradeId: assignedGrade?.id ?? selectedStudent.gradeId,
+          section: assignedSection?.name ?? selectedStudent.section,
+          sectionId: assignForm.sectionId,
+          rollNo: trimmedRollNo,
+          academicYearId,
+        })
+      }
+      closeAssignStudentModal()
+    } catch (error) {
+      setAssignStudentError(
+        error instanceof Error ? error.message : "Failed to assign student."
+      )
+    } finally {
+      setIsAssigningStudent(false)
+    }
+  }
+
+  async function handleDeleteStudent() {
+    if (!studentToDelete) return
+
+    setIsDeletingStudent(true)
+    setDeleteStudentError(null)
+
+    try {
+      await studentsApi.delete(studentToDelete.id)
+
+      const shouldGoToPreviousPage =
+        currentPage > 1 && filteredStudents.length === 1
+
+      setSelectedStudent(null)
+      setStudentToDelete(null)
+
+      if (shouldGoToPreviousPage) {
+        setCurrentPage((page) => Math.max(1, page - 1))
+      } else {
+        refetchStudents()
+      }
+    } catch (error) {
+      setDeleteStudentError(extractApiError(error))
+    } finally {
+      setIsDeletingStudent(false)
+    }
+  }
+
   // Loading / error states
-  if (studentsLoading || linksLoading) {
+  if (isInitialLoading) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50/30">
         <div className="flex flex-col items-center gap-3">
@@ -543,6 +852,23 @@ export const Students: React.FC<StudentsProps> = ({
                 All Students
               </button>
               <button
+                onClick={() => setActiveTab("linked")}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-[10px] font-bold whitespace-nowrap transition-all md:text-xs lg:flex-none ${
+                  activeTab === "linked"
+                    ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/10"
+                    : "text-slate-500 hover:text-emerald-500"
+                }`}
+              >
+                Linked
+                {stats.linked > 0 && (
+                  <span
+                    className={`rounded-full px-1.5 py-0.5 text-[10px] ${activeTab === "linked" ? "bg-white text-emerald-500" : "bg-emerald-100 text-emerald-600"}`}
+                  >
+                    {stats.linked}
+                  </span>
+                )}
+              </button>
+              <button
                 onClick={() => setActiveTab("unlinked")}
                 className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-[10px] font-bold whitespace-nowrap transition-all md:text-xs lg:flex-none ${
                   activeTab === "unlinked"
@@ -556,6 +882,27 @@ export const Students: React.FC<StudentsProps> = ({
                     className={`rounded-full px-1.5 py-0.5 text-[10px] ${activeTab === "unlinked" ? "bg-white text-amber-500" : "bg-amber-100 text-amber-600"}`}
                   >
                     {stats.unlinked}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab("unassigned")}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-[10px] font-bold whitespace-nowrap transition-all md:text-xs lg:flex-none ${
+                  activeTab === "unassigned"
+                    ? "bg-rose-500 text-white shadow-md shadow-rose-500/10"
+                    : "text-slate-500 hover:text-rose-500"
+                }`}
+              >
+                Unassigned
+                {stats.unassigned > 0 && (
+                  <span
+                    className={`rounded-full px-1.5 py-0.5 text-[10px] ${
+                      activeTab === "unassigned"
+                        ? "bg-white text-rose-500"
+                        : "bg-rose-100 text-rose-600"
+                    }`}
+                  >
+                    {stats.unassigned}
                   </span>
                 )}
               </button>
@@ -580,6 +927,7 @@ export const Students: React.FC<StudentsProps> = ({
                 className="flex-1 rounded-xl border border-slate-200 bg-white px-2 py-2 text-[10px] font-bold text-slate-600 outline-none focus:ring-2 focus:ring-primary/10 md:px-3 md:text-xs lg:flex-none"
               >
                 <option value="All">All Sections</option>
+                <option value="Unassigned">Unassigned</option>
                 {sectionNames.map((s) => (
                   <option key={s} value={s}>
                     {s}
@@ -601,6 +949,12 @@ export const Students: React.FC<StudentsProps> = ({
 
           {/* Student Table */}
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            {isBackgroundRefreshing && (
+              <div className="flex items-center justify-end gap-2 border-b border-slate-100 bg-slate-50 px-6 py-3 text-xs font-bold text-slate-500">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                Refreshing page...
+              </div>
+            )}
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-left">
                 <thead>
@@ -623,18 +977,13 @@ export const Students: React.FC<StudentsProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  <AnimatePresence mode="popLayout">
-                    {filteredStudents.length > 0 ? (
-                      filteredStudents.map((student) => (
-                        <motion.tr
-                          key={student.id}
-                          layout
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          onClick={() => setSelectedStudent(student)}
-                          className="group cursor-pointer transition-colors hover:bg-slate-50/80"
-                        >
+                  {filteredStudents.length > 0 ? (
+                    filteredStudents.map((student) => (
+                      <tr
+                        key={student.id}
+                        onClick={() => setSelectedStudent(student)}
+                        className="group cursor-pointer transition-colors hover:bg-slate-50/80"
+                      >
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
                               <StudentAvatar
@@ -653,9 +1002,15 @@ export const Students: React.FC<StudentsProps> = ({
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <span className="text-xs font-bold text-slate-700">
-                              {student.grade} - {student.section}
-                            </span>
+                            {student.sectionId ? (
+                              <span className="text-xs font-bold text-slate-700">
+                                {student.grade} - {student.section}
+                              </span>
+                            ) : (
+                              <span className="inline-flex rounded-full border border-rose-100 bg-rose-50 px-2.5 py-1 text-[10px] font-black tracking-widest text-rose-600 uppercase">
+                                Unassigned
+                              </span>
+                            )}
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-2">
@@ -692,6 +1047,18 @@ export const Students: React.FC<StudentsProps> = ({
                           </td>
                           <td className="px-6 py-4 text-right">
                             <div className="flex items-center justify-end gap-2">
+                              {!student.sectionId && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    openAssignStudentModal(student)
+                                  }}
+                                  className="rounded-lg bg-rose-50 p-2 text-rose-500 transition-all hover:bg-rose-500 hover:text-white"
+                                  title="Assign Section"
+                                >
+                                  <GraduationCap className="h-4 w-4" />
+                                </button>
+                              )}
                               {!student.parentId && (
                                 <button
                                   onClick={(e) => {
@@ -717,30 +1084,57 @@ export const Students: React.FC<StudentsProps> = ({
                               </button>
                             </div>
                           </td>
-                        </motion.tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={5} className="py-24 text-center">
-                          <div className="flex flex-col items-center justify-center space-y-4">
-                            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-slate-50">
-                              <Search className="h-10 w-10 text-slate-200" />
-                            </div>
-                            <div>
-                              <h3 className="text-lg font-black text-slate-900">
-                                No students found
-                              </h3>
-                              <p className="text-sm font-medium text-slate-500">
-                                Try adjusting your search or filters
-                              </p>
-                            </div>
-                          </div>
-                        </td>
                       </tr>
-                    )}
-                  </AnimatePresence>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="py-24 text-center">
+                        <div className="flex flex-col items-center justify-center space-y-4">
+                          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-slate-50">
+                            <Search className="h-10 w-10 text-slate-200" />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-black text-slate-900">
+                              No students found
+                            </h3>
+                            <p className="text-sm font-medium text-slate-500">
+                              {activeTab === "unassigned"
+                                ? "No unassigned students were found for this academic year."
+                                : "Try adjusting your search or filters"}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
+            </div>
+            <div className="flex flex-col gap-3 border-t border-slate-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs font-medium text-slate-500">
+                Page {currentPage} · {studentCount} total student
+                {studentCount === 1 ? "" : "s"}
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCurrentPage((page) => Math.max(1, page - 1))
+                  }
+                  disabled={!hasPreviousPage}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((page) => page + 1)}
+                  disabled={!hasNextPage}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -798,29 +1192,20 @@ export const Students: React.FC<StudentsProps> = ({
                     </p>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                    <p className="mb-2 text-[10px] leading-none font-black tracking-widest text-slate-400 uppercase">
-                      Academic Info
-                    </p>
-                    <p className="text-sm font-bold text-slate-900">
-                      {selectedStudent.grade}
-                    </p>
-                    <p className="text-xs font-medium text-slate-500">
-                      Section {selectedStudent.section}
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                    <p className="mb-2 text-[10px] leading-none font-black tracking-widest text-slate-400 uppercase">
-                      Preference
-                    </p>
-                    <p className="text-sm font-bold text-slate-900">
-                      {selectedStudent.languagePreference}
-                    </p>
-                    <p className="text-xs font-medium text-slate-500">
-                      Primary Language
-                    </p>
-                  </div>
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="mb-2 text-[10px] leading-none font-black tracking-widest text-slate-400 uppercase">
+                    Academic Info
+                  </p>
+                  <p className="text-sm font-bold text-slate-900">
+                    {selectedStudent.sectionId
+                      ? selectedStudent.grade
+                      : "Unassigned"}
+                  </p>
+                  <p className="text-xs font-medium text-slate-500">
+                    {selectedStudent.sectionId
+                      ? `Section ${selectedStudent.section}`
+                      : "No section assigned"}
+                  </p>
                 </div>
                 <div className="space-y-4">
                   <h4 className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
@@ -831,13 +1216,23 @@ export const Students: React.FC<StudentsProps> = ({
                       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-emerald-100 bg-white">
                         <Link2 className="h-6 w-6 text-emerald-500" />
                       </div>
-                      <div>
+                      <div className="min-w-0 flex-1">
                         <p className="text-sm font-black text-emerald-600">
-                          Successfully Linked
+                          {selectedStudentParent
+                            ? [
+                                selectedStudentParent.name,
+                                selectedStudentParent.fatherName,
+                              ]
+                                .filter(Boolean)
+                                .join(" ")
+                            : "Parent Linked"}
                         </p>
-                        <p className="mt-1 text-xs leading-none font-medium text-emerald-500">
-                          Updates are synchronized
-                        </p>
+                        {selectedStudentParent && (
+                          <div className="mt-2 space-y-1 text-xs font-medium text-emerald-600">
+                            <p>{selectedStudentParent.relationship || "Primary Contact"}</p>
+                            <p>{selectedStudentParent.phone || "No phone number"}</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -904,45 +1299,6 @@ export const Students: React.FC<StudentsProps> = ({
                     </button>
                   </div>
                 </div>
-                {selectedStudent.parentId &&
-                  (() => {
-                    const parent = parents.find(
-                      (p) => p.id === selectedStudent.parentId
-                    )
-                    if (!parent) return null
-                    return (
-                      <div className="space-y-4 border-t border-slate-100 pt-6">
-                        <h4 className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
-                          Parent Information
-                        </h4>
-                        <div className="space-y-3 rounded-2xl border border-slate-100 bg-slate-50 p-5">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white">
-                              <Users className="h-5 w-5 text-slate-400" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-black text-slate-900">
-                                {parent.name}
-                              </p>
-                              <p className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">
-                                {parent.relationship || "Primary Contact"}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-1 gap-2">
-                            <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
-                              <Phone className="h-3.5 w-3.5" />
-                              {parent.phone}
-                            </div>
-                            <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
-                              <Mail className="h-3.5 w-3.5" />
-                              {parent.email}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })()}
               </div>
               <div className="flex gap-3 border-t border-slate-100 p-6">
                 <button
@@ -952,8 +1308,25 @@ export const Students: React.FC<StudentsProps> = ({
                   <Edit3 className="h-4 w-4" />
                   Edit Profile
                 </button>
-                <button className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-400 transition-all hover:border-red-100 hover:text-red-500">
-                  <MoreVertical className="h-5 w-5" />
+                {!selectedStudent.sectionId && (
+                  <button
+                    onClick={() => openAssignStudentModal(selectedStudent)}
+                    disabled={!academicYearId}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-rose-500 py-3 text-[10px] font-black tracking-widest text-white uppercase shadow-lg shadow-rose-500/20 transition-all hover:shadow-xl active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <GraduationCap className="h-4 w-4" />
+                    Assign
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setStudentToDelete(selectedStudent)
+                    setDeleteStudentError(null)
+                  }}
+                  className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-red-500 transition-all hover:border-red-200 hover:bg-red-100"
+                  title="Remove student"
+                >
+                  <Trash2 className="h-5 w-5" />
                 </button>
               </div>
             </motion.div>
@@ -961,7 +1334,223 @@ export const Students: React.FC<StudentsProps> = ({
         )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {studentToDelete && (
+          <div className="fixed inset-0 z-[240] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={closeDeleteStudentModal}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md overflow-hidden rounded-[2rem] bg-white shadow-2xl"
+            >
+              <div className="border-b border-slate-100 p-8">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-red-100 bg-red-50 shadow-sm">
+                    <Trash2 className="h-6 w-6 text-red-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black tracking-tight text-slate-900">
+                      Remove Student
+                    </h3>
+                    <p className="text-xs font-bold tracking-widest text-red-500 uppercase">
+                      This action is permanent
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-4 p-8">
+                <p className="text-sm leading-relaxed font-medium text-slate-600">
+                  Delete {studentToDelete.name} permanently. This student record
+                  cannot be recovered after confirmation.
+                </p>
+                {deleteStudentError && (
+                  <div className="rounded-2xl border border-red-100 bg-red-50 p-4 text-sm font-medium text-red-600">
+                    {deleteStudentError}
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center justify-end gap-4 border-t border-slate-100 p-8">
+                <button
+                  onClick={closeDeleteStudentModal}
+                  disabled={isDeletingStudent}
+                  className="px-6 py-3 text-[10px] font-black tracking-widest text-slate-400 uppercase transition-all hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => void handleDeleteStudent()}
+                  disabled={isDeletingStudent}
+                  className="flex min-w-36 items-center justify-center gap-2 rounded-xl bg-red-600 px-8 py-3 text-[10px] font-black tracking-widest text-white uppercase shadow-lg shadow-red-200 transition-all hover:bg-red-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isDeletingStudent ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Removing...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4" />
+                      Confirm Delete
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Edit Student Modal */}
+      <AnimatePresence>
+        {studentToAssign && (
+          <div className="fixed inset-0 z-[220] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={closeAssignStudentModal}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-lg overflow-hidden rounded-[2rem] bg-white shadow-2xl"
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 p-8">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-rose-100 bg-rose-50 shadow-sm">
+                    <GraduationCap className="h-6 w-6 text-rose-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black tracking-tight text-slate-900">
+                      Assign Student
+                    </h3>
+                    <p className="text-xs font-bold tracking-widest text-slate-500 uppercase">
+                      {studentToAssign.name}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={closeAssignStudentModal}
+                  className="rounded-full p-2 transition-all hover:bg-slate-50"
+                >
+                  <X className="h-5 w-5 text-slate-400" />
+                </button>
+              </div>
+              <div className="space-y-6 p-8">
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                    Academic Year
+                  </p>
+                  <p className="mt-2 text-sm font-bold text-slate-900">
+                    {academicYear}
+                  </p>
+                </div>
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-[10px] leading-none font-black tracking-widest text-slate-400 uppercase">
+                      Grade
+                    </label>
+                    <select
+                      value={assignForm.gradeId}
+                      onChange={(e) =>
+                        setAssignForm({
+                          gradeId: e.target.value,
+                          sectionId: "",
+                          rollNo: assignForm.rollNo,
+                        })
+                      }
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-rose-500/20"
+                    >
+                      <option value="">Select grade</option>
+                      {grades.map((grade) => (
+                        <option key={grade.id} value={grade.id}>
+                          {grade.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] leading-none font-black tracking-widest text-slate-400 uppercase">
+                      Roll No
+                    </label>
+                    <input
+                      type="text"
+                      value={assignForm.rollNo}
+                      onChange={(e) =>
+                        setAssignForm((current) => ({
+                          ...current,
+                          rollNo: e.target.value,
+                        }))
+                      }
+                      placeholder="Enter section roll number"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-rose-500/20"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] leading-none font-black tracking-widest text-slate-400 uppercase">
+                    Section
+                  </label>
+                  <select
+                    value={assignForm.sectionId}
+                    onChange={(e) =>
+                      setAssignForm((current) => ({
+                        ...current,
+                        sectionId: e.target.value,
+                      }))
+                    }
+                    disabled={!assignForm.gradeId}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-rose-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <option value="">Select section</option>
+                    {assignSectionsForSelectedGrade.map((section) => (
+                      <option key={section.id} value={section.id}>
+                        {section.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {assignStudentError && (
+                  <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                    {assignStudentError}
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center justify-end gap-4 border-t border-slate-100 p-8">
+                <button
+                  onClick={closeAssignStudentModal}
+                  className="px-6 py-3 text-[10px] font-black tracking-widest text-slate-400 uppercase transition-all hover:text-slate-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  disabled={
+                    isAssigningStudent ||
+                    !academicYearId ||
+                    !assignForm.gradeId ||
+                    !assignForm.sectionId ||
+                    !assignForm.rollNo.trim()
+                  }
+                  onClick={() => void handleAssignStudent()}
+                  className="rounded-xl bg-rose-500 px-8 py-3 text-[10px] font-black tracking-widest text-white uppercase shadow-lg shadow-rose-500/20 transition-all hover:shadow-xl active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isAssigningStudent ? "Assigning..." : "Assign Student"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {isEditModalOpen && selectedStudent && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
@@ -1236,12 +1825,15 @@ export const Students: React.FC<StudentsProps> = ({
                     </div>
                     <button
                       onClick={() =>
-                        studentToLink && void handleLinkParent(studentToLink, parent)
+                        studentToLink &&
+                        void handleLinkParent(studentToLink, parent)
                       }
                       disabled={linkingParentId === parent.id}
                       className="rounded-lg bg-primary px-3 py-1.5 text-[10px] font-black tracking-widest text-white uppercase shadow-sm transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {linkingParentId === parent.id ? "Connecting..." : "Connect"}
+                      {linkingParentId === parent.id
+                        ? "Connecting..."
+                        : "Connect"}
                     </button>
                   </div>
                 ))}
@@ -1514,6 +2106,7 @@ export const Students: React.FC<StudentsProps> = ({
                     isStudentMediaBusy ||
                     !branchId ||
                     !organizationId ||
+                    !academicYearId ||
                     !newStudentForm.firstName ||
                     !newStudentForm.lastName ||
                     !newStudentForm.rollNo ||
@@ -1522,9 +2115,9 @@ export const Students: React.FC<StudentsProps> = ({
                     !newStudentForm.admissionDate
                   }
                   onClick={async () => {
-                    if (!branchId || !organizationId) {
+                    if (!branchId || !organizationId || !academicYearId) {
                       setStudentFormError(
-                        "Branch and organization context are required."
+                        "Branch, organization, and academic year context are required."
                       )
                       return
                     }
@@ -1534,6 +2127,7 @@ export const Students: React.FC<StudentsProps> = ({
                       await studentsApi.create({
                         organization: organizationId,
                         branch: branchId,
+                        academic_year: academicYearId,
                         first_name: newStudentForm.firstName.trim(),
                         last_name: newStudentForm.lastName.trim(),
                         gender: newStudentForm.gender,
@@ -1626,7 +2220,9 @@ export const Students: React.FC<StudentsProps> = ({
                 />
               </label>
               <p className="text-xs text-slate-500">
-                The backend will validate the uploaded student file before creating records.
+                The backend will validate the uploaded student file before
+                creating records. Grade and section are optional, but selecting
+                a grade requires selecting a section too.
               </p>
               <div className="grid gap-4 text-left md:grid-cols-2">
                 <div className="space-y-2">
@@ -1708,12 +2304,11 @@ export const Students: React.FC<StudentsProps> = ({
                 <button
                   disabled={
                     !importFile ||
-                    !importGradeId ||
-                    !importSectionId ||
-                    isImporting
+                    isImporting ||
+                    Boolean(importGradeId && !importSectionId)
                   }
                   onClick={() => void handleStudentImport()}
-                  className="text-[10px] font-black tracking-widest text-primary uppercase hover:underline disabled:cursor-not-allowed disabled:opacity-50 disabled:no-underline"
+                  className="text-[10px] font-black tracking-widest text-primary uppercase hover:underline disabled:cursor-not-allowed disabled:no-underline disabled:opacity-50"
                 >
                   {isImporting ? "Importing..." : "Upload File"}
                 </button>

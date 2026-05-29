@@ -1,28 +1,28 @@
-'use client';
+"use client"
 
-import Image from 'next/image';
-import { useEffect, useRef, useState } from 'react';
-import { Check, Upload, X } from 'lucide-react';
-import { useMediaUpload } from '../lib/hooks/useMediaUpload';
-import { resolveMediaUrl } from '../lib/media/resolveMediaUrl';
+import Image from "next/image"
+import { useEffect, useRef, useState } from "react"
+import { Check, Upload, X } from "lucide-react"
+import { useMediaUpload } from "../lib/hooks/useMediaUpload"
+import { resolveMediaUrl } from "../lib/media/resolveMediaUrl"
 
 export type MediaUploaderState = {
-  hasChanges: boolean;
-  mediaId: string | null;
-  pendingRemovalIds: string[];
-};
+  hasChanges: boolean
+  mediaId: string | null
+  pendingRemovalIds: string[]
+}
 
 type MediaUploaderProps = {
-  accept?: string;
-  imageOnly?: boolean;
-  onUploaded: (mediaId: string) => void;
-  onRemoved?: () => void;
-  onStateChange?: (state: MediaUploaderState) => void;
-  onBusyChange?: (busy: boolean) => void;
-  label?: string;
-  description?: string;
-  initialMediaId?: string | null;
-};
+  accept?: string
+  imageOnly?: boolean
+  onUploaded: (mediaId: string) => void
+  onRemoved?: () => void
+  onStateChange?: (state: MediaUploaderState) => void
+  onBusyChange?: (busy: boolean) => void
+  label?: string
+  description?: string
+  initialMediaId?: string | null
+}
 
 export function MediaUploader({
   accept,
@@ -31,163 +31,167 @@ export function MediaUploader({
   onRemoved,
   onStateChange,
   onBusyChange,
-  label = 'Upload File',
-  description = 'Click or drag file here',
+  label = "Upload File",
+  description = "Click or drag file here",
   initialMediaId = null,
 }: MediaUploaderProps) {
-  const { upload, remove, uploading, removing, progress, error } = useMediaUpload();
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [dragActive, setDragActive] = useState(false);
-  const [uploadedMediaId, setUploadedMediaId] = useState<string | null | undefined>(
-    undefined,
-  );
-  const [pendingRemovalIds, setPendingRemovalIds] = useState<string[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const currentMediaId = uploadedMediaId === undefined ? initialMediaId : uploadedMediaId;
+  const { upload, remove, uploading, removing, progress, error } =
+    useMediaUpload()
+  const [file, setFile] = useState<File | null>(null)
+  const [preview, setPreview] = useState<string | null>(null)
+  const [dragActive, setDragActive] = useState(false)
+  const [uploadedMediaId, setUploadedMediaId] = useState<
+    string | null | undefined
+  >(undefined)
+  const [pendingRemovalIds, setPendingRemovalIds] = useState<string[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const currentMediaId =
+    uploadedMediaId === undefined ? initialMediaId : uploadedMediaId
 
   useEffect(() => {
-    onBusyChange?.(uploading || removing);
-  }, [onBusyChange, removing, uploading]);
+    onBusyChange?.(uploading || removing)
+  }, [onBusyChange, removing, uploading])
 
   useEffect(() => {
     onStateChange?.({
       hasChanges: uploadedMediaId !== undefined || pendingRemovalIds.length > 0,
       mediaId: currentMediaId ?? null,
       pendingRemovalIds,
-    });
-  }, [currentMediaId, onStateChange, pendingRemovalIds, uploadedMediaId]);
+    })
+  }, [currentMediaId, onStateChange, pendingRemovalIds, uploadedMediaId])
 
   useEffect(() => {
-    let cancelled = false;
+    let cancelled = false
 
     if (!currentMediaId) {
       Promise.resolve().then(() => {
         if (!cancelled) {
-          setPreview(null);
+          setPreview(null)
         }
-      });
+      })
       return () => {
-        cancelled = true;
-      };
+        cancelled = true
+      }
     }
 
     resolveMediaUrl(currentMediaId)
       .then((url) => {
         if (!cancelled) {
-          setPreview(url);
+          setPreview(url)
         }
       })
       .catch((previewError) => {
-        console.error('Failed to load media preview:', previewError);
-      });
+        console.error("Failed to load media preview:", previewError)
+      })
 
     return () => {
-      cancelled = true;
-    };
-  }, [currentMediaId]);
+      cancelled = true
+    }
+  }, [currentMediaId])
 
   const clearSelectedFile = () => {
-    setFile(null);
-    setPreview(null);
-    setUploadedMediaId(null);
+    setFile(null)
+    setPreview(null)
+    setUploadedMediaId(null)
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = ""
     }
-  };
+  }
 
   async function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const selectedFile = event.target.files?.[0];
-    if (!selectedFile) return;
+    const selectedFile = event.target.files?.[0]
+    if (!selectedFile) return
 
-    if (imageOnly && !selectedFile.type.startsWith('image/')) {
-      alert('Please upload an image file.');
-      return;
+    if (imageOnly && !selectedFile.type.startsWith("image/")) {
+      alert("Please upload an image file.")
+      return
     }
 
-    setFile(selectedFile);
+    setFile(selectedFile)
 
-    if (selectedFile.type.startsWith('image/')) {
-      const reader = new FileReader();
+    if (selectedFile.type.startsWith("image/")) {
+      const reader = new FileReader()
       reader.onloadend = () => {
-        setPreview(reader.result as string);
-      };
-      reader.readAsDataURL(selectedFile);
+        setPreview(reader.result as string)
+      }
+      reader.readAsDataURL(selectedFile)
     } else {
-      setPreview(null);
+      setPreview(null)
     }
 
-    const previousMediaId = currentMediaId;
+    const previousMediaId = currentMediaId
 
     try {
-      const result = await upload(selectedFile);
+      const result = await upload(selectedFile)
 
       if (previousMediaId && previousMediaId !== result.id) {
         if (previousMediaId === initialMediaId) {
           setPendingRemovalIds((currentIds) =>
             currentIds.includes(previousMediaId)
               ? currentIds
-              : [...currentIds, previousMediaId],
-          );
+              : [...currentIds, previousMediaId]
+          )
         } else {
           try {
-            await remove(previousMediaId);
+            await remove(previousMediaId)
           } catch (removeError) {
-            console.error('Remove failed:', removeError);
+            console.error("Remove failed:", removeError)
           }
         }
       }
 
-      setUploadedMediaId(result.id);
-      onUploaded(result.id);
+      setUploadedMediaId(result.id)
+      onUploaded(result.id)
     } catch (uploadError) {
-      console.error('Upload failed:', uploadError);
+      console.error("Upload failed:", uploadError)
     }
   }
 
   const handleDrag = (event: React.DragEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (event.type === 'dragenter' || event.type === 'dragover') {
-      setDragActive(true);
-    } else if (event.type === 'dragleave') {
-      setDragActive(false);
+    event.preventDefault()
+    event.stopPropagation()
+    if (event.type === "dragenter" || event.type === "dragover") {
+      setDragActive(true)
+    } else if (event.type === "dragleave") {
+      setDragActive(false)
     }
-  };
+  }
 
   const handleDrop = (event: React.DragEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setDragActive(false);
+    event.preventDefault()
+    event.stopPropagation()
+    setDragActive(false)
 
     if (event.dataTransfer.files && event.dataTransfer.files[0]) {
-      const droppedFile = event.dataTransfer.files[0];
+      const droppedFile = event.dataTransfer.files[0]
 
-      if (imageOnly && !droppedFile.type.startsWith('image/')) {
-        alert('Please upload an image file.');
-        return;
+      if (imageOnly && !droppedFile.type.startsWith("image/")) {
+        alert("Please upload an image file.")
+        return
       }
 
-      const dataTransfer = new DataTransfer();
-      dataTransfer.items.add(droppedFile);
+      const dataTransfer = new DataTransfer()
+      dataTransfer.items.add(droppedFile)
       if (fileInputRef.current) {
-        fileInputRef.current.files = dataTransfer.files;
-        fileInputRef.current.dispatchEvent(new Event('change', { bubbles: true }));
+        fileInputRef.current.files = dataTransfer.files
+        fileInputRef.current.dispatchEvent(
+          new Event("change", { bubbles: true })
+        )
       }
     }
-  };
+  }
 
   const removeFile = async () => {
-    const mediaIdToRemove = currentMediaId;
-    const previousFile = file;
-    const previousPreview = preview;
-    const previousPendingRemovalIds = pendingRemovalIds;
+    const mediaIdToRemove = currentMediaId
+    const previousFile = file
+    const previousPreview = preview
+    const previousPendingRemovalIds = pendingRemovalIds
 
-    clearSelectedFile();
-    onRemoved?.();
+    clearSelectedFile()
+    onRemoved?.()
 
     if (!mediaIdToRemove) {
-      return;
+      return
     }
 
     try {
@@ -195,21 +199,21 @@ export function MediaUploader({
         setPendingRemovalIds((currentIds) =>
           currentIds.includes(mediaIdToRemove)
             ? currentIds
-            : [...currentIds, mediaIdToRemove],
-        );
-        return;
+            : [...currentIds, mediaIdToRemove]
+        )
+        return
       }
 
-      await remove(mediaIdToRemove);
+      await remove(mediaIdToRemove)
     } catch (removeError) {
-      console.error('Remove failed:', removeError);
-      setFile(previousFile);
-      setPreview(previousPreview);
-      setUploadedMediaId(mediaIdToRemove);
-      setPendingRemovalIds(previousPendingRemovalIds);
-      onUploaded(mediaIdToRemove);
+      console.error("Remove failed:", removeError)
+      setFile(previousFile)
+      setPreview(previousPreview)
+      setUploadedMediaId(mediaIdToRemove)
+      setPendingRemovalIds(previousPendingRemovalIds)
+      onUploaded(mediaIdToRemove)
     }
-  };
+  }
 
   return (
     <div className="space-y-2">
@@ -218,14 +222,16 @@ export function MediaUploader({
       <div
         className={`relative flex cursor-pointer flex-col items-center justify-center gap-4 rounded-3xl border-2 border-dashed p-8 transition-all ${
           dragActive
-            ? 'border-primary bg-primary/5'
-            : 'border-slate-200 hover:border-primary hover:bg-slate-50'
-        } ${uploading || removing ? 'pointer-events-none opacity-50' : ''}`}
+            ? "border-primary bg-primary/5"
+            : "border-slate-200 hover:border-primary hover:bg-slate-50"
+        } ${uploading || removing ? "pointer-events-none opacity-50" : ""}`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
         onDrop={handleDrop}
-        onClick={() => !(uploading || removing) && fileInputRef.current?.click()}
+        onClick={() =>
+          !(uploading || removing) && fileInputRef.current?.click()
+        }
       >
         <input
           ref={fileInputRef}
@@ -252,14 +258,14 @@ export function MediaUploader({
             ) : (
               <div className="flex items-center gap-2 rounded-full bg-green-50 p-4 text-green-700">
                 <Check className="h-5 w-5" />
-                {file?.name || 'File uploaded'}
+                {file?.name || "File uploaded"}
               </div>
             )}
             <button
               type="button"
               onClick={(event) => {
-                event.stopPropagation();
-                void removeFile();
+                event.stopPropagation()
+                void removeFile()
               }}
               className="flex items-center gap-1 text-xs text-red-600 hover:underline"
             >
@@ -270,7 +276,7 @@ export function MediaUploader({
           <div className="flex flex-col items-center gap-4">
             <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
             <p className="text-sm font-medium text-primary">
-              {uploading ? `Uploading... ${progress}%` : 'Removing file...'}
+              {uploading ? `Uploading... ${progress}%` : "Removing file..."}
             </p>
           </div>
         ) : (
@@ -281,7 +287,9 @@ export function MediaUploader({
             <div className="text-center">
               <p className="font-semibold text-slate-900">{description}</p>
               <p className="mt-1 text-xs text-slate-500">
-                {imageOnly ? 'PNG, JPG up to 10MB' : 'PNG, JPG, PDF, DOCX up to 10MB'}
+                {imageOnly
+                  ? "PNG, JPG up to 10MB"
+                  : "PNG, JPG, PDF, DOCX up to 10MB"}
               </p>
             </div>
           </>
@@ -290,5 +298,5 @@ export function MediaUploader({
 
       {error && <p className="text-sm text-red-600">{error}</p>}
     </div>
-  );
+  )
 }

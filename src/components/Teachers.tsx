@@ -23,18 +23,20 @@ import { AnimatePresence, motion } from "motion/react"
 import {
   ApiTeacher,
   ApiTeacherInvitePayload,
+  ApiTeacherAssignment,
+  ApiHomeroomAssignment,
   ApiTeacherStatus,
+  PaginatedResponse,
   extractUserReadableErrorMessages,
   importApi,
   teachersApi,
 } from "../lib/api"
 import {
-  useTeacherDetails,
   useHomeroomAssignments,
   useTeacherAssignments,
-  useTeachers,
-  useTeacherStatuses,
 } from "../hooks/useTeachers"
+import { useBackfilledFilteredPagination } from "../hooks/useBackfilledFilteredPagination"
+import { useApiQuery } from "../hooks/useApiQuery"
 
 interface TeachersProps {
   academicYear?: string
@@ -57,6 +59,88 @@ type TeacherCardEntry = {
   invitePayload: ApiTeacherInvitePayload | null
 }
 
+async function fetchAllTeachers(params: {
+  branchId?: string | null
+  organizationId?: string | null
+}): Promise<ApiTeacher[]> {
+  const teachers: ApiTeacher[] = []
+  let page = 1
+
+  while (true) {
+    const response = await teachersApi.list({
+      branch: params.branchId ?? undefined,
+      organization: params.organizationId ?? undefined,
+      page,
+    })
+    teachers.push(...response.results)
+
+    if (!response.next) break
+    page += 1
+  }
+
+  return teachers
+}
+
+async function fetchAllTeacherAssignments(params: {
+  organizationId?: string | null
+  academicYearId?: string | null
+}): Promise<ApiTeacherAssignment[]> {
+  const assignments: ApiTeacherAssignment[] = []
+  let page = 1
+
+  while (true) {
+    const response = await teachersApi.listAssignments({
+      organization: params.organizationId ?? undefined,
+      academic_year: params.academicYearId ?? undefined,
+      page,
+    })
+    assignments.push(...response.results)
+
+    if (!response.next) break
+    page += 1
+  }
+
+  return assignments
+}
+
+async function fetchAllHomeroomAssignments(params: {
+  branchId?: string | null
+  organizationId?: string | null
+  academicYearId?: string | null
+}): Promise<ApiHomeroomAssignment[]> {
+  const assignments: ApiHomeroomAssignment[] = []
+  let page = 1
+
+  while (true) {
+    const response = await teachersApi.listHomeroomAssignments({
+      branch: params.branchId ?? undefined,
+      organization: params.organizationId ?? undefined,
+      academic_year: params.academicYearId ?? undefined,
+      page,
+    })
+    assignments.push(...response.results)
+
+    if (!response.next) break
+    page += 1
+  }
+
+  return assignments
+}
+
+async function fetchInactiveTeacherCount(teachers: ApiTeacher[]): Promise<number> {
+  const settled = await Promise.allSettled(
+    teachers.map((teacher) => teachersApi.getStatus(teacher.id))
+  )
+
+  return settled.reduce((count, result) => {
+    if (result.status === "fulfilled" && !result.value.is_active) {
+      return count + 1
+    }
+
+    return count
+  }, 0)
+}
+
 export const Teachers: React.FC<TeachersProps> = ({
   academicYear = "Current Year",
   branchId,
@@ -64,6 +148,7 @@ export const Teachers: React.FC<TeachersProps> = ({
   academicYearId,
 }) => {
   const [searchTerm, setSearchTerm] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
   const [teacherFilter, setTeacherFilter] = useState<TeacherFilter>("all")
   const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(
     null
@@ -71,12 +156,16 @@ export const Teachers: React.FC<TeachersProps> = ({
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
   const [showBulkInviteModal, setShowBulkInviteModal] = useState(false)
-  const [inviteActionError, setInviteActionError] = useState<string | null>(null)
+  const [inviteActionError, setInviteActionError] = useState<string | null>(
+    null
+  )
   const [inviteActionMessage, setInviteActionMessage] = useState<string | null>(
     null
   )
   const [hasResolvedInitialLoad, setHasResolvedInitialLoad] = useState(false)
-  const [inviteSubmittingTeacherId, setInviteSubmittingTeacherId] = useState<string | null>(null)
+  const [inviteSubmittingTeacherId, setInviteSubmittingTeacherId] = useState<
+    string | null
+  >(null)
   const [bulkInviteSubmitting, setBulkInviteSubmitting] = useState(false)
   const deferredSearchTerm = useDeferredValue(searchTerm)
 
@@ -92,12 +181,6 @@ export const Teachers: React.FC<TeachersProps> = ({
   }, [inviteActionError, inviteActionMessage])
 
   const {
-    teachers,
-    isLoading: teachersLoading,
-    error: teachersError,
-    refetch: refetchTeachers,
-  } = useTeachers({ branchId, organizationId })
-  const {
     assignments,
     isLoading: assignmentsLoading,
     error: assignmentsError,
@@ -109,32 +192,188 @@ export const Teachers: React.FC<TeachersProps> = ({
     error: homeroomError,
     refetch: refetchHomeroomAssignments,
   } = useHomeroomAssignments({ branchId, organizationId, academicYearId })
-  const teacherIds = useMemo(() => teachers.map((teacher) => teacher.id), [teachers])
+  const { data: totalTeachersDataset } = useApiQuery<ApiTeacher[]>(
+    branchId || organizationId
+      ? () => fetchAllTeachers({ branchId, organizationId })
+      : null,
+    [branchId, organizationId]
+  )
+  const { data: totalAssignmentsDataset } = useApiQuery<ApiTeacherAssignment[]>(
+    organizationId
+      ? () =>
+          fetchAllTeacherAssignments({
+            organizationId,
+            academicYearId,
+          })
+      : null,
+    [academicYearId, organizationId]
+  )
+  const { data: totalHomeroomsDataset } = useApiQuery<ApiHomeroomAssignment[]>(
+    branchId || organizationId
+      ? () =>
+          fetchAllHomeroomAssignments({
+            branchId,
+            organizationId,
+            academicYearId,
+          })
+      : null,
+    [academicYearId, branchId, organizationId]
+  )
+  const { data: inactiveTeacherCount } = useApiQuery<number>(
+    totalTeachersDataset ? () => fetchInactiveTeacherCount(totalTeachersDataset) : null,
+    [totalTeachersDataset]
+  )
+  const teacherPageFetcher = useMemo(
+    () =>
+      branchId || organizationId
+        ? async (page: number) => {
+            const response = await teachersApi.list({
+              branch: branchId ?? undefined,
+              organization: organizationId ?? undefined,
+              page,
+            })
+            const pageTeacherIds = response.results.map((teacher) => teacher.id)
+            const [statusResults, detailResults] = await Promise.all([
+              Promise.allSettled(
+                pageTeacherIds.map((teacherId) => teachersApi.getStatus(teacherId))
+              ),
+              Promise.allSettled(
+                pageTeacherIds.map((teacherId) => teachersApi.get(teacherId))
+              ),
+            ])
+            const teacherStatuses = statusResults.reduce<
+              Record<string, ApiTeacherStatus>
+            >((accumulator, result) => {
+              if (result.status === "fulfilled") {
+                accumulator[result.value.teacher_id] = result.value
+              }
+              return accumulator
+            }, {})
+            const teacherDetailsById = detailResults.reduce<
+              Record<string, ApiTeacher>
+            >((accumulator, result) => {
+              if (result.status === "fulfilled") {
+                accumulator[result.value.id] = result.value
+              }
+              return accumulator
+            }, {})
+
+            return {
+              ...response,
+              results: response.results.map((teacher) => {
+                const teacherDetail = teacherDetailsById[teacher.id] ?? null
+                const teacherAssignments = assignments.filter(
+                  (assignment) => assignment.teacher === teacher.id
+                )
+                const teacherHomerooms = homeroomAssignments.filter(
+                  (assignment) => assignment.teacher === teacher.id
+                )
+                const subjectNames = [
+                  ...new Set(
+                    teacherAssignments
+                      .map((assignment) => assignment.subject_name)
+                      .filter(Boolean)
+                  ),
+                ]
+                const sectionNames = [
+                  ...new Set(
+                    [
+                      ...teacherAssignments.map(
+                        (assignment) =>
+                          `${assignment.grade_name} ${assignment.section_name}`
+                      ),
+                      ...teacherHomerooms.map(
+                        (assignment) =>
+                          `${assignment.grade_name} ${assignment.section_name}`
+                      ),
+                    ].filter(Boolean)
+                  ),
+                ]
+                const status = teacherStatuses[teacher.id] ?? null
+                const isInactive = status ? !status.is_active : false
+                const isUnassigned =
+                  teacherAssignments.length === 0 && teacherHomerooms.length === 0
+                const teacherRecord = teacherDetail ?? teacher
+                const invitePayload =
+                  teacherRecord.user_email &&
+                  teacherRecord.user_name &&
+                  (teacherRecord.user_father_name || teacherRecord.father_name) &&
+                  (teacherRecord.user_grandfather_name ||
+                    teacherRecord.grandfather_name) &&
+                  teacherRecord.user_phone_number &&
+                  teacherRecord.branch
+                    ? {
+                        email: teacherRecord.user_email,
+                        name: teacherRecord.user_name,
+                        father_name:
+                          teacherRecord.user_father_name ||
+                          teacherRecord.father_name!,
+                        grandfather_name:
+                          teacherRecord.user_grandfather_name ||
+                          teacherRecord.grandfather_name!,
+                        phone_number: teacherRecord.user_phone_number,
+                        specialization: teacherRecord.specialization || undefined,
+                        branch: teacherRecord.branch,
+                      }
+                    : null
+
+                return {
+                  teacher,
+                  teacherDetail,
+                  status,
+                  subjectNames,
+                  sectionNames,
+                  homeroomCount: teacherHomerooms.length,
+                  isInactive,
+                  isUnassigned,
+                  invitePayload,
+                } satisfies TeacherCardEntry
+              }),
+            } satisfies PaginatedResponse<TeacherCardEntry>
+          }
+        : null,
+    [assignments, branchId, homeroomAssignments, organizationId]
+  )
   const {
-    statuses: teacherStatuses,
-    isLoading: statusesLoading,
-    error: statusesError,
-    refetch: refetchTeacherStatuses,
-  } = useTeacherStatuses(teacherIds)
-  const {
-    teachersById: teacherDetailsById,
-    isLoading: detailsLoading,
-    error: detailsError,
-    refetch: refetchTeacherDetails,
-  } = useTeacherDetails(teacherIds)
+    items: filteredTeacherCards,
+    totalSourceCount: teacherCount,
+    hasNextPage,
+    hasPreviousPage,
+    isLoading: teachersLoading,
+    error: teachersError,
+    refetch: refetchTeachers,
+    isPageOutOfRange,
+  } = useBackfilledFilteredPagination<TeacherCardEntry>({
+    fetchPage: teacherPageFetcher,
+    currentPage,
+    deps: [teacherPageFetcher, deferredSearchTerm, teacherFilter],
+    filterFn: (entry) => {
+      const query = deferredSearchTerm.trim().toLowerCase()
+      const teacherName = (entry.teacher.user_name ?? "").toLowerCase()
+      const employeeId = (entry.teacher.employee_id ?? "").toLowerCase()
+      const matchesSearch =
+        query.length === 0 || teacherName.includes(query) || employeeId.includes(query)
+      const matchesFilter =
+        teacherFilter === "all" ||
+        (teacherFilter === "unassigned" && entry.isUnassigned) ||
+        (teacherFilter === "inactive" && entry.isInactive)
+
+      return matchesSearch && matchesFilter
+    },
+    sortFn: (left, right) =>
+      left.teacher.user_name.localeCompare(right.teacher.user_name, undefined, {
+        sensitivity: "base",
+      }),
+  })
 
   const isLoading =
     teachersLoading ||
     assignmentsLoading ||
-    homeroomLoading ||
-    statusesLoading ||
-    detailsLoading
+    homeroomLoading
   const error =
     teachersError ||
     assignmentsError ||
-    homeroomError ||
-    statusesError ||
-    detailsError
+    homeroomError
   const isInitialLoading = !hasResolvedInitialLoad && isLoading
   const isBackgroundRefreshing = hasResolvedInitialLoad && isLoading
 
@@ -144,110 +383,24 @@ export const Teachers: React.FC<TeachersProps> = ({
     }
   }, [isLoading])
 
-  const teacherCards = useMemo<TeacherCardEntry[]>(() => {
-    return teachers.map((teacher) => {
-      const teacherDetail = teacherDetailsById[teacher.id] ?? null
-      const teacherAssignments = assignments.filter(
-        (assignment) => assignment.teacher === teacher.id
-      )
-      const teacherHomerooms = homeroomAssignments.filter(
-        (assignment) => assignment.teacher === teacher.id
-      )
-      const subjectNames = [
-        ...new Set(
-          teacherAssignments
-            .map((assignment) => assignment.subject_name)
-            .filter(Boolean)
-        ),
-      ]
-      const sectionNames = [
-        ...new Set(
-          [
-            ...teacherAssignments.map(
-              (assignment) =>
-                `${assignment.grade_name} ${assignment.section_name}`
-            ),
-            ...teacherHomerooms.map(
-              (assignment) =>
-                `${assignment.grade_name} ${assignment.section_name}`
-            ),
-          ].filter(Boolean)
-        ),
-      ]
-      const status = teacherStatuses[teacher.id] ?? null
-      const isInactive = status ? !status.is_active : false
-      const isUnassigned =
-        teacherAssignments.length === 0 && teacherHomerooms.length === 0
-      const teacherRecord = teacherDetail ?? teacher
-      const invitePayload =
-        teacherRecord.user_email &&
-        teacherRecord.user_name &&
-        (teacherRecord.user_father_name || teacherRecord.father_name) &&
-        (teacherRecord.user_grandfather_name || teacherRecord.grandfather_name) &&
-        teacherRecord.user_phone_number &&
-        teacherRecord.branch
-          ? {
-              email: teacherRecord.user_email,
-              name: teacherRecord.user_name,
-              father_name:
-                teacherRecord.user_father_name || teacherRecord.father_name!,
-              grandfather_name:
-                teacherRecord.user_grandfather_name ||
-                teacherRecord.grandfather_name!,
-              phone_number: teacherRecord.user_phone_number,
-              specialization: teacherRecord.specialization || undefined,
-              branch: teacherRecord.branch,
-            }
-          : null
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [branchId, organizationId])
 
-      return {
-        teacher,
-        teacherDetail,
-        status,
-        subjectNames,
-        sectionNames,
-        homeroomCount: teacherHomerooms.length,
-        isInactive,
-        isUnassigned,
-        invitePayload,
-      }
-    })
-  }, [
-    assignments,
-    homeroomAssignments,
-    teacherDetailsById,
-    teacherStatuses,
-    teachers,
-  ])
-
-  const filteredTeacherCards = useMemo(() => {
-    return teacherCards
-      .filter((entry) => {
-        const query = deferredSearchTerm.trim().toLowerCase()
-        const matchesSearch =
-          query.length === 0 ||
-          entry.teacher.user_name.toLowerCase().includes(query) ||
-          entry.teacher.employee_id.toLowerCase().includes(query)
-
-        const matchesFilter =
-          teacherFilter === "all" ||
-          (teacherFilter === "unassigned" && entry.isUnassigned) ||
-          (teacherFilter === "inactive" && entry.isInactive)
-
-        return matchesSearch && matchesFilter
-      })
-      .sort((left, right) =>
-        left.teacher.user_name.localeCompare(right.teacher.user_name, undefined, {
-          sensitivity: "base",
-        })
-      )
-  }, [deferredSearchTerm, teacherCards, teacherFilter])
+  useEffect(() => {
+    setSelectedTeacherId(null)
+  }, [currentPage])
+  useEffect(() => {
+    if (isPageOutOfRange) {
+      setCurrentPage((page) => Math.max(1, page - 1))
+    }
+  }, [isPageOutOfRange])
 
   const selectedTeacher = useMemo(
     () =>
-      teacherCards.find((entry) => entry.teacher.id === selectedTeacherId) ??
+      filteredTeacherCards.find((entry) => entry.teacher.id === selectedTeacherId) ??
       null,
-    [selectedTeacherId, teacherCards]
+    [selectedTeacherId, filteredTeacherCards]
   )
 
   const bulkInviteEligibleTeachers = useMemo(
@@ -257,20 +410,41 @@ export const Teachers: React.FC<TeachersProps> = ({
 
   const stats = useMemo(
     () => ({
-      totalTeachers: teachers.length,
-      unassignedTeachers: teacherCards.filter((entry) => entry.isUnassigned)
-        .length,
-      inactiveTeachers: teacherCards.filter((entry) => entry.isInactive).length,
+      totalTeachers: teacherCount,
+      unassignedTeachers:
+        totalTeachersDataset && totalAssignmentsDataset && totalHomeroomsDataset
+          ? totalTeachersDataset.filter((teacher) => {
+              const hasAssignment = totalAssignmentsDataset.some(
+                (assignment) => assignment.teacher === teacher.id
+              )
+              const hasHomeroom = totalHomeroomsDataset.some(
+                (assignment) => assignment.teacher === teacher.id
+              )
+
+              return !hasAssignment && !hasHomeroom
+            }).length
+          : filteredTeacherCards.filter((entry) => entry.isUnassigned).length,
+      inactiveTeachers:
+        inactiveTeacherCount ??
+        filteredTeacherCards.filter((entry) => entry.isInactive).length,
       uniqueSubjects: new Set(
         assignments.map((assignment) => assignment.subject_name).filter(Boolean)
       ).size,
     }),
-    [assignments, teacherCards, teachers.length]
+    [
+      assignments,
+      inactiveTeacherCount,
+      teacherCount,
+      totalAssignmentsDataset,
+      totalHomeroomsDataset,
+      totalTeachersDataset,
+      filteredTeacherCards,
+    ]
   )
 
   const filterOptions = useMemo(
     () => [
-      { id: "all" as const, label: "All Teachers", count: teachers.length },
+      { id: "all" as const, label: "All Teachers", count: teacherCount },
       {
         id: "unassigned" as const,
         label: "Unassigned",
@@ -282,21 +456,20 @@ export const Teachers: React.FC<TeachersProps> = ({
         count: stats.inactiveTeachers,
       },
     ],
-    [stats.inactiveTeachers, stats.unassignedTeachers, teachers.length]
+    [stats.inactiveTeachers, stats.unassignedTeachers, teacherCount]
   )
 
   const refreshAll = () => {
     refetchTeachers()
     refetchAssignments()
     refetchHomeroomAssignments()
-    refetchTeacherStatuses()
-    refetchTeacherDetails()
   }
 
   async function resolveInvitePayload(entry: TeacherCardEntry) {
     if (entry.invitePayload) return entry.invitePayload
 
-    const teacherDetails = entry.teacherDetail ?? (await teachersApi.get(entry.teacher.id))
+    const teacherDetails =
+      entry.teacherDetail ?? (await teachersApi.get(entry.teacher.id))
     if (
       !teacherDetails.user_email ||
       !teacherDetails.user_name ||
@@ -314,9 +487,11 @@ export const Teachers: React.FC<TeachersProps> = ({
     return {
       email: teacherDetails.user_email,
       name: teacherDetails.user_name,
-      father_name: teacherDetails.user_father_name || teacherDetails.father_name!,
+      father_name:
+        teacherDetails.user_father_name || teacherDetails.father_name!,
       grandfather_name:
-        teacherDetails.user_grandfather_name || teacherDetails.grandfather_name!,
+        teacherDetails.user_grandfather_name ||
+        teacherDetails.grandfather_name!,
       phone_number: teacherDetails.user_phone_number,
       specialization: teacherDetails.specialization || undefined,
       branch: teacherDetails.branch,
@@ -364,7 +539,8 @@ export const Teachers: React.FC<TeachersProps> = ({
 
       if (successCount === 0) {
         const firstFailure = results.find(
-          (result): result is PromiseRejectedResult => result.status === "rejected"
+          (result): result is PromiseRejectedResult =>
+            result.status === "rejected"
         )
         throw firstFailure?.reason instanceof Error
           ? firstFailure.reason
@@ -375,9 +551,7 @@ export const Teachers: React.FC<TeachersProps> = ({
         `Bulk invite sent to ${successCount} inactive teacher${
           successCount === 1 ? "" : "s"
         }.` +
-          (failureCount > 0
-            ? ` ${failureCount} failed and were skipped.`
-            : "")
+          (failureCount > 0 ? ` ${failureCount} failed and were skipped.` : "")
       )
       setShowBulkInviteModal(false)
       refreshAll()
@@ -485,41 +659,42 @@ export const Teachers: React.FC<TeachersProps> = ({
             />
           </div>
 
-          <div className="relative">
-            <Search className="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search teachers by name or employee ID"
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pr-4 pl-11 text-sm outline-none focus:border-primary/30 focus:bg-white focus:ring-4 focus:ring-primary/5"
-            />
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {filterOptions.map((option) => (
-              <button
-                key={option.id}
-                onClick={() => setTeacherFilter(option.id)}
-                className={`rounded-2xl border px-4 py-2.5 text-sm font-bold transition ${
-                  teacherFilter === option.id
-                    ? "border-primary bg-primary text-white shadow-lg shadow-primary/20"
-                    : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:bg-white"
-                }`}
-              >
-                <span className="flex items-center gap-2">
-                  {option.label}
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
-                      teacherFilter === option.id
-                        ? "bg-white/20 text-white"
-                        : "bg-slate-200 text-slate-600"
-                    }`}
-                  >
-                    {option.count}
+          <div className="flex flex-col items-stretch justify-between gap-4 lg:flex-row lg:items-center">
+            <div className="flex flex-wrap gap-2">
+              {filterOptions.map((option) => (
+                <button
+                  key={option.id}
+                  onClick={() => setTeacherFilter(option.id)}
+                  className={`rounded-2xl border px-4 py-2.5 text-sm font-bold transition ${
+                    teacherFilter === option.id
+                      ? "border-primary bg-primary text-white shadow-lg shadow-primary/20"
+                      : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:bg-white"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    {option.label}
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
+                        teacherFilter === option.id
+                          ? "bg-white/20 text-white"
+                          : "bg-slate-200 text-slate-600"
+                      }`}
+                    >
+                      {option.count}
+                    </span>
                   </span>
-                </span>
-              </button>
-            ))}
+                </button>
+              ))}
+            </div>
+            <div className="relative w-full lg:w-80">
+              <Search className="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Search teachers by name or employee ID"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pr-4 pl-11 text-sm outline-none focus:border-primary/30 focus:bg-white focus:ring-4 focus:ring-primary/5"
+              />
+            </div>
           </div>
 
           {(inviteActionError || inviteActionMessage) && (
@@ -624,6 +799,32 @@ export const Teachers: React.FC<TeachersProps> = ({
               {filteredTeacherCards.length === 0 && (
                 <EmptyState message="No teachers match the current search or filter." />
               )}
+            </div>
+            <div className="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs font-medium text-slate-500">
+                Page {currentPage} · {teacherCount} total teacher
+                {teacherCount === 1 ? "" : "s"}
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCurrentPage((page) => Math.max(1, page - 1))
+                  }
+                  disabled={!hasPreviousPage}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((page) => page + 1)}
+                  disabled={!hasNextPage}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           </section>
         </div>
@@ -730,7 +931,8 @@ function TeacherDetailDrawer({
                   <span className="hidden h-1 w-1 rounded-full bg-slate-300 sm:block" />
                   <span className="flex items-center gap-2">
                     <Phone className="h-4 w-4 text-primary" />
-                    {entry.teacherDetail?.user_phone_number || "Phone not provided"}
+                    {entry.teacherDetail?.user_phone_number ||
+                      "Phone not provided"}
                   </span>
                 </div>
                 <div className="mt-4 flex items-center gap-3">
@@ -757,7 +959,10 @@ function TeacherDetailDrawer({
                 />
                 <DrawerInfoCard
                   icon={Phone}
-                  value={entry.teacherDetail?.user_phone_number || "Phone not provided"}
+                  value={
+                    entry.teacherDetail?.user_phone_number ||
+                    "Phone not provided"
+                  }
                 />
                 <DrawerInfoCard
                   icon={User}
@@ -1058,13 +1263,16 @@ function ImportTeachersModal({
           />
         </label>
         <p className="text-xs text-slate-500">
-          The backend will validate the uploaded teacher file before creating records.
+          The backend will validate the uploaded teacher file before creating
+          records.
         </p>
         {(isUploading || taskId) && (
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm font-bold text-slate-700">
-                {taskId ? `Import job ${taskId.slice(0, 8)}...` : "Starting import..."}
+                {taskId
+                  ? `Import job ${taskId.slice(0, 8)}...`
+                  : "Starting import..."}
               </p>
               <span className="text-xs font-black tracking-widest text-primary uppercase">
                 {progress}%
@@ -1138,16 +1346,14 @@ function ImportTeachersModal({
                   "Bulk import is still processing. Check again shortly."
                 )
               } catch (uploadError) {
-                setErrorMessages(
-                  extractUserReadableErrorMessages(uploadError)
-                )
+                setErrorMessages(extractUserReadableErrorMessages(uploadError))
                 setTaskId(null)
                 setProgress(0)
               } finally {
                 setIsUploading(false)
               }
             }}
-            className="text-[10px] font-black tracking-widest text-primary uppercase hover:underline disabled:cursor-not-allowed disabled:opacity-50 disabled:no-underline"
+            className="text-[10px] font-black tracking-widest text-primary uppercase hover:underline disabled:cursor-not-allowed disabled:no-underline disabled:opacity-50"
           >
             {isUploading ? "Importing..." : "Upload File"}
           </button>

@@ -1,11 +1,11 @@
-'use client';
+"use client"
 
-import dynamic from 'next/dynamic';
+import dynamic from "next/dynamic"
 
-const App = dynamic(() => import('../src/App'), {
+const App = dynamic(() => import("../src/App"), {
   ssr: false,
-});
+})
 
 export function ClientApp() {
-  return <App />;
+  return <App />
 }

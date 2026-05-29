@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import {
   AlertCircle,
   ArrowUpDown,
@@ -32,10 +32,11 @@ import {
   ApiStudent,
   importApi,
   parentsApi,
+  PaginatedResponse,
 } from "../lib/api"
+import { useBackfilledFilteredPagination } from "../hooks/useBackfilledFilteredPagination"
 import { useApiQuery } from "../hooks/useApiQuery"
 import { useGrades } from "../hooks/useGrades"
-import { useParents } from "../hooks/useParents"
 import { useStudents } from "../hooks/useStudents"
 
 interface ParentsProps {
@@ -141,6 +142,13 @@ function mapParent(parent: ApiParent, links: ApiParentLink[]): Parent {
     email: parent.user_details?.email ?? "",
     status,
     linkedStudents: parentLinks.map((link) => link.student),
+    linkedStudentDetails:
+      parent.student_details?.map((student) => ({
+        id: student.id,
+        name: `${student.first_name} ${student.last_name}`.trim(),
+        grade: student.grade_name,
+        section: student.section_name,
+      })) ?? [],
     linkedStudentCount,
     linkedGrades,
     languagePreference: "English",
@@ -159,7 +167,9 @@ function mapParent(parent: ApiParent, links: ApiParentLink[]): Parent {
   }
 }
 
-function buildParentLineage(parent: Pick<Parent, "name" | "fatherName" | "grandfatherName">) {
+function buildParentLineage(
+  parent: Pick<Parent, "name" | "fatherName" | "grandfatherName">
+) {
   return [parent.name, parent.fatherName, parent.grandfatherName]
     .map((value) => value?.trim())
     .filter(Boolean)
@@ -188,6 +198,58 @@ function buildParentInvitePayload(
     emergency_contact_name: normalizeOptionalValue(form.emergencyContactName),
     emergency_contact_phone: normalizeOptionalValue(form.emergencyContactPhone),
   }
+}
+
+async function fetchLinkedParentCount(): Promise<number> {
+  const linkedParentIds = new Set<string>()
+  let page = 1
+
+  while (true) {
+    const response = await parentsApi.listLinks({ page })
+    response.results.forEach((link) => linkedParentIds.add(link.parent))
+
+    if (!response.next) break
+    page += 1
+  }
+
+  return linkedParentIds.size
+}
+
+async function fetchAllParents(params: {
+  branchId?: string | null
+  organizationId?: string | null
+}): Promise<ApiParent[]> {
+  const parents: ApiParent[] = []
+  let page = 1
+
+  while (true) {
+    const response = await parentsApi.list({
+      branch: params.branchId ?? undefined,
+      organization: params.organizationId ?? undefined,
+      page,
+    })
+    parents.push(...response.results)
+
+    if (!response.next) break
+    page += 1
+  }
+
+  return parents
+}
+
+async function fetchAllParentLinks(): Promise<ApiParentLink[]> {
+  const links: ApiParentLink[] = []
+  let page = 1
+
+  while (true) {
+    const response = await parentsApi.listLinks({ page })
+    links.push(...response.results)
+
+    if (!response.next) break
+    page += 1
+  }
+
+  return links
 }
 
 function buildParentFormState(parent: ApiParent): ParentFormState {
@@ -220,6 +282,8 @@ export const Parents: React.FC<ParentsProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState("")
   const [parentFilter, setParentFilter] = useState<ParentFilter>("all")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [hasResolvedInitialLoad, setHasResolvedInitialLoad] = useState(false)
   const [selectedParentId, setSelectedParentId] = useState<string | null>(null)
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
@@ -227,7 +291,9 @@ export const Parents: React.FC<ParentsProps> = ({
   const [invitingParentId, setInvitingParentId] = useState<string | null>(null)
   const [editingParent, setEditingParent] = useState<Parent | null>(null)
   const [gradeFilter, setGradeFilter] = useState("All Grades")
-  const [inviteActionError, setInviteActionError] = useState<string | null>(null)
+  const [inviteActionError, setInviteActionError] = useState<string | null>(
+    null
+  )
   const [inviteActionMessage, setInviteActionMessage] = useState<string | null>(
     null
   )
@@ -237,97 +303,184 @@ export const Parents: React.FC<ParentsProps> = ({
   >(null)
 
   const {
-    parents: rawParents,
-    isLoading: parentsLoading,
-    error: parentsError,
-    refetch: refetchParents,
-  } = useParents({ branchId, organizationId, search: searchQuery || undefined })
-  const {
     students: rawStudents,
     isLoading: studentsLoading,
     error: studentsError,
     refetch: refetchStudents,
   } = useStudents({ branchId, organizationId })
   const { grades } = useGrades(branchId)
-
-  const {
-    data: linkResponse,
-    isLoading: linksLoading,
-    error: linksError,
-    refetch: refetchLinks,
-  } = useApiQuery<{ results: ApiParentLink[] } | null>(
-    branchId || organizationId ? () => parentsApi.listLinks({}) : null,
+  const { data: allRawParents } = useApiQuery<ApiParent[]>(
+    branchId || organizationId
+      ? () => fetchAllParents({ branchId, organizationId })
+      : null,
     [branchId, organizationId]
   )
 
-  const links = useMemo(() => linkResponse?.results ?? [], [linkResponse])
-  const parents = useMemo(
-    () => rawParents.map((parent) => mapParent(parent, links)),
-    [rawParents, links]
+  const {
+    data: links,
+    isLoading: linksLoading,
+    error: linksError,
+    refetch: refetchLinks,
+  } = useApiQuery<ApiParentLink[]>(
+    branchId || organizationId ? () => fetchAllParentLinks() : null,
+    [branchId, organizationId]
   )
+  const { data: activeParentCountResponse } = useApiQuery<{ count: number }>(
+    branchId || organizationId
+      ? () =>
+          parentsApi.list({
+            branch: branchId ?? undefined,
+            organization: organizationId ?? undefined,
+            is_active: true,
+          })
+      : null,
+    [branchId, organizationId]
+  )
+  const { data: pendingParentCountResponse } = useApiQuery<{ count: number }>(
+    branchId || organizationId
+      ? () =>
+          parentsApi.list({
+            branch: branchId ?? undefined,
+            organization: organizationId ?? undefined,
+            is_active: false,
+          })
+      : null,
+    [branchId, organizationId]
+  )
+  const { data: linkedParentCount } = useApiQuery<number>(
+    branchId || organizationId ? () => fetchLinkedParentCount() : null,
+    [branchId, organizationId]
+  )
+
   const students = useMemo(
-    () => rawStudents.map((student) => mapStudent(student, links)),
+    () => rawStudents.map((student) => mapStudent(student, links ?? [])),
     [rawStudents, links]
   )
-
-  const selectedParent = useMemo(
-    () => parents.find((parent) => parent.id === selectedParentId) ?? null,
-    [parents, selectedParentId]
+  const allMappedParents = useMemo(
+    () => (allRawParents ?? []).map((parent) => mapParent(parent, links ?? [])),
+    [allRawParents, links]
   )
-  const linkingParent = useMemo(
-    () => parents.find((parent) => parent.id === linkingParentId) ?? null,
-    [parents, linkingParentId]
-  )
-  const invitingParent = useMemo(
-    () => rawParents.find((parent) => parent.id === invitingParentId) ?? null,
-    [rawParents, invitingParentId]
-  )
-
-  const filteredParents = useMemo(() => {
-    return parents
-      .filter((parent) => {
+  const parentFilterQuery = searchQuery.trim().toLowerCase()
+  const parentFilterFn = useMemo(
+    () => (parent: Parent) => {
       const matchesSearch =
-        parent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        parent.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        parent.phone.includes(searchQuery)
+        parentFilterQuery.length === 0 ||
+        parent.name.toLowerCase().includes(parentFilterQuery) ||
+        parent.email.toLowerCase().includes(parentFilterQuery) ||
+        parent.phone.toLowerCase().includes(parentFilterQuery)
       const matchesGrade =
         gradeFilter === "All Grades" ||
-        parent.status === "Unlinked" ||
+        parent.linkedStudentCount === 0 ||
         parent.linkedGrades?.includes(gradeFilter)
       const matchesStatus =
         parentFilter === "all" ||
-        (parentFilter === "active" && parent.status === "Active") ||
-        (parentFilter === "pending" && parent.status === "Pending") ||
-        (parentFilter === "unlinked" && parent.status === "Unlinked")
+        (parentFilter === "active" && parent.isActive) ||
+        (parentFilter === "pending" && !parent.isActive) ||
+        (parentFilter === "unlinked" && parent.linkedStudentCount === 0)
+
       return matchesSearch && matchesGrade && matchesStatus
-      })
-      .sort((left, right) =>
-        left.name.localeCompare(right.name, undefined, {
-          sensitivity: "base",
-        })
-      )
-  }, [gradeFilter, parentFilter, parents, searchQuery])
+    },
+    [gradeFilter, parentFilter, parentFilterQuery]
+  )
+  const {
+    items: filteredParents,
+    totalSourceCount: parentCount,
+    hasNextPage,
+    hasPreviousPage,
+    isLoading: parentsLoading,
+    error: parentsError,
+    refetch: refetchParents,
+    isPageOutOfRange,
+  } = useBackfilledFilteredPagination<Parent>({
+    fetchPage:
+      branchId || organizationId
+        ? async (page) => {
+            const response = await parentsApi.list({
+              branch: branchId ?? undefined,
+              organization: organizationId ?? undefined,
+              page,
+            })
+
+            return {
+              ...response,
+              results: response.results.map((parent) =>
+                mapParent(parent, links ?? [])
+              ),
+            } satisfies PaginatedResponse<Parent>
+          }
+        : null,
+    currentPage,
+    deps: [branchId, organizationId, gradeFilter, parentFilter, searchQuery, links],
+    filterFn: parentFilterFn,
+    sortFn: (left, right) =>
+      left.name.localeCompare(right.name, undefined, {
+        sensitivity: "base",
+      }),
+  })
+
+  const selectedParent = useMemo(
+    () => allMappedParents.find((parent) => parent.id === selectedParentId) ?? null,
+    [allMappedParents, selectedParentId]
+  )
+  const linkingParent = useMemo(
+    () => allMappedParents.find((parent) => parent.id === linkingParentId) ?? null,
+    [allMappedParents, linkingParentId]
+  )
+  const invitingParent = useMemo(() => {
+    if (!invitingParentId) return null
+
+    return allRawParents?.find((parent) => parent.id === invitingParentId) ?? null
+  }, [allRawParents, invitingParentId])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [branchId, organizationId])
+
+  useEffect(() => {
+    setSelectedParentId(null)
+  }, [currentPage])
+  useEffect(() => {
+    if (isPageOutOfRange) {
+      setCurrentPage((page) => Math.max(1, page - 1))
+    }
+  }, [isPageOutOfRange])
 
   const unlinkedParents = useMemo(
-    () => parents.filter((parent) => parent.status === "Unlinked"),
-    [parents]
+    () => allMappedParents.filter((parent) => parent.linkedStudentCount === 0),
+    [allMappedParents]
   )
+
+  const totalUnlinkedParents = useMemo(() => {
+    if (typeof linkedParentCount === "number") {
+      return Math.max(0, parentCount - linkedParentCount)
+    }
+
+    return unlinkedParents.length
+  }, [linkedParentCount, parentCount, unlinkedParents.length])
 
   const stats = useMemo(
     () => ({
-      totalParents: parents.length,
-      activeParents: parents.filter((parent) => parent.status === "Active")
-        .length,
-      pendingParents: parents.filter((parent) => parent.status === "Pending")
-        .length,
-      unlinkedParents: unlinkedParents.length,
+      totalParents: parentCount,
+      activeParents:
+        activeParentCountResponse?.count ??
+        allMappedParents.filter((parent) => parent.isActive).length,
+      pendingParents:
+        pendingParentCountResponse?.count ??
+        allMappedParents.filter((parent) => !parent.isActive).length,
+      unlinkedParents: totalUnlinkedParents,
     }),
-    [parents, unlinkedParents.length]
+    [
+      activeParentCountResponse?.count,
+      parentCount,
+      allMappedParents,
+      pendingParentCountResponse?.count,
+      totalUnlinkedParents,
+    ]
   )
 
   const filterOptions = useMemo(
     () => [
-      { id: "all" as const, label: "All Parents", count: parents.length },
+      { id: "all" as const, label: "All Parents", count: parentCount },
       {
         id: "active" as const,
         label: "Active",
@@ -344,8 +497,23 @@ export const Parents: React.FC<ParentsProps> = ({
         count: stats.unlinkedParents,
       },
     ],
-    [parents.length, stats.activeParents, stats.pendingParents, stats.unlinkedParents]
+    [
+      parentCount,
+      stats.activeParents,
+      stats.pendingParents,
+      stats.unlinkedParents,
+    ]
   )
+
+  const isLoading = parentsLoading || studentsLoading || linksLoading
+  const isInitialLoading = !hasResolvedInitialLoad && isLoading
+  const isBackgroundRefreshing = hasResolvedInitialLoad && isLoading
+
+  useEffect(() => {
+    if (!isLoading) {
+      setHasResolvedInitialLoad(true)
+    }
+  }, [isLoading])
 
   const refreshAll = () => {
     refetchParents()
@@ -397,7 +565,9 @@ export const Parents: React.FC<ParentsProps> = ({
       const payload = buildParentInvitePayload(form, branchId)
 
       if (!payload.phone_number) {
-        throw new Error("A valid phone number is required before sending an invitation.")
+        throw new Error(
+          "A valid phone number is required before sending an invitation."
+        )
       }
       if (!payload.father_name || !payload.grandfather_name) {
         throw new Error(
@@ -420,7 +590,7 @@ export const Parents: React.FC<ParentsProps> = ({
     }
   }
 
-  if (parentsLoading || studentsLoading || linksLoading) {
+  if (isInitialLoading) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">
@@ -510,52 +680,53 @@ export const Parents: React.FC<ParentsProps> = ({
             />
           </div>
 
-          <div className="flex flex-col gap-3 md:flex-row">
-            <div className="relative flex-1">
-              <Search className="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Search parents by name, email, or phone"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pr-4 pl-11 text-sm transition outline-none focus:border-primary/30 focus:bg-white focus:ring-4 focus:ring-primary/5"
-              />
-            </div>
-            <select
-              value={gradeFilter}
-              onChange={(event) => setGradeFilter(event.target.value)}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none"
-            >
-              <option>All Grades</option>
-              {grades.map((grade) => (
-                <option key={grade.id}>{grade.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {filterOptions.map((option) => (
-              <button
-                key={option.id}
-                onClick={() => setParentFilter(option.id)}
-                className={`rounded-2xl border px-4 py-2.5 text-sm font-bold transition ${
-                  parentFilter === option.id
-                    ? "border-primary bg-primary text-white shadow-lg shadow-primary/20"
-                    : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:bg-white"
-                }`}
-              >
-                <span className="flex items-center gap-2">
+          <div className="flex flex-col items-stretch justify-between gap-4 lg:flex-row lg:items-center">
+            <div className="no-scrollbar flex overflow-x-auto rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
+              {filterOptions.map((option) => (
+                <button
+                  key={option.id}
+                  onClick={() => setParentFilter(option.id)}
+                  className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold whitespace-nowrap transition-all lg:flex-none ${
+                    parentFilter === option.id
+                      ? "bg-primary text-white shadow-md shadow-primary/10"
+                      : "text-slate-500 hover:text-primary"
+                  }`}
+                >
                   {option.label}
                   <span
                     className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
                       parentFilter === option.id
                         ? "bg-white/20 text-white"
-                        : "bg-slate-200 text-slate-600"
+                        : "bg-slate-100 text-slate-500"
                     }`}
                   >
                     {option.count}
                   </span>
-                </span>
-              </button>
-            ))}
+                </button>
+              ))}
+            </div>
+            <div className="flex w-full flex-wrap items-center justify-end gap-2 md:gap-3 lg:w-auto">
+              <select
+                value={gradeFilter}
+                onChange={(event) => setGradeFilter(event.target.value)}
+                className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/10 lg:flex-none"
+              >
+                <option>All Grades</option>
+                {grades.map((grade) => (
+                  <option key={grade.id}>{grade.name}</option>
+                ))}
+              </select>
+              <div className="relative w-full md:flex-1 lg:w-72 lg:flex-none">
+                <Search className="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Search parents by name, email, or phone"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pr-4 pl-11 text-sm transition outline-none focus:border-primary/30 focus:bg-white focus:ring-4 focus:ring-primary/5"
+                />
+              </div>
+            </div>
           </div>
           {(inviteActionError || inviteActionMessage) && (
             <div
@@ -567,11 +738,11 @@ export const Parents: React.FC<ParentsProps> = ({
             >
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-2">
-                {inviteActionError ? (
-                  <AlertCircle className="h-4 w-4" />
-                ) : (
-                  <Check className="h-4 w-4" />
-                )}
+                  {inviteActionError ? (
+                    <AlertCircle className="h-4 w-4" />
+                  ) : (
+                    <Check className="h-4 w-4" />
+                  )}
                   <span>{inviteActionError ?? inviteActionMessage}</span>
                 </div>
                 {!inviteActionError && inviteActionLink && (
@@ -594,6 +765,12 @@ export const Parents: React.FC<ParentsProps> = ({
       <div className="flex-1 overflow-y-auto p-4 md:p-6">
         <div className="mx-auto max-w-5xl space-y-4">
           <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
+            {isBackgroundRefreshing && (
+              <div className="mb-4 flex items-center justify-end gap-2 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-xs font-bold text-slate-500">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                Refreshing page...
+              </div>
+            )}
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-black tracking-widest text-slate-900 uppercase">
@@ -602,6 +779,7 @@ export const Parents: React.FC<ParentsProps> = ({
                 <p className="text-xs font-medium text-slate-500">
                   {filteredParents.length} record
                   {filteredParents.length === 1 ? "" : "s"}
+                  {" "}on this page
                 </p>
               </div>
             </div>
@@ -647,7 +825,8 @@ export const Parents: React.FC<ParentsProps> = ({
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-black text-slate-900">
-                        {parent.linkedStudentCount ?? parent.linkedStudents.length}
+                        {parent.linkedStudentCount ??
+                          parent.linkedStudents.length}
                       </p>
                       <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
                         linked students
@@ -657,20 +836,12 @@ export const Parents: React.FC<ParentsProps> = ({
                   {!parent.isActive && (
                     <button
                       onClick={() => setInvitingParentId(parent.id)}
-                      disabled={
-                        inviteSubmittingParentId === parent.id
-                      }
-                      title={
-                        parent.status === "Pending"
-                          ? "Review details and resend parent SMS invitation"
-                          : "Review details and send parent SMS invitation"
-                      }
+                      disabled={inviteSubmittingParentId === parent.id}
+                      title="Review details and send parent SMS invitation"
                       className="rounded-xl border border-amber-100 bg-amber-50 p-3 text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {inviteSubmittingParentId === parent.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : parent.status === "Pending" ? (
-                        <RefreshCw className="h-4 w-4" />
                       ) : (
                         <Send className="h-4 w-4" />
                       )}
@@ -684,6 +855,32 @@ export const Parents: React.FC<ParentsProps> = ({
                   message="Try a different search, status filter, or invite a new parent."
                 />
               )}
+            </div>
+            <div className="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs font-medium text-slate-500">
+                Page {currentPage} · {parentCount} total parent
+                {parentCount === 1 ? "" : "s"}
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCurrentPage((page) => Math.max(1, page - 1))
+                  }
+                  disabled={!hasPreviousPage}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((page) => page + 1)}
+                  disabled={!hasNextPage}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           </section>
         </div>
@@ -717,7 +914,11 @@ export const Parents: React.FC<ParentsProps> = ({
         )}
         {invitingParent && branchId && (
           <ParentFormModal
-            title={invitingParent.is_active ? "Send Parent Invitation" : "Review Parent Invitation"}
+            title={
+              invitingParent.is_active
+                ? "Send Parent Invitation"
+                : "Review Parent Invitation"
+            }
             initialValue={buildParentFormState(invitingParent)}
             onClose={() => setInvitingParentId(null)}
             onSubmit={async (form) => {
@@ -734,21 +935,21 @@ export const Parents: React.FC<ParentsProps> = ({
             initialValue={{
               name: editingParent.name,
               fatherName:
-                rawParents.find((parent) => parent.id === editingParent.id)
+                allRawParents?.find((parent) => parent.id === editingParent.id)
                   ?.user_details?.father_name ?? "",
               grandfatherName:
-                rawParents.find((parent) => parent.id === editingParent.id)
+                allRawParents?.find((parent) => parent.id === editingParent.id)
                   ?.user_details?.grandfather_name ?? "",
               phone: editingParent.phone,
               secondaryPhone:
-                rawParents.find((parent) => parent.id === editingParent.id)
+                allRawParents?.find((parent) => parent.id === editingParent.id)
                   ?.secondary_phone_number ?? "",
               occupation: editingParent.occupation ?? "",
               workAddress:
-                rawParents.find((parent) => parent.id === editingParent.id)
+                allRawParents?.find((parent) => parent.id === editingParent.id)
                   ?.work_address ?? "",
               relationshipNotes:
-                rawParents.find((parent) => parent.id === editingParent.id)
+                allRawParents?.find((parent) => parent.id === editingParent.id)
                   ?.relationship_notes ?? "",
               emergencyContactName: editingParent.emergencyContactName ?? "",
               emergencyContactPhone: editingParent.emergencyContactPhone ?? "",
@@ -763,13 +964,13 @@ export const Parents: React.FC<ParentsProps> = ({
                 emergency_contact_phone: form.emergencyContactPhone,
                 secondary_phone_number: form.secondaryPhone,
                 user:
-                  rawParents.find((parent) => parent.id === editingParent.id)
+                  allRawParents?.find((parent) => parent.id === editingParent.id)
                     ?.user ?? "",
                 organizations:
-                  rawParents.find((parent) => parent.id === editingParent.id)
+                  allRawParents?.find((parent) => parent.id === editingParent.id)
                     ?.organizations ?? [],
                 branches:
-                  rawParents.find((parent) => parent.id === editingParent.id)
+                  allRawParents?.find((parent) => parent.id === editingParent.id)
                     ?.branches ?? [],
               })
               setEditingParent(null)
@@ -889,6 +1090,43 @@ function ParentDetailDrawer({
   onUnlink: (studentId: string, parentId: string) => Promise<void>
 }) {
   const parentLineage = buildParentLineage(parent)
+  const linkedStudents = useMemo(() => {
+    const resolvedStudents = new Map(
+      students.map((student) => [
+        student.id,
+        {
+          id: student.id,
+          name: student.name,
+          grade: student.grade,
+          section: student.section,
+          rollNo: student.rollNo,
+        },
+      ])
+    )
+    const fallbackStudents = new Map(
+      (parent.linkedStudentDetails ?? []).map((student) => [student.id, student])
+    )
+
+    return parent.linkedStudents.map((studentId) => {
+      const fallbackStudent = fallbackStudents.get(studentId)
+      const resolvedStudent = resolvedStudents.get(studentId)
+      if (resolvedStudent) {
+        return {
+          id: studentId,
+          name: fallbackStudent?.name || resolvedStudent.name,
+          grade: fallbackStudent?.grade || resolvedStudent.grade,
+          section: fallbackStudent?.section || resolvedStudent.section,
+        }
+      }
+
+      return {
+        id: studentId,
+        name: fallbackStudent?.name ?? "Linked student",
+        grade: fallbackStudent?.grade ?? "",
+        section: fallbackStudent?.section ?? "",
+      }
+    })
+  }, [parent.linkedStudentDetails, parent.linkedStudents, students])
 
   return (
     <motion.div
@@ -972,10 +1210,7 @@ function ParentDetailDrawer({
                 </h3>
               </div>
               <div className="space-y-3">
-                <DrawerInfoCard
-                  icon={User}
-                  value={parentLineage}
-                />
+                <DrawerInfoCard icon={User} value={parentLineage} />
                 <DrawerInfoCard
                   icon={User}
                   value={
@@ -1001,11 +1236,11 @@ function ParentDetailDrawer({
                   Linked Children
                 </h3>
                 <span className="text-xs font-black text-primary">
-                  {students.length} Total
+                  {linkedStudents.length} Total
                 </span>
               </div>
               <div className="space-y-3">
-                {students.map((student) => (
+                {linkedStudents.map((student) => (
                   <div
                     key={student.id}
                     className="flex items-center justify-between gap-3 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm"
@@ -1018,10 +1253,6 @@ function ParentDetailDrawer({
                         <p className="truncate text-sm font-black text-slate-900">
                           {student.name}
                         </p>
-                        <p className="mt-1 text-xs font-bold tracking-wide text-slate-500 uppercase">
-                          {student.grade} • {student.section || "No Section"} • ID:{" "}
-                          {student.rollNo}
-                        </p>
                       </div>
                     </div>
                     <button
@@ -1033,7 +1264,7 @@ function ParentDetailDrawer({
                     </button>
                   </div>
                 ))}
-                {students.length === 0 && (
+                {linkedStudents.length === 0 && (
                   <EmptyState
                     title="No linked children"
                     message="Use the link student action to attach this parent to a student."
@@ -1049,14 +1280,8 @@ function ParentDetailDrawer({
               onClick={onInvite}
               className="flex w-full items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-black text-amber-700 transition hover:bg-amber-100"
             >
-              {parent.status === "Pending" ? (
-                <RefreshCw className="h-4 w-4" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-              {parent.status === "Pending"
-                ? "Reinvite Parent"
-                : "Invite Parent"}
+              <Send className="h-4 w-4" />
+              Invite Parent
             </button>
           </div>
         )}
@@ -1307,7 +1532,7 @@ function LinkStudentModal({
                 setStudentId("")
               }}
               placeholder="Search by student name..."
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pr-4 pl-11 text-sm outline-none transition focus:border-primary/30 focus:bg-white focus:ring-4 focus:ring-primary/5"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pr-4 pl-11 text-sm transition outline-none focus:border-primary/30 focus:bg-white focus:ring-4 focus:ring-primary/5"
             />
           </div>
         </div>
@@ -1449,7 +1674,8 @@ function ImportParentsModal({
           />
         </label>
         <p className="text-xs text-slate-500">
-          The backend will validate the uploaded parent file before creating records.
+          The backend will validate the uploaded parent file before creating
+          records.
         </p>
         {(isUploading || taskId) && (
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -1538,7 +1764,7 @@ function ImportParentsModal({
                 setIsUploading(false)
               }
             }}
-            className="text-[10px] font-black tracking-widest text-primary uppercase hover:underline disabled:cursor-not-allowed disabled:opacity-50 disabled:no-underline"
+            className="text-[10px] font-black tracking-widest text-primary uppercase hover:underline disabled:cursor-not-allowed disabled:no-underline disabled:opacity-50"
           >
             {isUploading ? "Importing..." : "Upload File"}
           </button>

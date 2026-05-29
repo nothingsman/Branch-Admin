@@ -1113,7 +1113,7 @@ function SectionDetailsDrawer({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="absolute inset-0 z-30 flex justify-end"
+      className="fixed inset-0 z-30 flex justify-end"
     >
       <button
         type="button"
@@ -1127,7 +1127,7 @@ function SectionDetailsDrawer({
         animate={{ x: 0, opacity: 1 }}
         exit={{ x: 80, opacity: 0 }}
         transition={{ type: "spring", stiffness: 280, damping: 30 }}
-        className="relative flex h-full w-full max-w-xl flex-col border-l border-slate-200 bg-white shadow-[0_30px_80px_rgba(15,23,42,0.16)]"
+        className="fixed top-0 right-0 bottom-0 flex w-full max-w-xl flex-col border-l border-slate-200 bg-white shadow-[0_30px_80px_rgba(15,23,42,0.16)]"
       >
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
           <button

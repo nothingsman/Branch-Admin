@@ -4,7 +4,6 @@ import {
   Clock,
   Edit3,
   ExternalLink,
-  Languages,
   Loader2,
   Plus,
   Search,
@@ -36,8 +35,6 @@ interface AnnouncementsProps {
 type AnnouncementDraftState = {
   subject: string
   message: string
-  amharicSubject: string
-  amharicBody: string
   targetRoles: ApiAnnouncementWrite["target_roles"]
   targetedGradeIds: string[]
   targetedSectionIds: string[]
@@ -48,8 +45,6 @@ type AnnouncementDraftState = {
 const emptyDraft: AnnouncementDraftState = {
   subject: "",
   message: "",
-  amharicSubject: "",
-  amharicBody: "",
   targetRoles: "BOTH",
   targetedGradeIds: [],
   targetedSectionIds: [],
@@ -339,36 +334,65 @@ export const Announcements: React.FC<AnnouncementsProps> = ({
                     {selectedAnnouncement.message}
                   </p>
                 </div>
+                <div className="grid gap-3">
+                  <DetailCard
+                    label="Audience"
+                    value={audienceLabel(selectedAnnouncement.target_roles)}
+                  />
+                  <DetailCard
+                    label="Target Scope"
+                    value={recipientLabel(
+                      selectedAnnouncement,
+                      grades,
+                      sections
+                    )}
+                  />
+                  <DetailCard
+                    label="Target Grade"
+                    value={targetGradeLabel(selectedAnnouncement, grades)}
+                  />
+                  <DetailCard
+                    label="Target Sections"
+                    value={targetSectionsLabel(selectedAnnouncement, sections)}
+                  />
+                  <DetailCard
+                    label="Delivery"
+                    value={deliveryLabel(selectedAnnouncement)}
+                  />
+                  <DetailCard
+                    label="Urgency"
+                    value={
+                      selectedAnnouncement.is_urgent ? "Urgent" : "Normal"
+                    }
+                  />
+                </div>
                 {selectedAnnouncement.attachment && (
                   <ResolvedMediaLink
                     mediaId={selectedAnnouncement.attachment}
                     label="View attachment"
                   />
                 )}
-                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                  <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
-                    Delivery
-                  </p>
-                  <p className="mt-2 text-sm font-bold text-slate-700">
-                    {selectedAnnouncement.status === "SCHEDULED" &&
-                    selectedAnnouncement.scheduled_at
-                      ? `Scheduled for ${format(parseISO(selectedAnnouncement.scheduled_at), "MMM d, yyyy HH:mm")}`
-                      : `Created ${displayDate(selectedAnnouncement)}`}
-                  </p>
-                </div>
               </div>
               <div className="border-t border-slate-100 bg-slate-50 p-5">
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => {
-                      setEditingAnnouncement(selectedAnnouncement)
-                      setComposerOpen(true)
-                    }}
-                    className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700"
-                  >
-                    <Edit3 className="h-4 w-4" />
-                    Edit
-                  </button>
+                <div
+                  className={`grid gap-3 ${
+                    selectedAnnouncement.status === "SENT"
+                      ? "grid-cols-1"
+                      : "grid-cols-2"
+                  }`}
+                >
+                  {selectedAnnouncement.status !== "SENT" && (
+                    <button
+                      onClick={() => {
+                        setEditingAnnouncement(selectedAnnouncement)
+                        setComposerOpen(true)
+                      }}
+                      className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700"
+                    >
+                      <Edit3 className="h-4 w-4" />
+                      Edit
+                    </button>
+                  )}
                   <button
                     onClick={async () => {
                       await announcementsApi.delete(selectedAnnouncement.id)
@@ -428,13 +452,29 @@ function AnnouncementComposer({
   onClose: () => void
   onSuccess: () => void
 }) {
+  type AnnouncementValidationErrors = {
+    subject?: string
+    message?: string
+    scheduledAt?: string
+  }
+
+  const sortedGrades = useMemo(
+    () =>
+      [...grades].sort(
+        (left, right) =>
+          left.level - right.level ||
+          left.name.localeCompare(right.name, undefined, {
+            sensitivity: "base",
+            numeric: true,
+          })
+      ),
+    [grades]
+  )
   const [draft, setDraft] = useState<AnnouncementDraftState>(
     initialAnnouncement
       ? {
           subject: initialAnnouncement.subject,
           message: initialAnnouncement.message,
-          amharicSubject: "",
-          amharicBody: "",
           targetRoles: initialAnnouncement.target_roles,
           targetedGradeIds: initialAnnouncement.targeted_grades ?? [],
           targetedSectionIds: initialAnnouncement.targeted_sections ?? [],
@@ -444,13 +484,108 @@ function AnnouncementComposer({
       : emptyDraft
   )
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [validationErrors, setValidationErrors] =
+    useState<AnnouncementValidationErrors>({})
   const [attachmentState, setAttachmentState] = useState<MediaUploaderState>(
     emptyMediaUploaderState
   )
   const [isAttachmentBusy, setIsAttachmentBusy] = useState(false)
 
   const initialAttachmentId = initialAnnouncement?.attachment ?? null
+  const selectedGradeId = draft.targetedGradeIds[0] ?? ""
+  const selectedGrade = useMemo(
+    () => sortedGrades.find((grade) => grade.id === selectedGradeId) ?? null,
+    [selectedGradeId, sortedGrades]
+  )
+  const sectionsForSelectedGrade = useMemo(() => {
+    if (!selectedGrade) return []
+
+    return [...sections]
+      .filter((section) => section.grade_name === selectedGrade.name)
+      .sort((left, right) =>
+        left.name.localeCompare(right.name, undefined, {
+          sensitivity: "base",
+          numeric: true,
+        })
+      )
+  }, [sections, selectedGrade])
+
+  useEffect(() => {
+    if (!selectedGrade) {
+      if (draft.targetedSectionIds.length === 0) return
+      setDraft((current) => ({
+        ...current,
+        targetedSectionIds: [],
+      }))
+      return
+    }
+
+    const allowedSectionIds = new Set(
+      sectionsForSelectedGrade.map((section) => section.id)
+    )
+    const filteredSectionIds = draft.targetedSectionIds.filter((sectionId) =>
+      allowedSectionIds.has(sectionId)
+    )
+
+    if (filteredSectionIds.length === draft.targetedSectionIds.length) return
+
+    setDraft((current) => ({
+      ...current,
+      targetedSectionIds: filteredSectionIds,
+    }))
+  }, [draft.targetedSectionIds, sectionsForSelectedGrade, selectedGrade])
+
+  function toggleTargetSection(sectionId: string, checked: boolean) {
+    setDraft((current) => ({
+      ...current,
+      targetedSectionIds: checked
+        ? [...current.targetedSectionIds, sectionId]
+        : current.targetedSectionIds.filter((id) => id !== sectionId),
+    }))
+  }
+
+  function validateDraft(
+    status: ApiAnnouncementWrite["status"]
+  ): AnnouncementValidationErrors {
+    const errors: AnnouncementValidationErrors = {}
+
+    if (!draft.subject.trim()) {
+      errors.subject = "Subject is required."
+    }
+
+    if (!draft.message.trim()) {
+      errors.message = "Message is required."
+    }
+
+    if (status === "SCHEDULED" && !draft.scheduledAt) {
+      errors.scheduledAt =
+        "Select a scheduled time before scheduling this announcement."
+    }
+
+    return errors
+  }
+
+  function setFieldValue<K extends keyof AnnouncementDraftState>(
+    field: K,
+    value: AnnouncementDraftState[K]
+  ) {
+    setDraft((current) => ({
+      ...current,
+      [field]: value,
+    }))
+
+    if (field === "subject" || field === "message" || field === "scheduledAt") {
+      const validationField = field as keyof AnnouncementValidationErrors
+      setValidationErrors((current) => {
+        if (!current[validationField]) return current
+        return {
+          ...current,
+          [validationField]: undefined,
+        }
+      })
+    }
+  }
 
   async function handleClose() {
     if (isSubmitting || isAttachmentBusy) {
@@ -477,8 +612,15 @@ function AnnouncementComposer({
   }
 
   async function submit(status: ApiAnnouncementWrite["status"]) {
+    const errors = validateDraft(status)
+    setValidationErrors(errors)
+    setSubmitError(null)
+
+    if (Object.values(errors).some(Boolean)) {
+      return
+    }
+
     setIsSubmitting(true)
-    setError(null)
 
     const payload: ApiAnnouncementWrite = {
       organization: organizationId,
@@ -507,7 +649,7 @@ function AnnouncementComposer({
       setAttachmentState(emptyMediaUploaderState)
       onSuccess()
     } catch (submitError) {
-      setError(
+      setSubmitError(
         submitError instanceof Error
           ? submitError.message
           : "Failed to save announcement."
@@ -568,14 +710,22 @@ function AnnouncementComposer({
                 <option value="TEACHERS">Teachers Only</option>
               </select>
             </Field>
-            <Field label="Scheduled Time">
+            <Field
+              label="Scheduled Time"
+              required={Boolean(validationErrors.scheduledAt)}
+              error={validationErrors.scheduledAt}
+            >
               <input
                 type="datetime-local"
                 value={draft.scheduledAt}
                 onChange={(event) =>
-                  setDraft({ ...draft, scheduledAt: event.target.value })
+                  setFieldValue("scheduledAt", event.target.value)
                 }
-                className="field"
+                className={`field ${
+                  validationErrors.scheduledAt
+                    ? "border-red-300 bg-red-50/60 focus:border-red-300 focus:ring-red-100"
+                    : ""
+                }`}
               />
             </Field>
           </div>
@@ -583,17 +733,20 @@ function AnnouncementComposer({
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="Target Grades">
               <select
-                multiple
-                value={draft.targetedGradeIds}
+                value={selectedGradeId}
                 onChange={(event) =>
                   setDraft({
                     ...draft,
-                    targetedGradeIds: selectedValues(event.target.options),
+                    targetedGradeIds: event.target.value
+                      ? [event.target.value]
+                      : [],
+                    targetedSectionIds: [],
                   })
                 }
-                className="field min-h-[140px]"
+                className="field"
               >
-                {grades.map((grade) => (
+                <option value="">All grades</option>
+                {sortedGrades.map((grade) => (
                   <option key={grade.id} value={grade.id}>
                     {grade.name}
                   </option>
@@ -601,91 +754,80 @@ function AnnouncementComposer({
               </select>
             </Field>
             <Field label="Target Sections">
-              <select
-                multiple
-                value={draft.targetedSectionIds}
-                onChange={(event) =>
-                  setDraft({
-                    ...draft,
-                    targetedSectionIds: selectedValues(event.target.options),
-                  })
-                }
-                className="field min-h-[140px]"
-              >
-                {sections.map((section) => (
-                  <option key={section.id} value={section.id}>
-                    {section.grade_name} - Section {section.name}
-                  </option>
-                ))}
-              </select>
+              <div className="min-h-[140px] rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                {!selectedGrade ? (
+                  <div className="flex h-full min-h-[112px] items-center justify-center text-center text-sm font-medium text-slate-400">
+                    Select a grade first to choose sections.
+                  </div>
+                ) : sectionsForSelectedGrade.length === 0 ? (
+                  <div className="flex h-full min-h-[112px] items-center justify-center text-center text-sm font-medium text-slate-400">
+                    No sections are available for this grade.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {sectionsForSelectedGrade.map((section) => (
+                      <label
+                        key={section.id}
+                        className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={draft.targetedSectionIds.includes(section.id)}
+                          onChange={(event) =>
+                            toggleTargetSection(section.id, event.target.checked)
+                          }
+                        />
+                        <span className="text-sm font-bold text-slate-700">
+                          Section {section.name}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
             </Field>
           </div>
 
           <p className="text-xs text-slate-500">
-            Leave both targeting lists empty to send to the full selected
-            audience.
+            Leave grade empty to send to the full selected audience. Once a
+            grade is selected, only sections in that grade are shown.
           </p>
 
-          <Field label="Subject">
+          <Field
+            label="Subject"
+            required
+            error={validationErrors.subject}
+          >
             <input
               value={draft.subject}
               onChange={(event) =>
-                setDraft({ ...draft, subject: event.target.value })
+                setFieldValue("subject", event.target.value)
               }
-              className="field"
+              className={`field ${
+                validationErrors.subject
+                  ? "border-red-300 bg-red-50/60 focus:border-red-300 focus:ring-red-100"
+                  : ""
+              }`}
             />
           </Field>
-          <Field label="Message">
+          <Field
+            label="Message"
+            required
+            error={validationErrors.message}
+          >
             <textarea
               rows={5}
               value={draft.message}
               onChange={(event) =>
-                setDraft({ ...draft, message: event.target.value })
+                setFieldValue("message", event.target.value)
               }
-              className="field min-h-[140px]"
+              className={`field min-h-[140px] ${
+                validationErrors.message
+                  ? "border-red-300 bg-red-50/60 focus:border-red-300 focus:ring-red-100"
+                  : ""
+              }`}
             />
           </Field>
-
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
-              Local Translation Draft
-            </p>
-            <button
-              type="button"
-              onClick={() =>
-                setDraft({
-                  ...draft,
-                  amharicSubject: `ርዕስ፡ ${draft.subject}`,
-                  amharicBody: `ይህ መልእክት ስለ ${draft.subject} ነው። ${draft.message}`,
-                })
-              }
-              className="flex items-center gap-2 text-xs font-black text-primary"
-            >
-              <Languages className="h-4 w-4" />
-              Auto-translate
-            </button>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Amharic Subject">
-              <input
-                value={draft.amharicSubject}
-                onChange={(event) =>
-                  setDraft({ ...draft, amharicSubject: event.target.value })
-                }
-                className="field"
-              />
-            </Field>
-            <Field label="Amharic Message">
-              <textarea
-                rows={5}
-                value={draft.amharicBody}
-                onChange={(event) =>
-                  setDraft({ ...draft, amharicBody: event.target.value })
-                }
-                className="field min-h-[140px]"
-              />
-            </Field>
-          </div>
 
           <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <input
@@ -721,9 +863,9 @@ function AnnouncementComposer({
             onBusyChange={setIsAttachmentBusy}
           />
 
-          {error && (
+          {submitError && (
             <div className="rounded-2xl border border-red-100 bg-red-50 p-3 text-sm text-red-700">
-              {error}
+              {submitError}
             </div>
           )}
         </div>
@@ -732,12 +874,7 @@ function AnnouncementComposer({
           <button
             type="button"
             onClick={() => submit("DRAFT")}
-            disabled={
-              isSubmitting ||
-              isAttachmentBusy ||
-              !draft.subject.trim() ||
-              !draft.message.trim()
-            }
+            disabled={isSubmitting || isAttachmentBusy}
             className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 disabled:opacity-60"
           >
             Save Draft
@@ -745,13 +882,7 @@ function AnnouncementComposer({
           <div className="flex gap-3">
             <button
               type="button"
-              disabled={
-                isSubmitting ||
-                isAttachmentBusy ||
-                !draft.subject.trim() ||
-                !draft.message.trim() ||
-                !draft.scheduledAt
-              }
+              disabled={isSubmitting || isAttachmentBusy}
               onClick={() => submit("SCHEDULED")}
               className="rounded-xl border border-primary/20 bg-primary/10 px-4 py-2.5 text-sm font-black text-primary disabled:opacity-60"
             >
@@ -762,12 +893,7 @@ function AnnouncementComposer({
             </button>
             <button
               type="button"
-              disabled={
-                isSubmitting ||
-                isAttachmentBusy ||
-                !draft.subject.trim() ||
-                !draft.message.trim()
-              }
+              disabled={isSubmitting || isAttachmentBusy}
               onClick={() => submit("SENT")}
               className="rounded-xl bg-primary px-4 py-2.5 text-sm font-black text-white disabled:opacity-60"
             >
@@ -785,17 +911,27 @@ function AnnouncementComposer({
 
 function Field({
   label,
+  required = false,
+  error,
   children,
 }: {
   label: string
+  required?: boolean
+  error?: string
   children: React.ReactNode
 }) {
   return (
     <label className="block space-y-2">
       <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
         {label}
+        {required ? (
+          <span className="ml-1 text-red-500" aria-hidden="true">
+            *
+          </span>
+        ) : null}
       </span>
       {children}
+      {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
     </label>
   )
 }
@@ -855,6 +991,17 @@ function EmptyState({ message }: { message: string }) {
   return (
     <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-500">
       {message}
+    </div>
+  )
+}
+
+function DetailCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+      <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+        {label}
+      </p>
+      <p className="mt-2 text-sm font-bold text-slate-700">{value}</p>
     </div>
   )
 }
@@ -950,10 +1097,43 @@ function recipientLabel(
   return [...gradeLabels, ...sectionLabels].join(", ")
 }
 
-function selectedValues(options: HTMLOptionsCollection) {
-  return Array.from(options)
-    .filter((option) => option.selected)
-    .map((option) => option.value)
+function targetGradeLabel(
+  announcement: ApiAnnouncement,
+  grades: ApiAnnouncementTargetingCriteria["grades"]
+) {
+  const gradeLabels = announcement.targeted_grades
+    .map((gradeId) => grades.find((grade) => grade.id === gradeId)?.name)
+    .filter((value): value is string => Boolean(value))
+
+  return gradeLabels.length > 0 ? gradeLabels.join(", ") : "All grades"
+}
+
+function targetSectionsLabel(
+  announcement: ApiAnnouncement,
+  sections: ApiAnnouncementTargetingCriteria["sections"]
+) {
+  const sectionLabels = announcement.targeted_sections
+    .map((sectionId) => {
+      const section = sections.find((item) => item.id === sectionId)
+      return section ? `Section ${section.name}` : null
+    })
+    .filter((value): value is string => Boolean(value))
+
+  return sectionLabels.length > 0
+    ? sectionLabels.join(", ")
+    : "All sections in audience scope"
+}
+
+function deliveryLabel(announcement: ApiAnnouncement) {
+  if (announcement.status === "SCHEDULED" && announcement.scheduled_at) {
+    return `Scheduled for ${format(parseISO(announcement.scheduled_at), "MMM d, yyyy HH:mm")}`
+  }
+
+  if (announcement.status === "SENT") {
+    return `Sent ${displayDate(announcement)}`
+  }
+
+  return `Created ${displayDate(announcement)}`
 }
 
 function toDateTimeLocal(value: string) {

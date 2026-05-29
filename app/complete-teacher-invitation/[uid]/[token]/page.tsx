@@ -1,7 +1,7 @@
-'use client'
+"use client"
 
-import React, { useState } from 'react'
-import { motion, AnimatePresence } from 'motion/react'
+import React, { useState } from "react"
+import { motion, AnimatePresence } from "motion/react"
 import {
   Lock,
   Eye,
@@ -10,9 +10,9 @@ import {
   Loader2,
   KeyRound,
   CheckCircle2,
-} from 'lucide-react'
-import { useParams, useRouter } from 'next/navigation'
-import { teachersApi } from '../../../../src/lib/api'
+} from "lucide-react"
+import { useParams, useRouter } from "next/navigation"
+import { teachersApi } from "../../../../src/lib/api"
 
 export default function CompleteTeacherInvitationPage() {
   const params = useParams()
@@ -20,8 +20,8 @@ export default function CompleteTeacherInvitationPage() {
   const uid = params?.uid as string
   const token = params?.token as string
 
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -35,8 +35,8 @@ export default function CompleteTeacherInvitationPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!isValidForm) {
-      if (!isMinLength) setError('Password must be at least 8 characters.')
-      else if (!isMatching) setError('Passwords do not match.')
+      if (!isMinLength) setError("Password must be at least 8 characters.")
+      else if (!isMatching) setError("Passwords do not match.")
       return
     }
 
@@ -48,14 +48,14 @@ export default function CompleteTeacherInvitationPage() {
       setIsSuccess(true)
       setTimeout(() => {
         router.push(
-          '/?message=Your teacher account has been activated successfully. Please sign in with your new password.'
+          "/?message=Your teacher account has been activated successfully. Please sign in with your new password."
         )
       }, 2000)
     } catch (err: any) {
       let errMsg =
-        'Failed to activate your account. The link may have expired or is invalid.'
+        "Failed to activate your account. The link may have expired or is invalid."
 
-      if (err.data && typeof err.data === 'object') {
+      if (err.data && typeof err.data === "object") {
         if (
           err.data.errors &&
           Array.isArray(err.data.errors) &&
@@ -93,7 +93,7 @@ export default function CompleteTeacherInvitationPage() {
       <motion.div
         initial={{ opacity: 0, y: 25, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.5, ease: 'easeOut' }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
         className="relative z-10 w-full max-w-[460px]"
       >
         <div className="flex flex-col items-center rounded-[2rem] border border-border bg-white/70 p-8 shadow-[0_20px_50px_rgba(0,0,0,0.06)] backdrop-blur-xl md:p-10">
@@ -156,13 +156,13 @@ export default function CompleteTeacherInvitationPage() {
                     <div className="relative flex items-center">
                       <Lock className="pointer-events-none absolute left-4 h-4 w-4 text-muted-foreground" />
                       <input
-                        type={showPassword ? 'text' : 'password'}
+                        type={showPassword ? "text" : "password"}
                         required
                         disabled={isLoading}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••••••"
-                        className="w-full rounded-xl border border-input bg-white py-3.5 pr-12 pl-12 text-sm font-semibold text-foreground outline-none transition-all placeholder:text-muted-foreground hover:border-slate-300 focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:opacity-50"
+                        className="w-full rounded-xl border border-input bg-white py-3.5 pr-12 pl-12 text-sm font-semibold text-foreground transition-all outline-none placeholder:text-muted-foreground hover:border-slate-300 focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:opacity-50"
                       />
                       <button
                         type="button"
@@ -185,13 +185,13 @@ export default function CompleteTeacherInvitationPage() {
                     <div className="relative flex items-center">
                       <Lock className="pointer-events-none absolute left-4 h-4 w-4 text-muted-foreground" />
                       <input
-                        type={showConfirmPassword ? 'text' : 'password'}
+                        type={showConfirmPassword ? "text" : "password"}
                         required
                         disabled={isLoading}
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         placeholder="••••••••••••"
-                        className="w-full rounded-xl border border-input bg-white py-3.5 pr-12 pl-12 text-sm font-semibold text-foreground outline-none transition-all placeholder:text-muted-foreground hover:border-slate-300 focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:opacity-50"
+                        className="w-full rounded-xl border border-input bg-white py-3.5 pr-12 pl-12 text-sm font-semibold text-foreground transition-all outline-none placeholder:text-muted-foreground hover:border-slate-300 focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:opacity-50"
                       />
                       <button
                         type="button"
@@ -213,7 +213,7 @@ export default function CompleteTeacherInvitationPage() {
                     <div className="flex items-center gap-2">
                       <div
                         className={`h-1.5 w-1.5 rounded-full ${
-                          isMinLength ? 'bg-emerald-500' : 'bg-slate-300'
+                          isMinLength ? "bg-emerald-500" : "bg-slate-300"
                         }`}
                       />
                       <span>At least 8 characters long</span>
@@ -221,7 +221,7 @@ export default function CompleteTeacherInvitationPage() {
                     <div className="flex items-center gap-2">
                       <div
                         className={`h-1.5 w-1.5 rounded-full ${
-                          isMatching ? 'bg-emerald-500' : 'bg-slate-300'
+                          isMatching ? "bg-emerald-500" : "bg-slate-300"
                         }`}
                       />
                       <span>Passwords match exactly</span>
