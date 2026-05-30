@@ -32,12 +32,11 @@ import {
   ApiStudent,
   importApi,
   parentsApi,
-  PaginatedResponse,
 } from "../lib/api"
-import { useBackfilledFilteredPagination } from "../hooks/useBackfilledFilteredPagination"
 import { useApiQuery } from "../hooks/useApiQuery"
 import { useGrades } from "../hooks/useGrades"
 import { useStudents } from "../hooks/useStudents"
+import { useParents } from "../hooks/useParents"
 
 interface ParentsProps {
   academicYear: string
@@ -49,6 +48,7 @@ type ParentFilter = "all" | "active" | "pending" | "unlinked"
 
 type ParentFormState = {
   name: string
+  email: string
   fatherName: string
   grandfatherName: string
   phone: string
@@ -62,6 +62,7 @@ type ParentFormState = {
 
 const emptyParentForm: ParentFormState = {
   name: "",
+  email: "",
   fatherName: "",
   grandfatherName: "",
   phone: "",
@@ -187,6 +188,7 @@ function buildParentInvitePayload(
 ): ApiParentInvitePayload {
   return {
     name: form.name.trim(),
+    email: normalizeOptionalValue(form.email),
     father_name: form.fatherName.trim(),
     grandfather_name: form.grandfatherName.trim(),
     phone_number: form.phone.trim(),
@@ -198,43 +200,6 @@ function buildParentInvitePayload(
     emergency_contact_name: normalizeOptionalValue(form.emergencyContactName),
     emergency_contact_phone: normalizeOptionalValue(form.emergencyContactPhone),
   }
-}
-
-async function fetchLinkedParentCount(): Promise<number> {
-  const linkedParentIds = new Set<string>()
-  let page = 1
-
-  while (true) {
-    const response = await parentsApi.listLinks({ page })
-    response.results.forEach((link) => linkedParentIds.add(link.parent))
-
-    if (!response.next) break
-    page += 1
-  }
-
-  return linkedParentIds.size
-}
-
-async function fetchAllParents(params: {
-  branchId?: string | null
-  organizationId?: string | null
-}): Promise<ApiParent[]> {
-  const parents: ApiParent[] = []
-  let page = 1
-
-  while (true) {
-    const response = await parentsApi.list({
-      branch: params.branchId ?? undefined,
-      organization: params.organizationId ?? undefined,
-      page,
-    })
-    parents.push(...response.results)
-
-    if (!response.next) break
-    page += 1
-  }
-
-  return parents
 }
 
 async function fetchAllParentLinks(): Promise<ApiParentLink[]> {
@@ -255,6 +220,7 @@ async function fetchAllParentLinks(): Promise<ApiParentLink[]> {
 function buildParentFormState(parent: ApiParent): ParentFormState {
   return {
     name: parent.user_details?.name ?? "",
+    email: parent.user_details?.email ?? "",
     fatherName: parent.user_details?.father_name ?? "",
     grandfatherName: parent.user_details?.grandfather_name ?? "",
     phone: parent.user_details?.phone_number ?? "",
@@ -301,6 +267,15 @@ export const Parents: React.FC<ParentsProps> = ({
   const [inviteSubmittingParentId, setInviteSubmittingParentId] = useState<
     string | null
   >(null)
+  useEffect(() => {
+    if (!inviteActionError && !inviteActionMessage) return
+    const timeoutId = window.setTimeout(() => {
+      setInviteActionError(null)
+      setInviteActionMessage(null)
+      setInviteActionLink(null)
+    }, 4500)
+    return () => window.clearTimeout(timeoutId)
+  }, [inviteActionError, inviteActionMessage])
 
   const {
     students: rawStudents,
@@ -309,12 +284,20 @@ export const Parents: React.FC<ParentsProps> = ({
     refetch: refetchStudents,
   } = useStudents({ branchId, organizationId })
   const { grades } = useGrades(branchId)
-  const { data: allRawParents } = useApiQuery<ApiParent[]>(
-    branchId || organizationId
-      ? () => fetchAllParents({ branchId, organizationId })
-      : null,
-    [branchId, organizationId]
-  )
+  const {
+    parents: rawParents,
+    count: parentCount,
+    hasNextPage,
+    hasPreviousPage,
+    isLoading: parentsLoading,
+    error: parentsError,
+    refetch: refetchParents,
+  } = useParents({
+    branchId,
+    organizationId,
+    page: currentPage,
+    search: searchQuery || undefined,
+  })
 
   const {
     data: links,
@@ -325,40 +308,14 @@ export const Parents: React.FC<ParentsProps> = ({
     branchId || organizationId ? () => fetchAllParentLinks() : null,
     [branchId, organizationId]
   )
-  const { data: activeParentCountResponse } = useApiQuery<{ count: number }>(
-    branchId || organizationId
-      ? () =>
-          parentsApi.list({
-            branch: branchId ?? undefined,
-            organization: organizationId ?? undefined,
-            is_active: true,
-          })
-      : null,
-    [branchId, organizationId]
-  )
-  const { data: pendingParentCountResponse } = useApiQuery<{ count: number }>(
-    branchId || organizationId
-      ? () =>
-          parentsApi.list({
-            branch: branchId ?? undefined,
-            organization: organizationId ?? undefined,
-            is_active: false,
-          })
-      : null,
-    [branchId, organizationId]
-  )
-  const { data: linkedParentCount } = useApiQuery<number>(
-    branchId || organizationId ? () => fetchLinkedParentCount() : null,
-    [branchId, organizationId]
-  )
 
   const students = useMemo(
     () => rawStudents.map((student) => mapStudent(student, links ?? [])),
     [rawStudents, links]
   )
   const allMappedParents = useMemo(
-    () => (allRawParents ?? []).map((parent) => mapParent(parent, links ?? [])),
-    [allRawParents, links]
+    () => (rawParents ?? []).map((parent) => mapParent(parent, links ?? [])),
+    [rawParents, links]
   )
   const parentFilterQuery = searchQuery.trim().toLowerCase()
   const parentFilterFn = useMemo(
@@ -382,41 +339,15 @@ export const Parents: React.FC<ParentsProps> = ({
     },
     [gradeFilter, parentFilter, parentFilterQuery]
   )
-  const {
-    items: filteredParents,
-    totalSourceCount: parentCount,
-    hasNextPage,
-    hasPreviousPage,
-    isLoading: parentsLoading,
-    error: parentsError,
-    refetch: refetchParents,
-    isPageOutOfRange,
-  } = useBackfilledFilteredPagination<Parent>({
-    fetchPage:
-      branchId || organizationId
-        ? async (page) => {
-            const response = await parentsApi.list({
-              branch: branchId ?? undefined,
-              organization: organizationId ?? undefined,
-              page,
-            })
-
-            return {
-              ...response,
-              results: response.results.map((parent) =>
-                mapParent(parent, links ?? [])
-              ),
-            } satisfies PaginatedResponse<Parent>
-          }
-        : null,
-    currentPage,
-    deps: [branchId, organizationId, gradeFilter, parentFilter, searchQuery, links],
-    filterFn: parentFilterFn,
-    sortFn: (left, right) =>
-      left.name.localeCompare(right.name, undefined, {
-        sensitivity: "base",
-      }),
-  })
+  const filteredParents = useMemo(
+    () =>
+      allMappedParents
+        .filter(parentFilterFn)
+        .sort((left, right) =>
+          left.name.localeCompare(right.name, undefined, { sensitivity: "base" })
+        ),
+    [allMappedParents, parentFilterFn]
+  )
 
   const selectedParent = useMemo(
     () => allMappedParents.find((parent) => parent.id === selectedParentId) ?? null,
@@ -429,8 +360,8 @@ export const Parents: React.FC<ParentsProps> = ({
   const invitingParent = useMemo(() => {
     if (!invitingParentId) return null
 
-    return allRawParents?.find((parent) => parent.id === invitingParentId) ?? null
-  }, [allRawParents, invitingParentId])
+    return rawParents?.find((parent) => parent.id === invitingParentId) ?? null
+  }, [rawParents, invitingParentId])
 
   useEffect(() => {
     setCurrentPage(1)
@@ -439,41 +370,25 @@ export const Parents: React.FC<ParentsProps> = ({
   useEffect(() => {
     setSelectedParentId(null)
   }, [currentPage])
-  useEffect(() => {
-    if (isPageOutOfRange) {
-      setCurrentPage((page) => Math.max(1, page - 1))
-    }
-  }, [isPageOutOfRange])
-
   const unlinkedParents = useMemo(
     () => allMappedParents.filter((parent) => parent.linkedStudentCount === 0),
     [allMappedParents]
   )
 
   const totalUnlinkedParents = useMemo(() => {
-    if (typeof linkedParentCount === "number") {
-      return Math.max(0, parentCount - linkedParentCount)
-    }
-
     return unlinkedParents.length
-  }, [linkedParentCount, parentCount, unlinkedParents.length])
+  }, [unlinkedParents.length])
 
   const stats = useMemo(
     () => ({
       totalParents: parentCount,
-      activeParents:
-        activeParentCountResponse?.count ??
-        allMappedParents.filter((parent) => parent.isActive).length,
-      pendingParents:
-        pendingParentCountResponse?.count ??
-        allMappedParents.filter((parent) => !parent.isActive).length,
+      activeParents: allMappedParents.filter((parent) => parent.isActive).length,
+      pendingParents: allMappedParents.filter((parent) => !parent.isActive).length,
       unlinkedParents: totalUnlinkedParents,
     }),
     [
-      activeParentCountResponse?.count,
       parentCount,
       allMappedParents,
-      pendingParentCountResponse?.count,
       totalUnlinkedParents,
     ]
   )
@@ -935,21 +850,24 @@ export const Parents: React.FC<ParentsProps> = ({
             initialValue={{
               name: editingParent.name,
               fatherName:
-                allRawParents?.find((parent) => parent.id === editingParent.id)
+                rawParents?.find((parent) => parent.id === editingParent.id)
                   ?.user_details?.father_name ?? "",
+              email:
+                rawParents?.find((parent) => parent.id === editingParent.id)
+                  ?.user_details?.email ?? "",
               grandfatherName:
-                allRawParents?.find((parent) => parent.id === editingParent.id)
+                rawParents?.find((parent) => parent.id === editingParent.id)
                   ?.user_details?.grandfather_name ?? "",
               phone: editingParent.phone,
               secondaryPhone:
-                allRawParents?.find((parent) => parent.id === editingParent.id)
+                rawParents?.find((parent) => parent.id === editingParent.id)
                   ?.secondary_phone_number ?? "",
               occupation: editingParent.occupation ?? "",
               workAddress:
-                allRawParents?.find((parent) => parent.id === editingParent.id)
+                rawParents?.find((parent) => parent.id === editingParent.id)
                   ?.work_address ?? "",
               relationshipNotes:
-                allRawParents?.find((parent) => parent.id === editingParent.id)
+                rawParents?.find((parent) => parent.id === editingParent.id)
                   ?.relationship_notes ?? "",
               emergencyContactName: editingParent.emergencyContactName ?? "",
               emergencyContactPhone: editingParent.emergencyContactPhone ?? "",
@@ -964,13 +882,13 @@ export const Parents: React.FC<ParentsProps> = ({
                 emergency_contact_phone: form.emergencyContactPhone,
                 secondary_phone_number: form.secondaryPhone,
                 user:
-                  allRawParents?.find((parent) => parent.id === editingParent.id)
+                  rawParents?.find((parent) => parent.id === editingParent.id)
                     ?.user ?? "",
                 organizations:
-                  allRawParents?.find((parent) => parent.id === editingParent.id)
+                  rawParents?.find((parent) => parent.id === editingParent.id)
                     ?.organizations ?? [],
                 branches:
-                  allRawParents?.find((parent) => parent.id === editingParent.id)
+                  rawParents?.find((parent) => parent.id === editingParent.id)
                     ?.branches ?? [],
               })
               setEditingParent(null)
@@ -1353,9 +1271,24 @@ function ParentFormModal({
   onClose: () => void
   onSubmit: (form: ParentFormState) => Promise<void>
 }) {
-  const [form, setForm] = useState(initialValue)
+  const [form, setForm] = useState({ ...emptyParentForm, ...initialValue })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const isInviteMode = title === "Invite Parent"
+  const requiredSuffix = isInviteMode ? " *" : ""
+  const emailValue = (form.email ?? "").trim()
+  const phoneValue = (form.phone ?? "").trim()
+  const hasInvalidEmail =
+    emailValue.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)
+  const hasInvalidEthiopianMobile = !/^\+2519\d{8}$/.test(phoneValue)
+  useEffect(() => {
+    if (!error) return
+    const timeoutId = window.setTimeout(() => {
+      setError(null)
+    }, 4500)
+    return () => window.clearTimeout(timeoutId)
+  }, [error])
 
   return (
     <ModalFrame title={title} onClose={onClose}>
@@ -1363,6 +1296,29 @@ function ParentFormModal({
         className="space-y-4"
         onSubmit={async (event) => {
           event.preventDefault()
+          const nextFieldErrors: Record<string, string> = {}
+          if (hasInvalidEmail) {
+            nextFieldErrors.email = "Enter a valid email address."
+          }
+          if (!form.name.trim()) nextFieldErrors.name = "Parent name is required."
+          if (!form.fatherName.trim()) {
+            nextFieldErrors.fatherName = "Father name is required."
+          }
+          if (!form.grandfatherName.trim()) {
+            nextFieldErrors.grandfatherName = "Grandfather name is required."
+          }
+          if (!phoneValue) {
+            nextFieldErrors.phone = "Phone number is required."
+          } else if (hasInvalidEthiopianMobile) {
+            nextFieldErrors.phone =
+              "Phone number must be in format +2519xxxxxxxx."
+          }
+          if (Object.keys(nextFieldErrors).length > 0) {
+            setFieldErrors(nextFieldErrors)
+            setError("Please fix the highlighted fields.")
+            return
+          }
+          setFieldErrors({})
           setIsSubmitting(true)
           setError(null)
           try {
@@ -1375,27 +1331,31 @@ function ParentFormModal({
         }}
       >
         <InputField
-          label="Parent Name"
+          label={`Parent Name${requiredSuffix}`}
           value={form.name}
           onChange={(value) => setForm({ ...form, name: value })}
+          error={fieldErrors.name}
         />
         <div className="grid gap-4 md:grid-cols-2">
           <InputField
-            label="Father Name"
+            label={`Father Name${requiredSuffix}`}
             value={form.fatherName}
             onChange={(value) => setForm({ ...form, fatherName: value })}
+            error={fieldErrors.fatherName}
           />
           <InputField
-            label="Grandfather Name"
+            label={`Grandfather Name${requiredSuffix}`}
             value={form.grandfatherName}
             onChange={(value) => setForm({ ...form, grandfatherName: value })}
+            error={fieldErrors.grandfatherName}
           />
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <InputField
-            label="Phone Number"
+            label={`Phone Number${requiredSuffix}`}
             value={form.phone}
             onChange={(value) => setForm({ ...form, phone: value })}
+            error={fieldErrors.phone}
           />
           <InputField
             label="Secondary Phone"
@@ -1403,6 +1363,12 @@ function ParentFormModal({
             onChange={(value) => setForm({ ...form, secondaryPhone: value })}
           />
         </div>
+        <InputField
+          label="Email"
+          value={form.email}
+          onChange={(value) => setForm({ ...form, email: value })}
+          error={fieldErrors.email}
+        />
         <div className="grid gap-4 md:grid-cols-2">
           <InputField
             label="Occupation"
@@ -1779,23 +1745,32 @@ function InputField({
   type = "text",
   value,
   onChange,
+  error,
 }: {
   label: string
   type?: string
   value: string
   onChange: (value: string) => void
+  error?: string
 }) {
   return (
     <label className="block space-y-2">
-      <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+      <span
+        className={`text-[10px] font-black tracking-widest uppercase ${error ? "text-red-600" : "text-slate-400"}`}
+      >
         {label}
       </span>
       <input
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm transition outline-none focus:border-primary/30 focus:bg-white focus:ring-4 focus:ring-primary/5"
+        className={`w-full rounded-2xl border bg-slate-50 px-4 py-3 text-sm transition outline-none focus:bg-white focus:ring-4 ${
+          error
+            ? "border-red-300 focus:border-red-400 focus:ring-red-100"
+            : "border-slate-200 focus:border-primary/30 focus:ring-primary/5"
+        }`}
       />
+      {error ? <span className="text-xs font-medium text-red-600">{error}</span> : null}
     </label>
   )
 }

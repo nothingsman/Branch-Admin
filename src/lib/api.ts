@@ -381,6 +381,7 @@ export interface ApiParentWrite {
 
 export interface ApiParentInvitePayload {
   name: string
+  email?: string
   father_name: string
   grandfather_name: string
   phone_number: string

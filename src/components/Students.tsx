@@ -37,11 +37,11 @@ import {
   StudentGender,
   StudentStatus,
 } from "../lib/api"
-import { useBackfilledFilteredPagination } from "../hooks/useBackfilledFilteredPagination"
 import { useApiQuery } from "../hooks/useApiQuery"
 import { useParents } from "../hooks/useParents"
 import { useGrades } from "../hooks/useGrades"
 import { useSections } from "../hooks/useSections"
+import { useStudents } from "../hooks/useStudents"
 
 // ---------------------------------------------------------------------------
 // Mappers: API shape → UI shape
@@ -128,21 +128,6 @@ const emptyMediaUploaderState: MediaUploaderState = {
   pendingRemovalIds: [],
 }
 
-async function fetchLinkedStudentCount(): Promise<number> {
-  const linkedStudentIds = new Set<string>()
-  let page = 1
-
-  while (true) {
-    const response = await parentsApi.listLinks({ page })
-    response.results.forEach((link) => linkedStudentIds.add(link.student))
-
-    if (!response.next) break
-    page += 1
-  }
-
-  return linkedStudentIds.size
-}
-
 async function fetchAllParentLinks(): Promise<ApiParentLink[]> {
   const links: ApiParentLink[] = []
   let page = 1
@@ -156,35 +141,6 @@ async function fetchAllParentLinks(): Promise<ApiParentLink[]> {
   }
 
   return links
-}
-
-async function fetchUnassignedStudentCount(params: {
-  branchId?: string | null
-  organizationId?: string | null
-  academicYearId?: string | null
-}): Promise<number> {
-  const unassignedStudentIds = new Set<string>()
-  let page = 1
-
-  while (true) {
-    const response = await studentsApi.list({
-      branch: params.branchId ?? undefined,
-      organization: params.organizationId ?? undefined,
-      academic_year: params.academicYearId ?? undefined,
-      page,
-    })
-
-    response.results.forEach((student) => {
-      if (!student.current_section) {
-        unassignedStudentIds.add(student.id)
-      }
-    })
-
-    if (!response.next) break
-    page += 1
-  }
-
-  return unassignedStudentIds.size
 }
 
 export const Students: React.FC<StudentsProps> = ({
@@ -267,24 +223,20 @@ export const Students: React.FC<StudentsProps> = ({
   )
   const { grades } = useGrades(branchId)
   const { sections } = useSections(branchId, academicYearId)
-  const { data: linkedStudentCount } = useApiQuery<number>(
-    branchId || organizationId ? () => fetchLinkedStudentCount() : null,
-    [branchId, organizationId]
-  )
   const {
-    data: unassignedStudentCount,
-    refetch: refetchUnassignedStudentCount,
-  } = useApiQuery<number>(
-    branchId || organizationId
-      ? () =>
-          fetchUnassignedStudentCount({
-            branchId,
-            organizationId,
-            academicYearId,
-          })
-      : null,
-    [academicYearId, branchId, organizationId]
-  )
+    students: rawStudents,
+    count: studentCount,
+    hasNextPage,
+    hasPreviousPage,
+    isLoading: studentsLoading,
+    error: studentsError,
+    refetch: refetchStudents,
+  } = useStudents({
+    branchId,
+    organizationId,
+    academicYearId,
+    page: currentPage,
+  })
 
   // Map to UI shapes
   const studentFilterQuery = searchQuery.trim().toLowerCase()
@@ -310,40 +262,16 @@ export const Students: React.FC<StudentsProps> = ({
     },
     [activeTab, gradeFilter, sectionFilter, studentFilterQuery]
   )
-  const {
-    items: filteredStudents,
-    totalSourceCount: studentCount,
-    hasNextPage,
-    hasPreviousPage,
-    isLoading: studentsLoading,
-    error: studentsError,
-    refetch: refetchStudents,
-    isPageOutOfRange,
-  } = useBackfilledFilteredPagination<Student>({
-    fetchPage:
-      branchId || organizationId
-        ? async (page) => {
-            const response = await studentsApi.list({
-              branch: branchId ?? undefined,
-              organization: organizationId ?? undefined,
-              academic_year: academicYearId ?? undefined,
-              page,
-            })
-
-            return {
-              ...response,
-              results: response.results.map((student) => mapStudent(student, links ?? [])),
-            } satisfies PaginatedResponse<Student>
-          }
-        : null,
-    currentPage,
-    deps: [academicYearId, branchId, gradeFilter, links, organizationId, sectionFilter, searchQuery, activeTab],
-    filterFn: studentFilterFn,
-    sortFn: (left, right) =>
-      left.name.localeCompare(right.name, undefined, {
-        sensitivity: "base",
-      }),
-  })
+  const filteredStudents = useMemo(
+    () =>
+      rawStudents
+        .map((student) => mapStudent(student, links ?? []))
+        .filter(studentFilterFn)
+        .sort((left, right) =>
+          left.name.localeCompare(right.name, undefined, { sensitivity: "base" })
+        ),
+    [links, rawStudents, studentFilterFn]
+  )
   const parents = useMemo(
     () => rawParents.map((parent) => mapParent(parent, links ?? [])),
     [rawParents, links]
@@ -356,11 +284,6 @@ export const Students: React.FC<StudentsProps> = ({
     [parents, selectedStudent]
   )
   const studentsForStats = filteredStudents
-  useEffect(() => {
-    if (isPageOutOfRange) {
-      setCurrentPage((page) => Math.max(1, page - 1))
-    }
-  }, [isPageOutOfRange])
 
   useEffect(() => {
     setCurrentPage(1)
@@ -418,21 +341,14 @@ export const Students: React.FC<StudentsProps> = ({
   const stats = useMemo(
     () => ({
       total: studentCount,
-      linked:
-        linkedStudentCount ??
-        studentsForStats.filter((student) => student.parentId).length,
-      unlinked:
-        linkedStudentCount != null
-          ? Math.max(0, studentCount - linkedStudentCount)
-          : studentsForStats.filter((student) => !student.parentId).length,
-      unassigned:
-        unassignedStudentCount ??
-        studentsForStats.filter((student) => !student.sectionId).length,
+      linked: studentsForStats.filter((student) => student.parentId).length,
+      unlinked: studentsForStats.filter((student) => !student.parentId).length,
+      unassigned: studentsForStats.filter((student) => !student.sectionId).length,
       withdrawn: studentsForStats.filter(
         (student) => student.registrationStatus === "Withdrawn"
       ).length,
     }),
-    [linkedStudentCount, studentCount, studentsForStats, unassignedStudentCount]
+    [studentCount, studentsForStats]
   )
 
   const isLoading = studentsLoading || linksLoading
@@ -666,7 +582,6 @@ export const Students: React.FC<StudentsProps> = ({
         roll_no: trimmedRollNo,
       })
       refetchStudents()
-      refetchUnassignedStudentCount()
       if (selectedStudent?.id === studentToAssign.id) {
         const assignedSection = sections.find(
           (section) => section.id === assignForm.sectionId
@@ -735,7 +650,7 @@ export const Students: React.FC<StudentsProps> = ({
     )
   }
 
-  if (studentsError || linksError) {
+  if (studentsError) {
     return (
       <div className="flex h-full items-center justify-center bg-slate-50/30 p-8">
         <div className="max-w-md space-y-2 rounded-2xl border border-red-100 bg-red-50 p-6 text-center">
@@ -743,7 +658,7 @@ export const Students: React.FC<StudentsProps> = ({
           <p className="text-sm font-bold text-red-600">
             Failed to load students
           </p>
-          <p className="text-xs text-red-400">{studentsError || linksError}</p>
+          <p className="text-xs text-red-400">{studentsError}</p>
         </div>
       </div>
     )

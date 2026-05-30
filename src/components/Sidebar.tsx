@@ -90,7 +90,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <X className="h-5 w-5" />
         </button>
 
-        {/* Profile Section */}
+        {/* School Context Section */}
         <div className="border-b border-slate-200 px-5 py-7">
           <div className="mb-4 text-center">
             <p className="text-[10px] font-black tracking-[0.28em] text-slate-400 uppercase">
@@ -102,29 +102,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <p className="mt-3 text-[10px] font-black tracking-[0.28em] text-slate-400 uppercase">
               Branch
             </p>
-            <p className="mt-2 text-sm font-bold text-slate-600">
+              <p className="mt-2 text-sm font-bold text-slate-600">
               {branchName || "Branch"}
             </p>
-          </div>
-          <div className="mb-5 flex w-full flex-col items-center gap-3 text-center">
-            <button
-              type="button"
-              onClick={() => setIsEditingProfile(true)}
-              className="group/profile relative flex h-20 w-20 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-400 shadow-sm transition-all hover:border-primary/30"
-            >
-              <User className="h-8 w-8" />
-              <div className="absolute inset-0 flex items-center justify-center bg-primary/12 opacity-0 transition-opacity group-hover/profile:opacity-100">
-                <Edit3 className="h-5 w-5 text-primary" />
-              </div>
-            </button>
-            <div className="text-center">
-              <h3 className="text-lg leading-tight font-extrabold text-slate-900">
-                {profile.name}
-              </h3>
-              <p className="text-sm font-medium text-slate-500">
-                {profile.role}
-              </p>
-            </div>
           </div>
 
           <div className="w-full">
@@ -168,6 +148,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
             })}
           </div>
         </nav>
+
+        <div className="shrink-0 border-t border-slate-200 px-5 py-5">
+          <button
+            type="button"
+            onClick={() => setIsEditingProfile(true)}
+            className="group/profile flex w-full items-center gap-3 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-slate-50"
+          >
+            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-400 shadow-sm transition-all group-hover/profile:border-primary/30">
+              <User className="h-4 w-4" />
+              <div className="absolute inset-0 flex items-center justify-center bg-primary/12 opacity-0 transition-opacity group-hover/profile:opacity-100">
+                <Edit3 className="h-3.5 w-3.5 text-primary" />
+              </div>
+            </div>
+            <div className="min-w-0">
+              <h3 className="truncate text-sm leading-tight font-extrabold text-slate-900">
+                {profile.name}
+              </h3>
+              <p className="truncate text-xs font-medium text-slate-500">
+                {profile.role}
+              </p>
+            </div>
+          </button>
+        </div>
 
         {/* Logout Action */}
         <div className="shrink-0 border-t border-slate-200 p-4">

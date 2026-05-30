@@ -35,7 +35,7 @@ import {
   useHomeroomAssignments,
   useTeacherAssignments,
 } from "../hooks/useTeachers"
-import { useBackfilledFilteredPagination } from "../hooks/useBackfilledFilteredPagination"
+import { useTeachers, useTeacherStatuses } from "../hooks/useTeachers"
 import { useApiQuery } from "../hooks/useApiQuery"
 
 interface TeachersProps {
@@ -59,87 +59,7 @@ type TeacherCardEntry = {
   invitePayload: ApiTeacherInvitePayload | null
 }
 
-async function fetchAllTeachers(params: {
-  branchId?: string | null
-  organizationId?: string | null
-}): Promise<ApiTeacher[]> {
-  const teachers: ApiTeacher[] = []
-  let page = 1
-
-  while (true) {
-    const response = await teachersApi.list({
-      branch: params.branchId ?? undefined,
-      organization: params.organizationId ?? undefined,
-      page,
-    })
-    teachers.push(...response.results)
-
-    if (!response.next) break
-    page += 1
-  }
-
-  return teachers
-}
-
-async function fetchAllTeacherAssignments(params: {
-  organizationId?: string | null
-  academicYearId?: string | null
-}): Promise<ApiTeacherAssignment[]> {
-  const assignments: ApiTeacherAssignment[] = []
-  let page = 1
-
-  while (true) {
-    const response = await teachersApi.listAssignments({
-      organization: params.organizationId ?? undefined,
-      academic_year: params.academicYearId ?? undefined,
-      page,
-    })
-    assignments.push(...response.results)
-
-    if (!response.next) break
-    page += 1
-  }
-
-  return assignments
-}
-
-async function fetchAllHomeroomAssignments(params: {
-  branchId?: string | null
-  organizationId?: string | null
-  academicYearId?: string | null
-}): Promise<ApiHomeroomAssignment[]> {
-  const assignments: ApiHomeroomAssignment[] = []
-  let page = 1
-
-  while (true) {
-    const response = await teachersApi.listHomeroomAssignments({
-      branch: params.branchId ?? undefined,
-      organization: params.organizationId ?? undefined,
-      academic_year: params.academicYearId ?? undefined,
-      page,
-    })
-    assignments.push(...response.results)
-
-    if (!response.next) break
-    page += 1
-  }
-
-  return assignments
-}
-
-async function fetchInactiveTeacherCount(teachers: ApiTeacher[]): Promise<number> {
-  const settled = await Promise.allSettled(
-    teachers.map((teacher) => teachersApi.getStatus(teacher.id))
-  )
-
-  return settled.reduce((count, result) => {
-    if (result.status === "fulfilled" && !result.value.is_active) {
-      return count + 1
-    }
-
-    return count
-  }, 0)
-}
+// Removed eager full-dataset loaders to reduce request fan-out.
 
 export const Teachers: React.FC<TeachersProps> = ({
   academicYear = "Current Year",
@@ -180,88 +100,35 @@ export const Teachers: React.FC<TeachersProps> = ({
     return () => window.clearTimeout(timeoutId)
   }, [inviteActionError, inviteActionMessage])
 
-  const {
-    assignments,
-    isLoading: assignmentsLoading,
-    error: assignmentsError,
-    refetch: refetchAssignments,
-  } = useTeacherAssignments({ organizationId, academicYearId })
+  const { assignments, isLoading: assignmentsLoading, error: assignmentsError } =
+    useTeacherAssignments({ organizationId, academicYearId })
   const {
     homeroomAssignments,
     isLoading: homeroomLoading,
     error: homeroomError,
-    refetch: refetchHomeroomAssignments,
   } = useHomeroomAssignments({ branchId, organizationId, academicYearId })
-  const { data: totalTeachersDataset } = useApiQuery<ApiTeacher[]>(
-    branchId || organizationId
-      ? () => fetchAllTeachers({ branchId, organizationId })
-      : null,
-    [branchId, organizationId]
+  const {
+    teachers: pagedTeachers,
+    count: teacherCount,
+    hasNextPage,
+    hasPreviousPage,
+    isLoading: teachersLoading,
+    error: teachersError,
+    refetch: refetchTeachers,
+  } = useTeachers({
+    branchId: branchId ?? null,
+    organizationId: organizationId ?? null,
+    page: currentPage,
+    search: deferredSearchTerm.trim() || undefined,
+  })
+  const { statuses: teacherStatuses } = useTeacherStatuses(
+    pagedTeachers.map((teacher) => teacher.id)
   )
-  const { data: totalAssignmentsDataset } = useApiQuery<ApiTeacherAssignment[]>(
-    organizationId
-      ? () =>
-          fetchAllTeacherAssignments({
-            organizationId,
-            academicYearId,
-          })
-      : null,
-    [academicYearId, organizationId]
-  )
-  const { data: totalHomeroomsDataset } = useApiQuery<ApiHomeroomAssignment[]>(
-    branchId || organizationId
-      ? () =>
-          fetchAllHomeroomAssignments({
-            branchId,
-            organizationId,
-            academicYearId,
-          })
-      : null,
-    [academicYearId, branchId, organizationId]
-  )
-  const { data: inactiveTeacherCount } = useApiQuery<number>(
-    totalTeachersDataset ? () => fetchInactiveTeacherCount(totalTeachersDataset) : null,
-    [totalTeachersDataset]
-  )
-  const teacherPageFetcher = useMemo(
+  const filteredTeacherCards = useMemo(
     () =>
-      branchId || organizationId
-        ? async (page: number) => {
-            const response = await teachersApi.list({
-              branch: branchId ?? undefined,
-              organization: organizationId ?? undefined,
-              page,
-            })
-            const pageTeacherIds = response.results.map((teacher) => teacher.id)
-            const [statusResults, detailResults] = await Promise.all([
-              Promise.allSettled(
-                pageTeacherIds.map((teacherId) => teachersApi.getStatus(teacherId))
-              ),
-              Promise.allSettled(
-                pageTeacherIds.map((teacherId) => teachersApi.get(teacherId))
-              ),
-            ])
-            const teacherStatuses = statusResults.reduce<
-              Record<string, ApiTeacherStatus>
-            >((accumulator, result) => {
-              if (result.status === "fulfilled") {
-                accumulator[result.value.teacher_id] = result.value
-              }
-              return accumulator
-            }, {})
-            const teacherDetailsById = detailResults.reduce<
-              Record<string, ApiTeacher>
-            >((accumulator, result) => {
-              if (result.status === "fulfilled") {
-                accumulator[result.value.id] = result.value
-              }
-              return accumulator
-            }, {})
-
-            return {
-              ...response,
-              results: response.results.map((teacher) => {
-                const teacherDetail = teacherDetailsById[teacher.id] ?? null
+      pagedTeachers
+        .map((teacher) => {
+          const teacherDetail = null
                 const teacherAssignments = assignments.filter(
                   (assignment) => assignment.teacher === teacher.id
                 )
@@ -317,37 +184,19 @@ export const Teachers: React.FC<TeachersProps> = ({
                       }
                     : null
 
-                return {
+          return {
                   teacher,
                   teacherDetail,
-                  status,
+                  status: teacherStatuses[teacher.id] ?? null,
                   subjectNames,
                   sectionNames,
                   homeroomCount: teacherHomerooms.length,
                   isInactive,
                   isUnassigned,
                   invitePayload,
-                } satisfies TeacherCardEntry
-              }),
-            } satisfies PaginatedResponse<TeacherCardEntry>
-          }
-        : null,
-    [assignments, branchId, homeroomAssignments, organizationId]
-  )
-  const {
-    items: filteredTeacherCards,
-    totalSourceCount: teacherCount,
-    hasNextPage,
-    hasPreviousPage,
-    isLoading: teachersLoading,
-    error: teachersError,
-    refetch: refetchTeachers,
-    isPageOutOfRange,
-  } = useBackfilledFilteredPagination<TeacherCardEntry>({
-    fetchPage: teacherPageFetcher,
-    currentPage,
-    deps: [teacherPageFetcher, deferredSearchTerm, teacherFilter],
-    filterFn: (entry) => {
+          } satisfies TeacherCardEntry
+        })
+        .filter((entry) => {
       const query = deferredSearchTerm.trim().toLowerCase()
       const teacherName = (entry.teacher.user_name ?? "").toLowerCase()
       const employeeId = (entry.teacher.employee_id ?? "").toLowerCase()
@@ -359,12 +208,14 @@ export const Teachers: React.FC<TeachersProps> = ({
         (teacherFilter === "inactive" && entry.isInactive)
 
       return matchesSearch && matchesFilter
-    },
-    sortFn: (left, right) =>
-      left.teacher.user_name.localeCompare(right.teacher.user_name, undefined, {
-        sensitivity: "base",
-      }),
-  })
+        })
+        .sort((left, right) =>
+          left.teacher.user_name.localeCompare(right.teacher.user_name, undefined, {
+            sensitivity: "base",
+          })
+        ),
+    [assignments, deferredSearchTerm, homeroomAssignments, pagedTeachers, teacherFilter, teacherStatuses]
+  )
 
   const isLoading =
     teachersLoading ||
@@ -390,12 +241,6 @@ export const Teachers: React.FC<TeachersProps> = ({
   useEffect(() => {
     setSelectedTeacherId(null)
   }, [currentPage])
-  useEffect(() => {
-    if (isPageOutOfRange) {
-      setCurrentPage((page) => Math.max(1, page - 1))
-    }
-  }, [isPageOutOfRange])
-
   const selectedTeacher = useMemo(
     () =>
       filteredTeacherCards.find((entry) => entry.teacher.id === selectedTeacherId) ??
@@ -412,32 +257,15 @@ export const Teachers: React.FC<TeachersProps> = ({
     () => ({
       totalTeachers: teacherCount,
       unassignedTeachers:
-        totalTeachersDataset && totalAssignmentsDataset && totalHomeroomsDataset
-          ? totalTeachersDataset.filter((teacher) => {
-              const hasAssignment = totalAssignmentsDataset.some(
-                (assignment) => assignment.teacher === teacher.id
-              )
-              const hasHomeroom = totalHomeroomsDataset.some(
-                (assignment) => assignment.teacher === teacher.id
-              )
-
-              return !hasAssignment && !hasHomeroom
-            }).length
-          : filteredTeacherCards.filter((entry) => entry.isUnassigned).length,
-      inactiveTeachers:
-        inactiveTeacherCount ??
-        filteredTeacherCards.filter((entry) => entry.isInactive).length,
+        filteredTeacherCards.filter((entry) => entry.isUnassigned).length,
+      inactiveTeachers: filteredTeacherCards.filter((entry) => entry.isInactive).length,
       uniqueSubjects: new Set(
         assignments.map((assignment) => assignment.subject_name).filter(Boolean)
       ).size,
     }),
     [
       assignments,
-      inactiveTeacherCount,
       teacherCount,
-      totalAssignmentsDataset,
-      totalHomeroomsDataset,
-      totalTeachersDataset,
       filteredTeacherCards,
     ]
   )
@@ -461,8 +289,6 @@ export const Teachers: React.FC<TeachersProps> = ({
 
   const refreshAll = () => {
     refetchTeachers()
-    refetchAssignments()
-    refetchHomeroomAssignments()
   }
 
   async function resolveInvitePayload(entry: TeacherCardEntry) {
