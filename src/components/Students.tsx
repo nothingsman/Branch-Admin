@@ -26,7 +26,6 @@ import { resolveMediaUrl } from "../lib/media/resolveMediaUrl"
 import { Student, Parent } from "../types"
 import {
   ApiParentLink,
-  PaginatedResponse,
   ApiStudent,
   ApiParent,
   extractApiError,
@@ -38,10 +37,9 @@ import {
   StudentStatus,
 } from "../lib/api"
 import { useApiQuery } from "../hooks/useApiQuery"
-import { useParents } from "../hooks/useParents"
+import { useBackfilledFilteredPagination } from "../hooks/useBackfilledFilteredPagination"
 import { useGrades } from "../hooks/useGrades"
 import { useSections } from "../hooks/useSections"
-import { useStudents } from "../hooks/useStudents"
 
 // ---------------------------------------------------------------------------
 // Mappers: API shape → UI shape
@@ -143,6 +141,54 @@ async function fetchAllParentLinks(): Promise<ApiParentLink[]> {
   return links
 }
 
+async function fetchAllStudents(params: {
+  branchId?: string | null
+  organizationId?: string | null
+  academicYearId?: string | null
+}): Promise<ApiStudent[]> {
+  const { branchId, organizationId, academicYearId } = params
+  const students: ApiStudent[] = []
+  let page = 1
+
+  while (true) {
+    const response = await studentsApi.list({
+      branch: branchId ?? undefined,
+      organization: organizationId ?? undefined,
+      academic_year: academicYearId ?? undefined,
+      page,
+    })
+    students.push(...response.results)
+
+    if (!response.next) break
+    page += 1
+  }
+
+  return students
+}
+
+async function fetchAllParents(params: {
+  branchId?: string | null
+  organizationId?: string | null
+}): Promise<ApiParent[]> {
+  const { branchId, organizationId } = params
+  const parents: ApiParent[] = []
+  let page = 1
+
+  while (true) {
+    const response = await parentsApi.list({
+      branch: branchId ?? undefined,
+      organization: organizationId ?? undefined,
+      page,
+    })
+    parents.push(...response.results)
+
+    if (!response.next) break
+    page += 1
+  }
+
+  return parents
+}
+
 export const Students: React.FC<StudentsProps> = ({
   academicYear,
   branchId,
@@ -189,6 +235,9 @@ export const Students: React.FC<StudentsProps> = ({
   const [linkParentError, setLinkParentError] = useState<string | null>(null)
   const [gradeFilter, setGradeFilter] = useState<string>("All")
   const [sectionFilter, setSectionFilter] = useState<string>("All")
+  const [studentSort, setStudentSort] = useState<"name_asc" | "name_desc">(
+    "name_asc"
+  )
   const [newStudentForm, setNewStudentForm] = useState({
     firstName: "",
     lastName: "",
@@ -211,7 +260,6 @@ export const Students: React.FC<StudentsProps> = ({
   )
 
   // API hooks
-  const { parents: rawParents } = useParents({ branchId, organizationId })
   const {
     data: links,
     isLoading: linksLoading,
@@ -221,60 +269,125 @@ export const Students: React.FC<StudentsProps> = ({
     branchId || organizationId ? () => fetchAllParentLinks() : null,
     [branchId, organizationId]
   )
+  const {
+    data: allRawParents,
+    refetch: refetchAllParents,
+  } = useApiQuery<ApiParent[]>(
+    branchId || organizationId
+      ? () => fetchAllParents({ branchId, organizationId })
+      : null,
+    [branchId, organizationId]
+  )
   const { grades } = useGrades(branchId)
   const { sections } = useSections(branchId, academicYearId)
-  const {
-    students: rawStudents,
-    count: studentCount,
-    hasNextPage,
-    hasPreviousPage,
-    isLoading: studentsLoading,
-    error: studentsError,
-    refetch: refetchStudents,
-  } = useStudents({
-    branchId,
-    organizationId,
-    academicYearId,
-    page: currentPage,
-  })
-
-  // Map to UI shapes
-  const studentFilterQuery = searchQuery.trim().toLowerCase()
-  const studentFilterFn = useMemo(
-    () => (student: Student) => {
-      const matchesSearch =
-        student.name.toLowerCase().includes(studentFilterQuery) ||
-        student.id.toLowerCase().includes(studentFilterQuery)
-      const matchesTab =
-        activeTab === "all" ||
-        (activeTab === "linked" && Boolean(student.parentId)) ||
-        (activeTab === "unlinked" && !student.parentId) ||
-        (activeTab === "unassigned" && !student.sectionId)
-      const matchesGrade = gradeFilter === "All" || student.grade === gradeFilter
-      const matchesSection =
-        sectionFilter === "All"
-          ? true
-          : sectionFilter === "Unassigned"
-            ? !student.sectionId
-            : student.section === sectionFilter
-
-      return matchesSearch && matchesTab && matchesGrade && matchesSection
-    },
-    [activeTab, gradeFilter, sectionFilter, studentFilterQuery]
+  const normalizedSearchQuery = searchQuery.trim()
+  const selectedGrade = useMemo(
+    () => grades.find((grade) => grade.name === gradeFilter) ?? null,
+    [gradeFilter, grades]
   )
-  const filteredStudents = useMemo(
-    () =>
-      rawStudents
-        .map((student) => mapStudent(student, links ?? []))
-        .filter(studentFilterFn)
-        .sort((left, right) =>
-          left.name.localeCompare(right.name, undefined, { sensitivity: "base" })
-        ),
-    [links, rawStudents, studentFilterFn]
+  const {
+    data: allRawStudents,
+    isLoading: allStudentsLoading,
+    error: allStudentsError,
+    refetch: refetchAllStudents,
+  } = useApiQuery<ApiStudent[]>(
+    branchId || organizationId
+      ? () => fetchAllStudents({ branchId, organizationId, academicYearId })
+      : null,
+    [branchId, organizationId, academicYearId]
   )
   const parents = useMemo(
-    () => rawParents.map((parent) => mapParent(parent, links ?? [])),
-    [rawParents, links]
+    () => (allRawParents ?? []).map((parent) => mapParent(parent, links ?? [])),
+    [allRawParents, links]
+  )
+  const allStudents = useMemo(
+    () => (allRawStudents ?? []).map((student) => mapStudent(student, links ?? [])),
+    [allRawStudents, links]
+  )
+  const directoryFetchPage = useMemo(() => {
+    if (!branchId && !organizationId) return null
+
+    return (page: number) =>
+      studentsApi.list({
+        branch: branchId ?? undefined,
+        organization: organizationId ?? undefined,
+        academic_year: academicYearId ?? undefined,
+        page,
+      })
+  }, [academicYearId, branchId, organizationId])
+  const normalizedDirectorySearchQuery = normalizedSearchQuery.toLowerCase()
+  const studentDirectoryFilterFn = useMemo(
+    () => (student: ApiStudent) => {
+      const mappedStudent = mapStudent(student, links ?? [])
+      const matchesSearch =
+        normalizedDirectorySearchQuery.length === 0 ||
+        mappedStudent.name
+          .toLowerCase()
+          .includes(normalizedDirectorySearchQuery) ||
+        mappedStudent.rollNo
+          .toLowerCase()
+          .includes(normalizedDirectorySearchQuery)
+      const matchesGrade =
+        gradeFilter === "All" || mappedStudent.grade === gradeFilter
+      const matchesSection =
+        sectionFilter === "All" || mappedStudent.section === sectionFilter
+      const matchesTab =
+        activeTab === "all" ||
+        (activeTab === "linked" && Boolean(mappedStudent.parentId)) ||
+        (activeTab === "unlinked" && !mappedStudent.parentId) ||
+        (activeTab === "unassigned" && !mappedStudent.sectionId)
+
+      return matchesSearch && matchesGrade && matchesSection && matchesTab
+    },
+    [
+      activeTab,
+      gradeFilter,
+      links,
+      normalizedDirectorySearchQuery,
+      sectionFilter,
+    ]
+  )
+  const studentDirectorySortFn = useMemo(
+    () => (left: ApiStudent, right: ApiStudent) => {
+      const leftName = `${left.first_name} ${left.last_name}`.trim()
+      const rightName = `${right.first_name} ${right.last_name}`.trim()
+      const comparison = leftName.localeCompare(rightName, undefined, {
+        sensitivity: "base",
+      })
+
+      return studentSort === "name_asc" ? comparison : -comparison
+    },
+    [studentSort]
+  )
+  const {
+    items: directoryStudents,
+    totalFilteredCount,
+    hasNextPage,
+    hasPreviousPage,
+    isLoading: directoryLoading,
+    error: directoryError,
+    isPageOutOfRange,
+    refetch: refetchDirectoryStudents,
+  } = useBackfilledFilteredPagination<ApiStudent>({
+    fetchPage: directoryFetchPage,
+    currentPage,
+    deps: [
+      academicYearId,
+      activeTab,
+      branchId,
+      gradeFilter,
+      links,
+      normalizedDirectorySearchQuery,
+      organizationId,
+      sectionFilter,
+      studentSort,
+    ],
+    filterFn: studentDirectoryFilterFn,
+    sortFn: studentDirectorySortFn,
+  })
+  const displayedStudents = useMemo(
+    () => directoryStudents.map((student) => mapStudent(student, links ?? [])),
+    [directoryStudents, links]
   )
   const selectedStudentParent = useMemo(
     () =>
@@ -283,11 +396,42 @@ export const Students: React.FC<StudentsProps> = ({
         : null,
     [parents, selectedStudent]
   )
-  const studentsForStats = filteredStudents
+  const summaryStudents = useMemo(() => {
+    return allStudents.filter((student) => {
+      const matchesSearch =
+        normalizedDirectorySearchQuery.length === 0 ||
+        student.name.toLowerCase().includes(normalizedDirectorySearchQuery) ||
+        student.rollNo.toLowerCase().includes(normalizedDirectorySearchQuery)
+      const matchesGrade =
+        gradeFilter === "All" || student.grade === gradeFilter
+      const matchesSection =
+        sectionFilter === "All" || student.section === sectionFilter
+
+      return matchesSearch && matchesGrade && matchesSection
+    })
+  }, [allStudents, gradeFilter, normalizedDirectorySearchQuery, sectionFilter])
+  const filteredStudentCount = totalFilteredCount ?? displayedStudents.length
 
   useEffect(() => {
     setCurrentPage(1)
   }, [academicYearId, branchId, organizationId])
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [normalizedSearchQuery, gradeFilter, sectionFilter, activeTab, studentSort])
+
+  useEffect(() => {
+    if (gradeFilter === "All" || sectionFilter === "All") return
+
+    const sectionStillMatchesGrade = sections.some(
+      (section) =>
+        section.name === sectionFilter &&
+        section.grade === selectedGrade?.id
+    )
+
+    if (!sectionStillMatchesGrade) {
+      setSectionFilter("All")
+    }
+  }, [gradeFilter, sectionFilter, sections, selectedGrade])
 
   useEffect(() => {
     setSelectedStudent(null)
@@ -296,11 +440,16 @@ export const Students: React.FC<StudentsProps> = ({
     setStudentToDelete(null)
     setDeleteStudentError(null)
   }, [currentPage])
-  const filteredParents = useMemo(() => {
+  useEffect(() => {
+    if (isPageOutOfRange) {
+      setCurrentPage((page) => Math.max(1, page - 1))
+    }
+  }, [isPageOutOfRange])
+  const searchableParents = useMemo(() => {
     const query = parentSearchQuery.trim().toLowerCase()
-    if (!query) return parents
-
     return parents.filter((parent) => {
+      if (!query) return true
+
       return (
         parent.name.toLowerCase().includes(query) ||
         parent.phone.toLowerCase().includes(query)
@@ -340,18 +489,18 @@ export const Students: React.FC<StudentsProps> = ({
 
   const stats = useMemo(
     () => ({
-      total: studentCount,
-      linked: studentsForStats.filter((student) => student.parentId).length,
-      unlinked: studentsForStats.filter((student) => !student.parentId).length,
-      unassigned: studentsForStats.filter((student) => !student.sectionId).length,
-      withdrawn: studentsForStats.filter(
+      total: summaryStudents.length,
+      linked: summaryStudents.filter((student) => student.parentId).length,
+      unlinked: summaryStudents.filter((student) => !student.parentId).length,
+      unassigned: summaryStudents.filter((student) => !student.sectionId).length,
+      withdrawn: summaryStudents.filter(
         (student) => student.registrationStatus === "Withdrawn"
       ).length,
     }),
-    [studentCount, studentsForStats]
+    [summaryStudents]
   )
 
-  const isLoading = studentsLoading || linksLoading
+  const isLoading = directoryLoading || allStudentsLoading || linksLoading
   const isInitialLoading = !hasResolvedInitialLoad && isLoading
   const isBackgroundRefreshing = hasResolvedInitialLoad && isLoading
 
@@ -460,7 +609,9 @@ export const Students: React.FC<StudentsProps> = ({
         relationship_type: "FATHER",
         is_primary_contact: true,
       })
-      refetchStudents()
+      refetchDirectoryStudents()
+      refetchAllStudents()
+      refetchAllParents()
       refetchLinks()
       closeLinkParentModal()
       if (selectedStudent?.id === student.id) {
@@ -518,7 +669,8 @@ export const Students: React.FC<StudentsProps> = ({
 
         if (job.status === "success") {
           setImportProgress(100)
-          refetchStudents()
+          refetchDirectoryStudents()
+          refetchAllStudents()
           closeImportModal()
           return
         }
@@ -581,7 +733,8 @@ export const Students: React.FC<StudentsProps> = ({
         current_section: assignForm.sectionId,
         roll_no: trimmedRollNo,
       })
-      refetchStudents()
+      refetchDirectoryStudents()
+      refetchAllStudents()
       if (selectedStudent?.id === studentToAssign.id) {
         const assignedSection = sections.find(
           (section) => section.id === assignForm.sectionId
@@ -619,7 +772,7 @@ export const Students: React.FC<StudentsProps> = ({
       await studentsApi.delete(studentToDelete.id)
 
       const shouldGoToPreviousPage =
-        currentPage > 1 && filteredStudents.length === 1
+        currentPage > 1 && displayedStudents.length === 1
 
       setSelectedStudent(null)
       setStudentToDelete(null)
@@ -627,7 +780,8 @@ export const Students: React.FC<StudentsProps> = ({
       if (shouldGoToPreviousPage) {
         setCurrentPage((page) => Math.max(1, page - 1))
       } else {
-        refetchStudents()
+        refetchDirectoryStudents()
+        refetchAllStudents()
       }
     } catch (error) {
       setDeleteStudentError(extractApiError(error))
@@ -650,7 +804,7 @@ export const Students: React.FC<StudentsProps> = ({
     )
   }
 
-  if (studentsError) {
+  if (directoryError || allStudentsError) {
     return (
       <div className="flex h-full items-center justify-center bg-slate-50/30 p-8">
         <div className="max-w-md space-y-2 rounded-2xl border border-red-100 bg-red-50 p-6 text-center">
@@ -658,7 +812,9 @@ export const Students: React.FC<StudentsProps> = ({
           <p className="text-sm font-bold text-red-600">
             Failed to load students
           </p>
-          <p className="text-xs text-red-400">{studentsError}</p>
+          <p className="text-xs text-red-400">
+            {directoryError || allStudentsError}
+          </p>
         </div>
       </div>
     )
@@ -842,7 +998,6 @@ export const Students: React.FC<StudentsProps> = ({
                 className="flex-1 rounded-xl border border-slate-200 bg-white px-2 py-2 text-[10px] font-bold text-slate-600 outline-none focus:ring-2 focus:ring-primary/10 md:px-3 md:text-xs lg:flex-none"
               >
                 <option value="All">All Sections</option>
-                <option value="Unassigned">Unassigned</option>
                 {sectionNames.map((s) => (
                   <option key={s} value={s}>
                     {s}
@@ -859,6 +1014,19 @@ export const Students: React.FC<StudentsProps> = ({
                   className="w-full rounded-xl border border-slate-200 bg-white py-2 pr-4 pl-10 text-[10px] font-bold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/10 md:text-xs"
                 />
               </div>
+              <button
+                type="button"
+                onClick={() =>
+                  setStudentSort((current) =>
+                    current === "name_asc" ? "name_desc" : "name_asc"
+                  )
+                }
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[10px] font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 md:text-xs"
+                title="Toggle name sort order"
+              >
+                <ArrowUpDown className="h-4 w-4" />
+                {studentSort === "name_asc" ? "A-Z" : "Z-A"}
+              </button>
             </div>
           </div>
 
@@ -892,8 +1060,8 @@ export const Students: React.FC<StudentsProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredStudents.length > 0 ? (
-                    filteredStudents.map((student) => (
+                  {displayedStudents.length > 0 ? (
+                    displayedStudents.map((student) => (
                       <tr
                         key={student.id}
                         onClick={() => setSelectedStudent(student)}
@@ -1027,8 +1195,8 @@ export const Students: React.FC<StudentsProps> = ({
             </div>
             <div className="flex flex-col gap-3 border-t border-slate-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs font-medium text-slate-500">
-                Page {currentPage} · {studentCount} total student
-                {studentCount === 1 ? "" : "s"}
+                Page {currentPage} · {filteredStudentCount} total student
+                {filteredStudentCount === 1 ? "" : "s"}
               </p>
               <div className="flex items-center gap-2">
                 <button
@@ -1720,39 +1888,80 @@ export const Students: React.FC<StudentsProps> = ({
                     {linkParentError}
                   </div>
                 )}
-                {filteredParents.slice(0, 6).map((parent) => (
-                  <div
-                    key={parent.id}
-                    className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 p-4"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white">
-                        <Users className="h-4 w-4 text-slate-400" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-slate-900 uppercase">
-                          {parent.name}
-                        </p>
-                        <p className="text-[10px] text-slate-500">
-                          {parent.phone}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() =>
+                {searchableParents.length > 0 ? (
+                  <div className="max-h-72 space-y-3 overflow-y-auto pr-1">
+                    {searchableParents.map((parent) => {
+                      const linkedCount =
+                        parent.linkedStudentCount ?? parent.linkedStudents.length
+                      const isAlreadyLinkedToCurrentStudent = Boolean(
                         studentToLink &&
-                        void handleLinkParent(studentToLink, parent)
-                      }
-                      disabled={linkingParentId === parent.id}
-                      className="rounded-lg bg-primary px-3 py-1.5 text-[10px] font-black tracking-widest text-white uppercase shadow-sm transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {linkingParentId === parent.id
-                        ? "Connecting..."
-                        : "Connect"}
-                    </button>
+                          parent.linkedStudents.includes(studentToLink.id)
+                      )
+                      const linkStateLabel = isAlreadyLinkedToCurrentStudent
+                        ? "Already linked"
+                        : linkedCount === 0
+                          ? "Unlinked"
+                          : linkedCount === 1
+                            ? "Linked to 1 student"
+                            : `Linked to ${linkedCount} students`
+                      const parentStatusLabel = parent.isActive
+                        ? "Active"
+                        : "Pending"
+
+                      return (
+                        <div
+                          key={parent.id}
+                          className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 p-4"
+                        >
+                          <div className="flex min-w-0 items-center gap-3">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white">
+                              <Users className="h-4 w-4 text-slate-400" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate text-xs font-bold text-slate-900 uppercase">
+                                {parent.name}
+                              </p>
+                              <p className="text-[10px] text-slate-500">
+                                {parent.phone || "No phone"}
+                              </p>
+                              <div className="mt-1 flex flex-wrap gap-2 text-[10px] font-bold uppercase">
+                                <span className="rounded-full bg-slate-200 px-2 py-0.5 text-slate-600">
+                                  {linkStateLabel}
+                                </span>
+                                <span
+                                  className={`rounded-full px-2 py-0.5 ${
+                                    parent.isActive
+                                      ? "bg-emerald-100 text-emerald-700"
+                                      : "bg-amber-100 text-amber-700"
+                                  }`}
+                                >
+                                  {parentStatusLabel}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() =>
+                              studentToLink &&
+                              void handleLinkParent(studentToLink, parent)
+                            }
+                            disabled={
+                              linkingParentId === parent.id ||
+                              isAlreadyLinkedToCurrentStudent
+                            }
+                            className="rounded-lg bg-primary px-3 py-1.5 text-[10px] font-black tracking-widest text-white uppercase shadow-sm transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {linkingParentId === parent.id
+                              ? "Connecting..."
+                              : isAlreadyLinkedToCurrentStudent
+                                ? "Linked"
+                                : "Connect"}
+                          </button>
+                        </div>
+                      )
+                    })}
                   </div>
-                ))}
-                {filteredParents.length === 0 && (
+                ) : (
                   <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm font-medium text-slate-500">
                     No parents match that search.
                   </div>
@@ -2058,7 +2267,8 @@ export const Students: React.FC<StudentsProps> = ({
                       )
                       resetStudentForm()
                       setIsAddModalOpen(false)
-                      refetchStudents()
+                      refetchDirectoryStudents()
+                      refetchAllStudents()
                     } catch (error) {
                       setStudentFormError(
                         error instanceof Error

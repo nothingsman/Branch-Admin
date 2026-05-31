@@ -1162,6 +1162,7 @@ export const studentsApi = {
     academic_year?: string
     status?: StudentStatus
     search?: string
+    ordering?: string
     page?: number
   }): Promise<PaginatedResponse<ApiStudent>> {
     const q = new URLSearchParams()

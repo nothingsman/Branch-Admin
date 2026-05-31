@@ -1,5 +1,10 @@
 import { useMemo } from "react"
-import { studentsApi, ApiStudent, PaginatedResponse } from "../lib/api"
+import {
+  studentsApi,
+  ApiStudent,
+  PaginatedResponse,
+  StudentStatus,
+} from "../lib/api"
 import { useApiQuery } from "./useApiQuery"
 
 export interface UseStudentsParams {
@@ -8,7 +13,9 @@ export interface UseStudentsParams {
   sectionId?: string | null
   gradeId?: string | null
   academicYearId?: string | null
+  status?: StudentStatus
   search?: string
+  ordering?: string
   page?: number
 }
 
@@ -29,7 +36,9 @@ export function useStudents(params: UseStudentsParams): UseStudentsResult {
     sectionId,
     gradeId,
     academicYearId,
+    status,
     search,
+    ordering,
     page,
   } = params
 
@@ -43,7 +52,9 @@ export function useStudents(params: UseStudentsParams): UseStudentsResult {
         section: sectionId ?? undefined,
         grade: gradeId ?? undefined,
         academic_year: academicYearId ?? undefined,
+        status: status ?? undefined,
         search: search ?? undefined,
+        ordering: ordering ?? undefined,
         page: page ?? undefined,
       })
   }, [
@@ -52,7 +63,9 @@ export function useStudents(params: UseStudentsParams): UseStudentsResult {
     sectionId,
     gradeId,
     academicYearId,
+    status,
     search,
+    ordering,
     page,
   ])
 
@@ -64,7 +77,9 @@ export function useStudents(params: UseStudentsParams): UseStudentsResult {
     sectionId,
     gradeId,
     academicYearId,
+    status,
     search,
+    ordering,
     page,
   ])
 

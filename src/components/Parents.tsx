@@ -32,6 +32,7 @@ import {
   ApiStudent,
   importApi,
   parentsApi,
+  studentsApi,
 } from "../lib/api"
 import { useApiQuery } from "../hooks/useApiQuery"
 import { useGrades } from "../hooks/useGrades"
@@ -217,6 +218,29 @@ async function fetchAllParentLinks(): Promise<ApiParentLink[]> {
   return links
 }
 
+async function fetchAllStudents(params: {
+  branchId?: string | null
+  organizationId?: string | null
+}): Promise<ApiStudent[]> {
+  const { branchId, organizationId } = params
+  const students: ApiStudent[] = []
+  let page = 1
+
+  while (true) {
+    const response = await studentsApi.list({
+      branch: branchId ?? undefined,
+      organization: organizationId ?? undefined,
+      page,
+    })
+    students.push(...response.results)
+
+    if (!response.next) break
+    page += 1
+  }
+
+  return students
+}
+
 function buildParentFormState(parent: ApiParent): ParentFormState {
   return {
     name: parent.user_details?.name ?? "",
@@ -283,6 +307,15 @@ export const Parents: React.FC<ParentsProps> = ({
     error: studentsError,
     refetch: refetchStudents,
   } = useStudents({ branchId, organizationId })
+  const {
+    data: allRawStudents,
+    refetch: refetchAllStudents,
+  } = useApiQuery<ApiStudent[]>(
+    branchId || organizationId
+      ? () => fetchAllStudents({ branchId, organizationId })
+      : null,
+    [branchId, organizationId]
+  )
   const { grades } = useGrades(branchId)
   const {
     parents: rawParents,
@@ -312,6 +345,10 @@ export const Parents: React.FC<ParentsProps> = ({
   const students = useMemo(
     () => rawStudents.map((student) => mapStudent(student, links ?? [])),
     [rawStudents, links]
+  )
+  const allStudents = useMemo(
+    () => (allRawStudents ?? []).map((student) => mapStudent(student, links ?? [])),
+    [allRawStudents, links]
   )
   const allMappedParents = useMemo(
     () => (rawParents ?? []).map((parent) => mapParent(parent, links ?? [])),
@@ -433,6 +470,7 @@ export const Parents: React.FC<ParentsProps> = ({
   const refreshAll = () => {
     refetchParents()
     refetchStudents()
+    refetchAllStudents()
     refetchLinks()
   }
 
@@ -805,7 +843,7 @@ export const Parents: React.FC<ParentsProps> = ({
         {selectedParent && (
           <ParentDetailDrawer
             parent={selectedParent}
-            students={students.filter((student) =>
+            students={allStudents.filter((student) =>
               selectedParent.linkedStudents.includes(student.id)
             )}
             onClose={() => setSelectedParentId(null)}
@@ -899,7 +937,7 @@ export const Parents: React.FC<ParentsProps> = ({
         {linkingParent && (
           <LinkStudentModal
             parent={linkingParent}
-            students={students.filter((student) => !student.parentId)}
+            students={allStudents}
             onClose={() => setLinkingParentId(null)}
             onSubmit={async (payload) => {
               await handleLinkStudent(
@@ -1466,7 +1504,10 @@ function LinkStudentModal({
       students.filter((student) => {
         const query = searchQuery.trim().toLowerCase()
         if (!query) return true
-        return student.name.toLowerCase().includes(query)
+        return (
+          student.name.toLowerCase().includes(query) ||
+          student.rollNo.toLowerCase().includes(query)
+        )
       }),
     [searchQuery, students]
   )
@@ -1497,7 +1538,7 @@ function LinkStudentModal({
                 setSearchQuery(event.target.value)
                 setStudentId("")
               }}
-              placeholder="Search by student name..."
+              placeholder="Search by student name or roll number..."
               className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pr-4 pl-11 text-sm transition outline-none focus:border-primary/30 focus:bg-white focus:ring-4 focus:ring-primary/5"
             />
           </div>
@@ -1507,30 +1548,63 @@ function LinkStudentModal({
           {filteredStudents.length === 0 ? (
             <div className="flex min-h-32 items-center justify-center text-center text-sm font-bold text-slate-500">
               {searchQuery.trim().length === 0
-                ? "No unlinked students are available."
-                : "No unlinked students match your search."}
+                ? "No students are available."
+                : "No students match your search."}
             </div>
           ) : (
-            <div className="max-h-56 space-y-2 overflow-y-auto">
-              {filteredStudents.map((student) => (
-                <button
-                  key={student.id}
-                  type="button"
-                  onClick={() => setStudentId(student.id)}
-                  className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
-                    studentId === student.id
-                      ? "border-primary bg-primary/5"
-                      : "border-slate-200 bg-white hover:border-slate-300"
-                  }`}
-                >
-                  <p className="text-sm font-black text-slate-900">
-                    {student.name}
-                  </p>
-                  <p className="mt-1 text-xs font-medium text-slate-500">
-                    {student.grade} • Section {student.section || "N/A"}
-                  </p>
-                </button>
-              ))}
+            <div className="max-h-72 space-y-2 overflow-y-auto">
+              {filteredStudents.map((student) => {
+                const isAlreadyLinkedToCurrentParent = parent.linkedStudents.includes(
+                  student.id
+                )
+                const linkStateLabel = isAlreadyLinkedToCurrentParent
+                  ? "Already linked"
+                  : student.parentId
+                    ? "Linked to another parent"
+                    : "Unlinked"
+
+                return (
+                  <button
+                    key={student.id}
+                    type="button"
+                    onClick={() =>
+                      !isAlreadyLinkedToCurrentParent && setStudentId(student.id)
+                    }
+                    disabled={isAlreadyLinkedToCurrentParent}
+                    className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
+                      studentId === student.id
+                        ? "border-primary bg-primary/5"
+                        : "border-slate-200 bg-white hover:border-slate-300"
+                    } disabled:cursor-not-allowed disabled:opacity-70`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-black text-slate-900">
+                          {student.name}
+                        </p>
+                        <p className="mt-1 text-xs font-medium text-slate-500">
+                          {student.grade || "No grade"} • Section{" "}
+                          {student.section || "N/A"}
+                        </p>
+                        <p className="mt-1 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
+                          {student.rollNo || "No roll number"}
+                        </p>
+                      </div>
+                      <span
+                        className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${
+                          isAlreadyLinkedToCurrentParent
+                            ? "bg-slate-200 text-slate-600"
+                            : student.parentId
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-emerald-100 text-emerald-700"
+                        }`}
+                      >
+                        {linkStateLabel}
+                      </span>
+                    </div>
+                  </button>
+                )
+              })}
             </div>
           )}
         </div>
