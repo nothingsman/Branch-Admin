@@ -1,29 +1,30 @@
-/**
- * Premium, glassmorphic Login component for Kelem Branch Admin.
- */
+"use client"
 
 import React, { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "motion/react"
+import { motion } from "motion/react"
 import {
   Mail,
   Lock,
+  Eye,
+  EyeOff,
+  LogIn,
   AlertCircle,
-  Loader2,
-  KeyRound,
   CheckCircle,
 } from "lucide-react"
 import { authApi, ApiError, ApiUser } from "../lib/api"
 
 interface LoginProps {
   onLoginSuccess: (user: ApiUser) => void
+  resetSuccess?: boolean
 }
 
-export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
+export const Login: React.FC<LoginProps> = ({ onLoginSuccess, resetSuccess }) => {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
     if (!error) return
@@ -43,7 +44,6 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       const msg = params.get("message")
       if (msg) {
         setSuccess(msg)
-        // Clear message from url to avoid displaying on refresh
         const url = new URL(window.location.href)
         url.searchParams.delete("message")
         window.history.replaceState({}, "", url.pathname)
@@ -135,15 +135,12 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     setSuccess(null)
 
     try {
-      // 1. Authenticate with backend and obtain JWT
       await authApi.login(email.trim(), password)
 
-      // 2. Fetch authenticated profile details
       const user = await authApi.getCurrentUser()
 
-      // 3. Verify user verification status (verified_at !== null)
       if (!user.verified_at) {
-        authApi.logout() // Clear tokens immediately
+        authApi.logout()
         setError(
           "Your account is currently unverified. Please contact your system administrator to activate your access."
         )
@@ -151,7 +148,6 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         return
       }
 
-      // 4. Success! Propagate profile back to App
       onLoginSuccess(user)
     } catch (err: unknown) {
       setError(getLoginErrorMessage(err))
@@ -160,130 +156,181 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   }
 
   return (
-    <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-background px-4 font-sans">
-      {/* Background Ambient Blur Graphics */}
-      <div className="pointer-events-none absolute top-[-10%] left-[-10%] h-[50%] w-[50%] rounded-full bg-primary/10 blur-[120px]" />
-      <div className="pointer-events-none absolute right-[-10%] bottom-[-10%] h-[50%] w-[50%] rounded-full bg-accent/15 blur-[120px]" />
+    <div className="min-h-screen flex flex-col lg:flex-row">
+      {/* Left hero panel — hidden on mobile */}
+      <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-[#1A237E] to-[#283593] overflow-hidden">
+        <div className="absolute inset-0">
+          <img
+            src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1200&h=1200&fit=crop&q=80"
+            alt="Administrator workspace"
+            className="object-cover w-full h-full opacity-25"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#1A237E]/95 via-[#1A237E]/60 to-transparent" />
+        </div>
+        <div className="relative z-10 flex flex-col justify-end p-12 text-white">
+          <h2 className="text-3xl font-bold mb-4">Welcome back, administrator</h2>
+          <p className="max-w-md text-base text-blue-200 md:text-lg">
+            Sign in to manage branches, oversee academic operations, and
+            coordinate with your team.
+          </p>
+          <div className="mt-8 flex items-center gap-2 text-sm text-blue-300">
+            <span>Photo by</span>
+            <a
+              href="https://unsplash.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-white transition-colors"
+            >
+              Unsplash
+            </a>
+          </div>
+        </div>
+      </div>
 
-      {/* Login Box Wrapper */}
-      <motion.div
-        initial={{ opacity: 0, y: 25, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-        className="relative z-10 w-full max-w-[440px]"
-      >
-        {/* Glass Card */}
-        <div className="flex flex-col items-center rounded-[2rem] border border-border bg-white/70 p-8 shadow-[0_20px_50px_rgba(0,0,0,0.06)] backdrop-blur-xl md:p-10">
-          {/* Logo & Header */}
-          <div className="mb-8 flex flex-col items-center gap-3 text-center">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-primary to-accent shadow-lg shadow-primary/20">
-              <KeyRound className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h2 className="bg-gradient-to-r from-primary to-accent bg-clip-text text-2xl leading-tight font-black tracking-tight text-transparent uppercase">
-                Kelem
-              </h2>
-              <p className="mt-1 text-xs font-bold tracking-widest text-muted-foreground uppercase">
-                Branch Administrator Portal
+      {/* Right form panel */}
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-8 lg:p-12 bg-white">
+        <div className="w-full max-w-md">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="mb-8">
+              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">
+                Branch admin login
+              </h1>
+              <p className="text-slate-600">
+                Use your administrator credentials.
               </p>
             </div>
-          </div>
 
-          {/* Success / Error Banner */}
-          <AnimatePresence mode="wait">
+            {resetSuccess && (
+              <div className="mb-6">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-start gap-3 shadow-sm">
+                  <CheckCircle size={18} className="text-emerald-500 mt-0.5 shrink-0" />
+                  <p className="text-sm text-emerald-800 flex-1">
+                    Your password has been reset! You can now login with your new password.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {error && (
-              <motion.div
-                key="error-banner"
-                initial={{ opacity: 0, height: 0, y: -10 }}
-                animate={{ opacity: 1, height: "auto", y: 0 }}
-                exit={{ opacity: 0, height: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-                className="mb-6 w-full overflow-hidden"
-              >
-                <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-semibold text-red-800">
-                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
-                  <span className="leading-relaxed">{error}</span>
+              <div className="mb-6">
+                <div className="bg-rose-50 border border-rose-200 rounded-xl px-4 py-3 flex items-start gap-3 shadow-sm">
+                  <AlertCircle
+                    size={18}
+                    className="text-rose-500 mt-0.5 shrink-0"
+                  />
+                  <p className="text-sm text-rose-800 flex-1">{error}</p>
                 </div>
-              </motion.div>
+              </div>
             )}
+
             {success && (
-              <motion.div
-                key="success-banner"
-                initial={{ opacity: 0, height: 0, y: -10 }}
-                animate={{ opacity: 1, height: "auto", y: 0 }}
-                exit={{ opacity: 0, height: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-                className="mb-6 w-full overflow-hidden"
-              >
-                <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-semibold text-emerald-800">
-                  <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-                  <span className="leading-relaxed">{success}</span>
+              <div className="mb-6">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-start gap-3 shadow-sm">
+                  <CheckCircle
+                    size={18}
+                    className="text-emerald-500 mt-0.5 shrink-0"
+                  />
+                  <p className="text-sm text-emerald-800 flex-1">{success}</p>
                 </div>
-              </motion.div>
+              </div>
             )}
-          </AnimatePresence>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="w-full space-y-5">
-            {/* Email Input */}
-            <div className="space-y-1.5">
-              <label className="pl-1 text-[10px] font-black tracking-widest text-muted-foreground uppercase">
-                Email Address
-              </label>
-              <div className="relative flex items-center">
-                <Mail className="pointer-events-none absolute left-4 h-4 w-4 text-muted-foreground" />
-                <input
-                  type="email"
-                  required
-                  autoFocus
-                  disabled={isLoading}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@edugov.academy"
-                  className="w-full rounded-xl border border-input bg-white py-3.5 pr-4 pl-12 text-sm font-semibold text-foreground transition-all outline-none placeholder:text-muted-foreground hover:border-slate-300 focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:opacity-50"
-                />
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="email"
+                  className="text-sm font-semibold text-slate-700"
+                >
+                  Email
+                </label>
+                <div className="relative">
+                  <Mail
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                    size={18}
+                  />
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    required
+                    autoComplete="email"
+                    placeholder="admin@school.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={isLoading}
+                    className="w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#1A237E] transition-all text-sm bg-slate-50 focus:bg-white disabled:opacity-50"
+                  />
+                </div>
               </div>
-            </div>
 
-            {/* Password Input */}
-            <div className="space-y-1.5">
-              <label className="pl-1 text-[10px] font-black tracking-widest text-muted-foreground uppercase">
-                Password
-              </label>
-              <div className="relative flex items-center">
-                <Lock className="pointer-events-none absolute left-4 h-4 w-4 text-muted-foreground" />
-                <input
-                  type="password"
-                  required
-                  disabled={isLoading}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••••"
-                  className="w-full rounded-xl border border-input bg-white py-3.5 pr-4 pl-12 text-sm font-semibold text-foreground transition-all outline-none placeholder:text-muted-foreground hover:border-slate-300 focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:opacity-50"
-                />
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="password"
+                  className="text-sm font-semibold text-slate-700"
+                >
+                  Password
+                </label>
+                <div className="relative">
+                  <Lock
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                    size={18}
+                  />
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    autoComplete="current-password"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={isLoading}
+                    className="w-full pl-10 pr-10 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#1A237E] transition-all text-sm bg-slate-50 focus:bg-white disabled:opacity-50"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? (
+                      <EyeOff size={18} />
+                    ) : (
+                      <Eye size={18} />
+                    )}
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {/* Submit Button */}
-            <motion.button
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
-              type="submit"
-              disabled={isLoading}
-              className="mt-8 flex w-full shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary py-4 text-xs font-black tracking-widest text-primary-foreground uppercase shadow-lg shadow-primary/20 transition-all hover:bg-primary/95 hover:shadow-xl hover:shadow-primary/30 disabled:opacity-50"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin text-primary-foreground" />
-                  <span>Logging in...</span>
-                </>
-              ) : (
-                <span>Access Dashboard</span>
-              )}
-            </motion.button>
-          </form>
+              <div className="flex justify-end">
+                <a
+                  href="/forgot-password"
+                  className="text-sm font-medium text-[#1A237E] hover:text-blue-800 transition-colors"
+                >
+                  Forgot password?
+                </a>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#1A237E] text-white font-semibold hover:bg-blue-900 transition disabled:opacity-60"
+              >
+                {isLoading ? "Signing in..." : "Sign in"}
+                <LogIn size={18} />
+              </button>
+            </form>
+
+            <p className="text-xs text-slate-500 mt-6">
+              Need access? Contact your system administrator for credentials.
+            </p>
+          </motion.div>
         </div>
-      </motion.div>
+      </div>
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useState, useRef, useEffect } from "react"
 import {
   LayoutDashboard,
   Users,
@@ -149,39 +149,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </nav>
 
-        <div className="shrink-0 border-t border-slate-200 px-5 py-5">
-          <button
-            type="button"
-            onClick={() => setIsEditingProfile(true)}
-            className="group/profile flex w-full items-center gap-3 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-slate-50"
-          >
-            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-400 shadow-sm transition-all group-hover/profile:border-primary/30">
-              <User className="h-4 w-4" />
-              <div className="absolute inset-0 flex items-center justify-center bg-primary/12 opacity-0 transition-opacity group-hover/profile:opacity-100">
-                <Edit3 className="h-3.5 w-3.5 text-primary" />
-              </div>
-            </div>
-            <div className="min-w-0">
-              <h3 className="truncate text-sm leading-tight font-extrabold text-slate-900">
-                {profile.name}
-              </h3>
-              <p className="truncate text-xs font-medium text-slate-500">
-                {profile.role}
-              </p>
-            </div>
-          </button>
-        </div>
-
-        {/* Logout Action */}
-        <div className="shrink-0 border-t border-slate-200 p-4">
-          <button
-            onClick={onLogout}
-            className="group flex w-full items-center gap-4 rounded-2xl px-4 py-3.5 text-sm font-bold text-slate-500 transition-all hover:bg-red-50 hover:text-red-600 active:scale-95"
-          >
-            <LogOut className="h-5 w-5 text-slate-400 transition-all group-hover:translate-x-0.5 group-hover:text-red-500" />
-            <span>Sign Out</span>
-          </button>
-        </div>
+        {/* User Profile Dropdown */}
+        <ProfileDropdown
+          profile={profile}
+          onEditProfile={() => setIsEditingProfile(true)}
+          onLogout={onLogout}
+        />
       </div>
 
       {/* Profile Edit Modal - Moved outside sidebar div for better stacking context */}
@@ -310,5 +283,91 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
       </AnimatePresence>
     </>
+  )
+}
+
+interface ProfileDropdownProps {
+  profile: { name: string; role: string }
+  onEditProfile: () => void
+  onLogout: () => void
+}
+
+const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
+  profile,
+  onEditProfile,
+  onLogout,
+}) => {
+  const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  return (
+    <div ref={dropdownRef} className="relative shrink-0 border-t border-slate-200">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="group/profile flex w-full items-center gap-3 px-5 py-5 text-left transition-colors hover:bg-slate-50"
+      >
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-400 shadow-sm">
+          <User className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-sm leading-tight font-extrabold text-slate-900">
+            {profile.name}
+          </h3>
+          <p className="truncate text-xs font-medium text-slate-500">
+            {profile.role}
+          </p>
+        </div>
+        <ChevronDown
+          className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${
+            isOpen ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.95 }}
+            transition={{ duration: 0.15 }}
+            className="absolute bottom-full left-3 right-3 mb-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl"
+          >
+            <button
+              onClick={() => {
+                setIsOpen(false)
+                onEditProfile()
+              }}
+              className="flex w-full items-center gap-3 px-4 py-3.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50"
+            >
+              <Edit3 className="h-4 w-4 text-slate-400" />
+              <span>Profile</span>
+            </button>
+            <div className="mx-3 border-t border-slate-100" />
+            <button
+              onClick={onLogout}
+              className="flex w-full items-center gap-3 px-4 py-3.5 text-sm font-bold text-red-600 transition-colors hover:bg-red-50"
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Logout</span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   )
 }

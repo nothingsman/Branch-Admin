@@ -6,6 +6,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { Layout } from "./components/Layout"
 import { Dashboard } from "./components/Dashboard"
 import { BatchImport } from "./components/BatchImport"
@@ -31,6 +32,8 @@ import { ModuleId } from "./types"
 import { Loader2 } from "lucide-react"
 
 export default function App() {
+  const searchParams = useSearchParams()
+  const reset = searchParams.get("reset") === "true"
   const [activeModule, setActiveModule] = useState<ModuleId>("dashboard")
   const [user, setUser] = useState<ApiUser | null>(null)
   const [branchProfile, setBranchProfile] = useState<BranchAdminProfile | null>(
@@ -248,7 +251,7 @@ export default function App() {
 
   // 2. Login gate
   if (!isAuthenticated || !user) {
-    return <Login onLoginSuccess={handleLoginSuccess} />
+    return <Login onLoginSuccess={handleLoginSuccess} resetSuccess={reset} />
   }
 
   // 3. Authenticated app

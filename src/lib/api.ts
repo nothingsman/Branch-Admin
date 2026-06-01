@@ -1004,6 +1004,26 @@ export const authApi = {
     tokenManager.clearTokens()
   },
 
+  async resetPassword(data: { email: string }): Promise<void> {
+    await request<void>(
+      "/auth/users/reset_password/",
+      { method: "POST", body: JSON.stringify(data) },
+      true
+    )
+  },
+
+  async resetPasswordConfirm(data: {
+    uid: string
+    token: string
+    new_password: string
+  }): Promise<void> {
+    await request<void>(
+      "/auth/users/reset_password_confirm/",
+      { method: "POST", body: JSON.stringify(data) },
+      true
+    )
+  },
+
   async getBranchAdminProfile(): Promise<BranchAdminProfile | null> {
     const res = await request<PaginatedResponse<BranchAdminProfile>>(
       "/api/branch-admins/",
