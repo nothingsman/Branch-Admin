@@ -152,12 +152,12 @@ export const BatchImport: React.FC<BatchImportProps> = ({
     <div className="relative min-h-full space-y-6 p-8">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-primary">Batch Data Import</h2>
+          <h2 className="text-2xl font-semibold text-primary">Batch Data Import</h2>
           <p className="text-sm text-slate-500">
             Upload CSV or Excel files to bulk create records
           </p>
         </div>
-        <div className="flex items-center gap-2 rounded-lg bg-blue-50 px-4 py-2 text-xs font-bold text-blue-700">
+        <div className="flex items-center gap-2 rounded-lg bg-blue-50 px-4 py-2 text-xs font-semibold text-blue-700">
           <Info className="h-4 w-4" />
           {taskId
             ? `Import Job ${taskId.slice(0, 8)}`
@@ -168,11 +168,11 @@ export const BatchImport: React.FC<BatchImportProps> = ({
       <div className="grid grid-cols-1 gap-8 pb-20 lg:grid-cols-3">
         {/* Upload Zone */}
         <div className="space-y-6 lg:col-span-2">
-          <div className="card-base group flex flex-col items-center justify-center border-2 border-dashed py-16 transition-all hover:bg-slate-50">
+          <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-6 shadow-sm group flex flex-col items-center justify-center py-16 transition-all hover:bg-slate-50">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 transition-transform group-hover:scale-110">
               <FileUp className="h-8 w-8 text-primary" />
             </div>
-            <h3 className="text-lg font-bold text-slate-900">
+            <h3 className="text-lg font-semibold text-slate-900">
               Choose a file or drag it here
             </h3>
             <p className="mb-6 text-sm text-slate-500">
@@ -188,7 +188,7 @@ export const BatchImport: React.FC<BatchImportProps> = ({
             />
             <label
               htmlFor="file-upload"
-              className="btn-primary cursor-pointer ring-offset-2 transition-all active:scale-95"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-[#1A237E] px-7 py-3.5 font-semibold tracking-wide text-white transition-all hover:-translate-y-0.5 hover:bg-[#151B63] hover:shadow-[0_15px_30px_-5px_rgba(26,35,126,0.5)] active:translate-y-0 active:scale-[0.97] disabled:opacity-50 cursor-pointer ring-offset-2"
             >
               Browse Files
             </label>
@@ -197,13 +197,13 @@ export const BatchImport: React.FC<BatchImportProps> = ({
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mt-8 flex w-full max-w-sm items-center gap-3 rounded-lg border border-border-soft bg-white p-3 text-left shadow-sm"
+                className="mt-8 flex w-full max-w-sm items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 text-left shadow-sm"
               >
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-green-50">
                   <FileSpreadsheet className="h-6 w-6 text-green-600" />
                 </div>
                 <div className="flex-1 overflow-hidden">
-                  <p className="truncate text-sm font-bold text-slate-900">
+                  <p className="truncate text-sm font-semibold text-slate-900">
                     {file.name}
                   </p>
                   <p className="font-mono text-[10px] text-slate-400">
@@ -221,14 +221,14 @@ export const BatchImport: React.FC<BatchImportProps> = ({
 
             {errors.length > 0 && (
               <div className="mt-4 max-h-60 w-full overflow-y-auto rounded-lg border border-red-200 bg-red-50 p-4 text-left">
-                <h4 className="mb-2 flex items-center gap-2 text-sm font-bold text-red-800">
+                <h4 className="mb-2 flex items-center gap-2 text-sm font-semibold text-red-800">
                   <AlertCircle className="h-4 w-4" />
                   Import Failed: Row-level Validation Errors
                 </h4>
                 <div className="space-y-2">
                   {errors.map((err, idx) => (
                     <div key={idx} className="text-xs text-red-700">
-                      <span className="font-bold">Row {err.row || "N/A"}:</span>{" "}
+                      <span className="font-semibold">Row {err.row || "N/A"}:</span>{" "}
                       {Object.entries(err.errors).map(([field, msgs]: any) => (
                         <span key={field} className="mr-2">
                           <span className="underline">{field}</span>:{" "}
@@ -242,17 +242,17 @@ export const BatchImport: React.FC<BatchImportProps> = ({
             )}
           </div>
 
-          <div className="card-base">
-            <h3 className="mb-4 font-bold text-primary">Import Settings</h3>
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="mb-4 font-semibold text-primary">Import Settings</h3>
             <div className="grid grid-cols-1 gap-4">
               {/* Target Module Dropdown */}
               <div className="relative">
-                <p className="mb-2 ml-1 text-[10px] font-bold tracking-wider text-primary uppercase">
+                <p className="mb-2 ml-1 text-[10px] font-semibold tracking-wider text-primary uppercase">
                   Target Module
                 </p>
                 <button
                   onClick={() => setIsModuleDropdownOpen(!isModuleDropdownOpen)}
-                  className="group flex w-full items-center justify-between rounded-lg border border-border-soft bg-white px-4 py-2.5 text-sm font-semibold text-primary shadow-sm transition-all hover:border-primary/40 hover:bg-slate-50 focus:ring-2 focus:ring-primary/10 focus:outline-none"
+                  className="group flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-primary shadow-sm transition-all hover:border-primary/40 hover:bg-slate-50 focus:ring-2 focus:ring-primary/10 focus:outline-none"
                 >
                   <span className="truncate">{targetModule}</span>
                   <ChevronDown
@@ -271,7 +271,7 @@ export const BatchImport: React.FC<BatchImportProps> = ({
                         initial={{ opacity: 0, y: -10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                        className="dropdown-menu !absolute top-full left-0 z-20 mt-1 w-full min-w-[200px]"
+                        className="!absolute top-full left-0 z-20 mt-1 w-full min-w-[200px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-1 shadow-[0_20px_50px_rgba(15,23,42,0.12)]"
                       >
                         {modules.map((m) => (
                           <div
@@ -280,7 +280,7 @@ export const BatchImport: React.FC<BatchImportProps> = ({
                               setTargetModule(m)
                               setIsModuleDropdownOpen(false)
                             }}
-                            className={`dropdown-item py-2.5 ${m === targetModule ? "bg-primary text-white hover:bg-primary/90 hover:text-white" : ""}`}
+                            className={`flex w-full cursor-pointer items-center rounded-xl px-3 py-2 text-left text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-100 hover:text-[#1A237E] py-2.5 ${m === targetModule ? "bg-primary text-white hover:bg-primary/90 hover:text-white" : ""}`}
                           >
                             {m}
                           </div>
@@ -296,7 +296,7 @@ export const BatchImport: React.FC<BatchImportProps> = ({
           <button
             disabled={!file || status !== "idle"}
             onClick={startProcess}
-            className={`flex w-full items-center justify-center gap-2 rounded-lg py-4 font-bold shadow-lg transition-all ${
+            className={`flex w-full items-center justify-center gap-2 rounded-lg py-4 font-semibold shadow-lg transition-all ${
               !file || status !== "idle"
                 ? "cursor-not-allowed bg-slate-200 text-slate-400"
                 : "bg-primary text-white hover:bg-primary/90 active:scale-[0.98]"
@@ -311,10 +311,10 @@ export const BatchImport: React.FC<BatchImportProps> = ({
 
         {/* Statistics & Resources Sidebar */}
         <div className="space-y-6">
-          <div className="card-base">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="mb-6 flex items-center gap-2">
               <FileSpreadsheet className="h-5 w-5 text-primary" />
-              <h3 className="font-bold text-primary">Download Templates</h3>
+              <h3 className="font-semibold text-primary">Download Templates</h3>
             </div>
             <div className="space-y-3">
               {[
@@ -326,10 +326,10 @@ export const BatchImport: React.FC<BatchImportProps> = ({
                 <div
                   key={i}
                   onClick={() => downloadTemplate(item.name)}
-                  className="group flex cursor-pointer items-center justify-between rounded-lg border border-border-soft p-3 transition-colors hover:bg-slate-50"
+                  className="group flex cursor-pointer items-center justify-between rounded-lg border border-slate-200 p-3 transition-colors hover:bg-slate-50"
                 >
                   <div className="flex flex-col">
-                    <span className="text-xs font-bold text-slate-800">
+                    <span className="text-xs font-semibold text-slate-800">
                       {item.name}
                     </span>
                     <span className="font-mono text-[10px] tracking-tighter text-slate-400 uppercase">
@@ -344,31 +344,29 @@ export const BatchImport: React.FC<BatchImportProps> = ({
             </div>
           </div>
 
-          <div className="card-base border border-border-soft bg-white">
-            <h3 className="mb-4 font-bold text-[#632c2c]">Guidelines</h3>
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="mb-4 font-semibold text-[#632c2c]">Guidelines</h3>
             <ul className="space-y-3">
               <li className="flex items-start gap-3">
-                <div className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+                <div className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
                 <p className="text-[11px] leading-relaxed font-medium text-[#28374d]">
                   Ensure all dates follow{" "}
-                  <span className="cursor-help text-accent underline">
+                  <span className="cursor-help text-primary underline">
                     ISO-8601
                   </span>{" "}
                   format (YYYY-MM-DD).
                 </p>
               </li>
               <li className="flex items-start gap-3">
-                <div className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+                <div className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
                 <p className="text-[11px] leading-relaxed font-medium text-[#28374d]">
-                  Unique ID fields (Email, Staff ID) must not contain duplicates
-                  within the same batch.
+                  You can always resume partial imports from where you left
                 </p>
               </li>
               <li className="flex items-start gap-3">
-                <div className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+                <div className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
                 <p className="text-[11px] leading-relaxed font-medium text-[#28374d]">
-                  Max record count per single file is 5,000. Use multiple files
-                  for larger datasets.
+                  Verify the target module below before
                 </p>
               </li>
             </ul>
@@ -383,10 +381,10 @@ export const BatchImport: React.FC<BatchImportProps> = ({
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed right-14 bottom-0 z-[60] w-[360px] overflow-hidden rounded-t-xl border border-border-soft bg-white shadow-[0_8px_30px_rgb(0,0,0,0.12)]"
+            className="fixed right-14 bottom-0 z-[60] w-[360px] overflow-hidden rounded-t-xl border border-slate-200 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.12)]"
           >
             {/* Toast Header */}
-            <div className="flex items-center justify-between border-b border-border-soft bg-[#f8f9fa] px-4 py-3">
+            <div className="flex items-center justify-between border-b border-slate-200 bg-[#f8f9fa] px-4 py-3">
               <span className="truncate pr-4 text-sm font-medium text-[#202124]">
                 {status === "success"
                   ? "1 upload complete"
@@ -419,7 +417,7 @@ export const BatchImport: React.FC<BatchImportProps> = ({
                   initial={{ height: 0 }}
                   animate={{ height: "auto" }}
                   exit={{ height: 0 }}
-                  className="overflow-hidden border-b border-border-soft bg-white"
+                  className="overflow-hidden border-b border-slate-200 bg-white"
                 >
                   <div className="flex items-center justify-between px-4 py-2 text-[13px]">
                     <span className="text-[#5f6368]">
@@ -459,12 +457,12 @@ export const BatchImport: React.FC<BatchImportProps> = ({
                     {status !== "success" && (
                       <div className="mt-1.5 w-full">
                         <div className="mb-1 flex items-center justify-between">
-                          <span className="text-[10px] font-bold tracking-wider text-[#5f6368] uppercase">
+                          <span className="text-[10px] font-semibold tracking-wider text-[#5f6368] uppercase">
                             {status === "uploading"
                               ? "Uploading"
                               : "Processing"}
                           </span>
-                          <span className="text-[10px] font-bold text-[#5f6368]">
+                          <span className="text-[10px] font-semibold text-[#5f6368]">
                             {progress}%
                           </span>
                         </div>
@@ -498,7 +496,7 @@ export const BatchImport: React.FC<BatchImportProps> = ({
 
               {/* Decorative extra rows to match the "list" vibe of the screenshot */}
               {canShowPreviousUpload && (
-                <div className="flex items-center justify-between gap-4 border-t border-border-soft p-4 opacity-40">
+                <div className="flex items-center justify-between gap-4 border-t border-slate-200 p-4 opacity-40">
                   <div className="flex items-center gap-4">
                     <FileSpreadsheet className="h-5 w-5 text-slate-400" />
                     <p className="text-sm text-slate-400">

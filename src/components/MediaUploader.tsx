@@ -285,7 +285,7 @@ export function MediaUploader({
               <Upload className="h-8 w-8 text-slate-500" />
             </div>
             <div className="text-center">
-              <p className="font-semibold text-slate-900">{description}</p>
+              <p className="font-medium text-slate-900">{description}</p>
               <p className="mt-1 text-xs text-slate-500">
                 {imageOnly
                   ? "PNG, JPG up to 10MB"

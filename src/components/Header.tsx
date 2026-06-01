@@ -47,7 +47,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <>
-      <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-border-soft bg-white bg-white/80 px-4 backdrop-blur-md lg:px-8">
+      <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-slate-200 bg-white bg-white/80 px-4 backdrop-blur-md lg:px-8">
         <div className="flex items-center gap-2 lg:gap-4">
           {/* Mobile Menu Toggle */}
           <button
@@ -61,12 +61,12 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="hidden items-center gap-2 text-sm sm:flex">
             <span className="text-slate-400">Branch Admin</span>
             <ChevronRight className="h-4 w-4 text-slate-300" />
-            <span className="font-semibold text-primary">
+            <span className="font-medium text-primary">
               {moduleLabels[activeModule]}
             </span>
           </div>
 
-          <div className="max-w-[120px] truncate text-sm font-semibold text-primary sm:hidden">
+          <div className="max-w-[120px] truncate text-sm font-medium text-primary sm:hidden">
             {moduleLabels[activeModule]}
           </div>
         </div>
@@ -78,7 +78,7 @@ export const Header: React.FC<HeaderProps> = ({
             <input
               type="text"
               placeholder="Search students, staff, records..."
-              className="w-48 rounded-edugov border border-border-soft bg-slate-50 py-1.5 pr-4 pl-10 text-xs transition-all placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 focus:outline-none lg:w-64"
+              className="w-48 rounded-xl border border-slate-200 bg-slate-50 py-1.5 pr-4 pl-10 text-xs transition-all placeholder:text-slate-400 focus:ring-2 focus:ring-primary/20 focus:outline-none lg:w-64"
             />
             <Search className="absolute top-2 left-3 h-4 w-4 text-slate-400" />
           </div>
@@ -120,10 +120,10 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="flex w-full shrink-0 flex-col border-b border-slate-100 bg-slate-50 p-4 md:w-64 md:border-r md:border-b-0 md:p-8">
                 <div className="mb-4 flex items-center justify-between md:mb-8 md:block">
                   <div>
-                    <h2 className="text-lg font-black tracking-tight text-slate-900 md:text-xl">
+                    <h2 className="text-lg font-bold tracking-tight text-slate-900 md:text-xl">
                       Settings
                     </h2>
-                    <p className="mt-1 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                    <p className="mt-1 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                       System Configuration
                     </p>
                   </div>
@@ -149,7 +149,7 @@ export const Header: React.FC<HeaderProps> = ({
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id as any)}
-                      className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-xs font-black whitespace-nowrap transition-all md:w-full ${
+                      className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-xs font-bold whitespace-nowrap transition-all md:w-full ${
                         activeTab === tab.id
                           ? "bg-primary text-white shadow-lg shadow-primary/20"
                           : "text-slate-500 hover:bg-white hover:shadow-sm"
@@ -162,7 +162,7 @@ export const Header: React.FC<HeaderProps> = ({
                 </nav>
 
                 <div className="hidden border-t border-slate-200 pt-6 md:block">
-                  <button className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-xs font-black text-red-500 transition-all hover:bg-red-50">
+                  <button className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-xs font-bold text-red-500 transition-all hover:bg-red-50">
                     <Lock className="h-4 w-4" />
                     Lock Terminal
                   </button>
@@ -173,7 +173,7 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-white">
                 <div className="flex shrink-0 items-center justify-between border-b border-slate-50 p-5 md:p-8">
                   <div>
-                    <h3 className="text-base font-black tracking-tight text-slate-900 uppercase md:text-lg">
+                    <h3 className="text-base font-bold tracking-tight text-slate-900 uppercase md:text-lg">
                       {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}{" "}
                       Settings
                     </h3>
@@ -194,47 +194,47 @@ export const Header: React.FC<HeaderProps> = ({
                     <div className="space-y-6 md:space-y-8">
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
                         <div className="space-y-2">
-                          <label className="pl-1 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                          <label className="pl-1 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                             School Name
                           </label>
                           <input
                             type="text"
                             defaultValue="Kelem Academy Central"
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 transition-all outline-none focus:ring-4 focus:ring-primary/10"
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition-all outline-none focus:ring-4 focus:ring-primary/10"
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="pl-1 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                          <label className="pl-1 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                             Branch ID
                           </label>
                           <input
                             type="text"
                             defaultValue="HQ-ADDIS-001"
                             disabled
-                            className="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-bold text-slate-400"
+                            className="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-400"
                           />
                         </div>
                       </div>
 
                       <div className="space-y-4">
-                        <h4 className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                        <h4 className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                           Regional Settings
                         </h4>
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
                           <div className="space-y-2">
-                            <label className="pl-1 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                            <label className="pl-1 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                               Timezone
                             </label>
-                            <select className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none">
+                            <select className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 outline-none">
                               <option>East Africa Time (GMT+3)</option>
                               <option>Universal Time (UTC)</option>
                             </select>
                           </div>
                           <div className="space-y-2">
-                            <label className="pl-1 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                            <label className="pl-1 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                               Currency
                             </label>
-                            <select className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none">
+                            <select className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 outline-none">
                               <option>ETB (Birr)</option>
                               <option>USD (Dollar)</option>
                             </select>
@@ -248,7 +248,7 @@ export const Header: React.FC<HeaderProps> = ({
                             <History className="h-5 w-5 text-slate-400 md:h-6 md:w-6" />
                           </div>
                           <div>
-                            <p className="text-sm font-black text-slate-900">
+                            <p className="text-sm font-bold text-slate-900">
                               Automatic Backup
                             </p>
                             <p className="text-[10px] font-medium text-slate-500 md:text-xs">
@@ -256,7 +256,7 @@ export const Header: React.FC<HeaderProps> = ({
                             </p>
                           </div>
                         </div>
-                        <button className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-[10px] font-black tracking-widest text-slate-600 uppercase transition-all hover:bg-slate-50 md:w-auto">
+                        <button className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-[10px] font-bold tracking-widest text-slate-600 uppercase transition-all hover:bg-slate-50 md:w-auto">
                           Configure
                         </button>
                       </div>
@@ -297,7 +297,7 @@ export const Header: React.FC<HeaderProps> = ({
                           className="flex items-center justify-between rounded-2xl p-3 transition-colors hover:bg-slate-50 md:p-4"
                         >
                           <div className="flex-1 pr-4">
-                            <p className="text-sm leading-none font-black text-slate-900">
+                            <p className="text-sm leading-none font-bold text-slate-900">
                               {item.title}
                             </p>
                             <p className="mt-1 text-[10px] font-medium text-slate-500 md:text-xs">
@@ -319,7 +319,7 @@ export const Header: React.FC<HeaderProps> = ({
                   {activeTab === "ui" && (
                     <div className="space-y-6 md:space-y-8">
                       <div className="space-y-4">
-                        <h4 className="pl-1 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                        <h4 className="pl-1 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                           Theme Preference
                         </h4>
                         <div className="grid grid-cols-1 gap-3 md:grid-cols-3 md:gap-4">
@@ -334,7 +334,7 @@ export const Header: React.FC<HeaderProps> = ({
                             >
                               <div className="aspect-video w-16 shrink-0 overflow-hidden rounded-lg border border-slate-100/50 bg-slate-200 md:w-full" />
                               <span
-                                className={`text-[10px] font-black tracking-widest uppercase ${i === 0 ? "text-primary" : "text-slate-500"}`}
+                                className={`text-[10px] font-bold tracking-widest uppercase ${i === 0 ? "text-primary" : "text-slate-500"}`}
                               >
                                 {theme}
                               </span>
@@ -344,14 +344,14 @@ export const Header: React.FC<HeaderProps> = ({
                       </div>
 
                       <div className="space-y-4">
-                        <h4 className="pl-1 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                        <h4 className="pl-1 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                           Compactness
                         </h4>
                         <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-3 md:p-4">
-                          <button className="flex-1 rounded-xl border border-slate-200 bg-white py-2 text-[10px] font-black tracking-widest text-slate-900 uppercase shadow-sm">
+                          <button className="flex-1 rounded-xl border border-slate-200 bg-white py-2 text-[10px] font-bold tracking-widest text-slate-900 uppercase shadow-sm">
                             Comfortable
                           </button>
-                          <button className="flex-1 py-2 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                          <button className="flex-1 py-2 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                             Compact
                           </button>
                         </div>
@@ -368,7 +368,7 @@ export const Header: React.FC<HeaderProps> = ({
                               <UserCog className="h-5 w-5 md:h-6 md:w-6" />
                             </div>
                             <div className="text-left">
-                              <p className="text-sm font-black text-slate-900">
+                              <p className="text-sm font-bold text-slate-900">
                                 Manage Staff Credentials
                               </p>
                               <p className="text-[10px] font-medium text-slate-500 md:text-xs">
@@ -385,7 +385,7 @@ export const Header: React.FC<HeaderProps> = ({
                               <Lock className="h-5 w-5 md:h-6 md:w-6" />
                             </div>
                             <div className="text-left">
-                              <p className="text-sm font-black text-slate-900">
+                              <p className="text-sm font-bold text-slate-900">
                                 Two-Factor Auth
                               </p>
                               <p className="text-[10px] font-medium text-emerald-600 md:text-xs">
@@ -398,14 +398,14 @@ export const Header: React.FC<HeaderProps> = ({
                       </div>
 
                       <div className="rounded-[1.5rem] border border-red-100 bg-red-50 p-5 md:rounded-[2rem] md:p-6">
-                        <h4 className="mb-2 text-[10px] font-black tracking-widest text-red-600 uppercase">
+                        <h4 className="mb-2 text-[10px] font-bold tracking-widest text-red-600 uppercase">
                           Danger Zone
                         </h4>
                         <p className="mb-4 text-[10px] leading-relaxed font-medium text-red-500/70 md:text-xs">
                           Resetting the database will permanently delete all
                           records for the current academic year.
                         </p>
-                        <button className="w-full rounded-xl bg-red-600 px-6 py-2.5 text-[10px] font-black tracking-widest text-white uppercase shadow-lg shadow-red-200 transition-all active:scale-95 md:w-auto">
+                        <button className="w-full rounded-xl bg-red-600 px-6 py-2.5 text-[10px] font-bold tracking-widest text-white uppercase shadow-lg shadow-red-200 transition-all active:scale-95 md:w-auto">
                           Factory Reset
                         </button>
                       </div>
@@ -416,13 +416,13 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className="flex shrink-0 flex-col items-stretch justify-end gap-3 border-t border-slate-50 p-5 md:flex-row md:items-center md:gap-4 md:p-8">
                   <button
                     onClick={() => setIsSettingsOpen(false)}
-                    className="order-2 px-4 py-3 text-[10px] font-black tracking-widest text-slate-400 uppercase transition-all hover:text-slate-600 md:order-1 md:px-6"
+                    className="order-2 px-4 py-3 text-[10px] font-bold tracking-widest text-slate-400 uppercase transition-all hover:text-slate-600 md:order-1 md:px-6"
                   >
                     Discard Transitions
                   </button>
                   <button
                     onClick={() => setIsSettingsOpen(false)}
-                    className="order-1 flex items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3 text-[10px] font-black tracking-widest text-white uppercase shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/30 active:scale-95 md:order-2 md:px-8"
+                    className="order-1 flex items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3 text-[10px] font-bold tracking-widest text-white uppercase shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/30 active:scale-95 md:order-2 md:px-8"
                   >
                     <Save className="h-4 w-4" />
                     Save Configuration

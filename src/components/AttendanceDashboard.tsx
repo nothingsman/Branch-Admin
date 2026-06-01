@@ -225,7 +225,7 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-xs font-black tracking-widest text-slate-500 uppercase">
+          <p className="text-xs font-bold tracking-widest text-slate-500 uppercase">
             Loading attendance dashboard
           </p>
         </div>
@@ -238,7 +238,7 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
       <div className="flex h-full items-center justify-center bg-slate-50 p-6">
         <div className="max-w-md rounded-3xl border border-red-100 bg-red-50 p-6 text-center">
           <AlertCircle className="mx-auto mb-3 h-8 w-8 text-red-500" />
-          <p className="font-black text-red-700">Failed to load attendance</p>
+          <p className="font-bold text-red-700">Failed to load attendance</p>
           <p className="mt-2 text-sm text-red-600">{error}</p>
         </div>
       </div>
@@ -252,10 +252,10 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
           <section className="rounded-[2rem] bg-primary p-8 text-white shadow-xl">
             <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="text-[10px] font-black tracking-[0.3em] text-white/60 uppercase">
+                <p className="text-[10px] font-bold tracking-[0.3em] text-white/60 uppercase">
                   Attendance Dashboard
                 </p>
-                <h1 className="mt-2 text-3xl font-black tracking-tight">
+                <h1 className="mt-2 text-3xl font-bold tracking-tight">
                   {format(new Date(selectedDate), "MMMM d, yyyy")}
                 </h1>
                 <p className="mt-2 text-sm font-medium text-white/70">
@@ -268,7 +268,7 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
                   type="date"
                   value={selectedDate}
                   onChange={(event) => setSelectedDate(event.target.value)}
-                  className="bg-transparent text-sm font-bold outline-none"
+                  className="bg-transparent text-sm font-semibold outline-none"
                 />
               </label>
             </div>
@@ -304,7 +304,7 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-black tracking-widest uppercase transition ${
+                className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-bold tracking-widest uppercase transition ${
                   activeTab === tab.id
                     ? "bg-primary text-white"
                     : "text-slate-500 hover:bg-slate-50"
@@ -320,7 +320,7 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
             <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
               <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
                 <div className="mb-4">
-                  <h2 className="text-sm font-black tracking-widest text-slate-900 uppercase">
+                  <h2 className="text-sm font-bold tracking-widest text-slate-900 uppercase">
                     Section Status
                   </h2>
                   <p className="text-xs font-medium text-slate-500">
@@ -335,7 +335,7 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
                       className="flex w-full items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 p-4 text-left transition hover:border-slate-200"
                     >
                       <div>
-                        <p className="text-sm font-black text-slate-900">
+                        <p className="text-sm font-bold text-slate-900">
                           {item.gradeName} • Section {item.section.name}
                         </p>
                         <p className="mt-1 text-xs text-slate-500">
@@ -343,10 +343,10 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-lg font-black text-slate-900">
+                        <p className="text-lg font-bold text-slate-900">
                           {item.status.attendance_rate.toFixed(1)}%
                         </p>
-                        <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                        <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                           {item.status.is_marked ? "Marked" : "Pending"}
                         </p>
                       </div>
@@ -360,7 +360,7 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
 
               <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
                 <div className="mb-4">
-                  <h2 className="text-sm font-black tracking-widest text-slate-900 uppercase">
+                  <h2 className="text-sm font-bold tracking-widest text-slate-900 uppercase">
                     Grade Breakdown
                   </h2>
                   <p className="text-xs font-medium text-slate-500">
@@ -370,7 +370,7 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
                 <div className="space-y-4">
                   {buildGradeBreakdown(sectionsWithStatus).map((entry) => (
                     <div key={entry.gradeName} className="space-y-2">
-                      <div className="flex items-center justify-between text-sm font-bold text-slate-700">
+                      <div className="flex items-center justify-between text-sm font-semibold text-slate-700">
                         <span>{entry.gradeName}</span>
                         <span>{entry.rate.toFixed(1)}%</span>
                       </div>
@@ -393,7 +393,7 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
           {activeTab === "chronic" && (
             <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
               <div className="mb-4">
-                <h2 className="text-sm font-black tracking-widest text-slate-900 uppercase">
+                <h2 className="text-sm font-bold tracking-widest text-slate-900 uppercase">
                   Chronic Absenteeism
                 </h2>
                 <p className="text-xs font-medium text-slate-500">
@@ -407,7 +407,7 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
                     className="grid gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 md:grid-cols-[1.4fr_0.7fr_0.7fr_0.7fr]"
                   >
                     <div>
-                      <p className="text-sm font-black text-slate-900">
+                      <p className="text-sm font-bold text-slate-900">
                         {summary.student_name}
                       </p>
                       <p className="mt-1 text-xs text-slate-500">
@@ -439,7 +439,7 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
             <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
               <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <h2 className="text-sm font-black tracking-widest text-slate-900 uppercase">
+                  <h2 className="text-sm font-bold tracking-widest text-slate-900 uppercase">
                     Section Logs
                   </h2>
                   <p className="text-xs font-medium text-slate-500">
@@ -451,7 +451,7 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
                     <button
                       key={filter}
                       onClick={() => setLogFilter(filter)}
-                      className={`rounded-xl px-3 py-2 text-[10px] font-black tracking-widest uppercase ${
+                      className={`rounded-xl px-3 py-2 text-[10px] font-bold tracking-widest uppercase ${
                         logFilter === filter
                           ? "bg-primary text-white"
                           : "border border-slate-200 bg-white text-slate-600"
@@ -465,7 +465,7 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[680px] text-left">
                   <thead>
-                    <tr className="border-b border-slate-100 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                    <tr className="border-b border-slate-100 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                       <th className="px-4 py-3">Section</th>
                       <th className="px-4 py-3">Teacher</th>
                       <th className="px-4 py-3">Rate</th>
@@ -487,7 +487,7 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
                           onClick={() => setSelectedSectionId(item.section.id)}
                           className="cursor-pointer border-b border-slate-50 text-sm hover:bg-slate-50"
                         >
-                          <td className="px-4 py-4 font-bold text-slate-800">
+                          <td className="px-4 py-4 font-semibold text-slate-800">
                             {item.gradeName} • {item.section.name}
                           </td>
                           <td className="px-4 py-4 text-slate-600">
@@ -498,7 +498,7 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
                           </td>
                           <td className="px-4 py-4">
                             <span
-                              className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-black tracking-widest uppercase ${
+                              className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-bold tracking-widest uppercase ${
                                 item.status.is_marked
                                   ? "bg-emerald-50 text-emerald-700"
                                   : "bg-red-50 text-red-700"
@@ -544,7 +544,7 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
             >
               <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
                 <div>
-                  <h3 className="text-base font-black text-slate-900">
+                  <h3 className="text-base font-bold text-slate-900">
                     {selectedSection.gradeName} • Section{" "}
                     {selectedSection.section.name}
                   </h3>
@@ -579,10 +579,10 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
                   />
                 </div>
                 <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                  <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                  <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                     Register Status
                   </p>
-                  <p className="mt-2 text-lg font-black text-slate-900">
+                  <p className="mt-2 text-lg font-bold text-slate-900">
                     {selectedSection.status.is_marked ? "Marked" : "Pending"}
                   </p>
                   <p className="mt-1 text-sm text-slate-500">
@@ -591,16 +591,16 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
                   </p>
                 </div>
                 <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                  <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                  <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                     Daily Attendance Rate
                   </p>
-                  <p className="mt-2 text-3xl font-black text-slate-900">
+                  <p className="mt-2 text-3xl font-bold text-slate-900">
                     {selectedSection.status.attendance_rate.toFixed(1)}%
                   </p>
                 </div>
                 {sectionSummary && (
                   <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                    <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                    <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                       Academic Year Snapshot
                     </p>
                     <div className="mt-3 space-y-2 text-sm font-medium text-slate-600">
@@ -670,10 +670,10 @@ function KpiCard({
       <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-primary">
         <Icon className="h-5 w-5" />
       </div>
-      <p className="text-[10px] font-black tracking-widest text-white/60 uppercase">
+      <p className="text-[10px] font-bold tracking-widest text-white/60 uppercase">
         {label}
       </p>
-      <p className="mt-2 text-3xl font-black text-white">{value}</p>
+      <p className="mt-2 text-3xl font-bold text-white">{value}</p>
       <p className="mt-2 text-sm text-white/70">{helper}</p>
     </div>
   )
@@ -688,10 +688,10 @@ function SummaryMetric({
 }) {
   return (
     <div>
-      <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+      <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
         {label}
       </p>
-      <p className="mt-1 text-xl font-black text-slate-900">{value}</p>
+      <p className="mt-1 text-xl font-bold text-slate-900">{value}</p>
     </div>
   )
 }
@@ -705,10 +705,10 @@ function SideMetric({
 }) {
   return (
     <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-      <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+      <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
         {label}
       </p>
-      <p className="mt-2 text-2xl font-black text-slate-900">{value}</p>
+      <p className="mt-2 text-2xl font-bold text-slate-900">{value}</p>
     </div>
   )
 }

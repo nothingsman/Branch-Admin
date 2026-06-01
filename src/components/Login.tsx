@@ -168,7 +168,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, resetSuccess }) =>
           <div className="absolute inset-0 bg-gradient-to-t from-[#1A237E]/95 via-[#1A237E]/60 to-transparent" />
         </div>
         <div className="relative z-10 flex flex-col justify-end p-12 text-white">
-          <h2 className="text-3xl font-bold mb-4">Welcome back, administrator</h2>
+          <h2 className="text-3xl font-semibold mb-4">Welcome back, administrator</h2>
           <p className="max-w-md text-base text-blue-200 md:text-lg">
             Sign in to manage branches, oversee academic operations, and
             coordinate with your team.
@@ -196,7 +196,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, resetSuccess }) =>
             transition={{ duration: 0.5 }}
           >
             <div className="mb-8">
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">
+              <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 mb-2">
                 Branch admin login
               </h1>
               <p className="text-slate-600">
@@ -243,7 +243,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, resetSuccess }) =>
               <div className="space-y-1.5">
                 <label
                   htmlFor="email"
-                  className="text-sm font-semibold text-slate-700"
+                  className="text-sm font-medium text-slate-700"
                 >
                   Email
                 </label>
@@ -270,7 +270,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, resetSuccess }) =>
               <div className="space-y-1.5">
                 <label
                   htmlFor="password"
-                  className="text-sm font-semibold text-slate-700"
+                  className="text-sm font-medium text-slate-700"
                 >
                   Password
                 </label>
@@ -318,7 +318,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, resetSuccess }) =>
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#1A237E] text-white font-semibold hover:bg-blue-900 transition disabled:opacity-60"
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#1A237E] text-white font-medium hover:bg-blue-900 transition disabled:opacity-60"
               >
                 {isLoading ? "Signing in..." : "Sign in"}
                 <LogIn size={18} />

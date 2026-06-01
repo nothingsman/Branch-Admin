@@ -200,7 +200,7 @@ export const AcademicCalendar: React.FC<{
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-xs font-black tracking-widest text-slate-500 uppercase">
+          <p className="text-xs font-bold tracking-widest text-slate-500 uppercase">
             Loading academic calendar PDF
           </p>
         </div>
@@ -213,7 +213,7 @@ export const AcademicCalendar: React.FC<{
       <div className="flex h-full items-center justify-center bg-slate-50 p-6">
         <div className="max-w-md rounded-3xl border border-red-100 bg-red-50 p-6 text-center">
           <AlertCircle className="mx-auto mb-3 h-8 w-8 text-red-500" />
-          <p className="font-black text-red-700">
+          <p className="font-bold text-red-700">
             Failed to load academic calendar PDF
           </p>
           <p className="mt-2 text-sm text-red-600">{loadError}</p>
@@ -227,9 +227,9 @@ export const AcademicCalendar: React.FC<{
       <div className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 bg-white/80 px-6 py-4 backdrop-blur-md">
         <div className="flex items-center gap-6">
           <div>
-            <h1 className="flex items-center gap-2 text-xl font-black tracking-tight text-slate-900">
+            <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight text-slate-900">
               Academic Calendar
-              <span className="rounded-full border border-primary/10 bg-primary/5 px-2 py-0.5 text-xs font-bold text-primary">
+              <span className="rounded-full border border-primary/10 bg-primary/5 px-2 py-0.5 text-xs font-semibold text-primary">
                 {academicYear}
               </span>
             </h1>
@@ -546,10 +546,10 @@ function EventModal({
                   <Plus className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black tracking-tight text-slate-900">
+                  <h3 className="text-xl font-bold tracking-tight text-slate-900">
                     {event ? "Edit Event" : "Create New Event"}
                   </h3>
-                  <p className="text-xs font-bold text-slate-500">
+                  <p className="text-xs font-semibold text-slate-500">
                     Every event creates or updates a linked draft announcement
                   </p>
                 </div>
@@ -616,7 +616,7 @@ function EventModal({
                     <div className="flex rounded-lg bg-white p-1 shadow-sm">
                       <button
                         onClick={() => setField("isRange", false)}
-                        className={`rounded-md px-3 py-1 text-[10px] font-black tracking-wider uppercase transition-all ${
+                        className={`rounded-md px-3 py-1 text-[10px] font-bold tracking-wider uppercase transition-all ${
                           !form.isRange
                             ? "bg-primary text-white shadow-sm"
                             : "text-slate-400"
@@ -626,7 +626,7 @@ function EventModal({
                       </button>
                       <button
                         onClick={() => setField("isRange", true)}
-                        className={`rounded-md px-3 py-1 text-[10px] font-black tracking-wider uppercase transition-all ${
+                        className={`rounded-md px-3 py-1 text-[10px] font-bold tracking-wider uppercase transition-all ${
                           form.isRange
                             ? "bg-primary text-white shadow-sm"
                             : "text-slate-400"
@@ -637,7 +637,7 @@ function EventModal({
                     </div>
 
                     <label className="flex items-center gap-2">
-                      <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                      <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                         All Day
                       </span>
                       <input
@@ -753,7 +753,7 @@ function EventModal({
                                   toggleSection(section.id, event.target.checked)
                                 }
                               />
-                              <span className="text-sm font-bold text-slate-700">
+                              <span className="text-sm font-semibold text-slate-700">
                                 Section {section.name}
                               </span>
                             </label>
@@ -793,14 +793,14 @@ function EventModal({
             <div className="flex items-center justify-end gap-3 border-t border-slate-100 p-6">
               <button
                 onClick={onClose}
-                className="px-6 py-3 text-[10px] font-black tracking-widest text-slate-400 uppercase transition-all hover:text-slate-600"
+                className="px-6 py-3 text-[10px] font-bold tracking-widest text-slate-400 uppercase transition-all hover:text-slate-600"
               >
                 Cancel
               </button>
               <button
                 disabled={isSubmitting}
                 onClick={() => void handleSubmit()}
-                className="rounded-xl bg-primary px-8 py-3 text-[10px] font-black tracking-widest text-white uppercase shadow-lg shadow-primary/20 transition-all hover:shadow-xl active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-xl bg-primary px-8 py-3 text-[10px] font-bold tracking-widest text-white uppercase shadow-lg shadow-primary/20 transition-all hover:shadow-xl active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSubmitting
                   ? event
@@ -861,7 +861,7 @@ function ImportCalendarModal({
             <FileText className="h-10 w-10 text-primary" />
           </div>
           <div className="space-y-2">
-            <h3 className="text-2xl font-black tracking-tight text-slate-900">
+            <h3 className="text-2xl font-bold tracking-tight text-slate-900">
               Calendar Event Import
             </h3>
             <p className="text-sm font-medium text-slate-500">
@@ -875,10 +875,10 @@ function ImportCalendarModal({
                   <FileUp className="h-6 w-6 text-slate-300 transition-colors group-hover:text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm font-black tracking-tight text-slate-900">
+                  <p className="text-sm font-bold tracking-tight text-slate-900">
                     {file ? file.name : "Click or drag file to upload"}
                   </p>
-                  <p className="mt-1 text-xs font-bold tracking-widest text-slate-400 uppercase">
+                  <p className="mt-1 text-xs font-semibold tracking-widest text-slate-400 uppercase">
                     .csv supported
                   </p>
                 </div>
@@ -899,12 +899,12 @@ function ImportCalendarModal({
           {(isImporting || taskId) && (
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-bold text-slate-700">
+                <p className="text-sm font-semibold text-slate-700">
                   {taskId
                     ? `Import job ${taskId.slice(0, 8)}...`
                     : "Starting import..."}
                 </p>
-                <span className="text-xs font-black tracking-widest text-primary uppercase">
+                <span className="text-xs font-bold tracking-widest text-primary uppercase">
                   {progress}%
                 </span>
               </div>
@@ -931,7 +931,7 @@ function ImportCalendarModal({
             <button
               type="button"
               onClick={onClose}
-              className="text-[10px] font-black tracking-widest text-slate-400 uppercase hover:text-slate-600"
+              className="text-[10px] font-bold tracking-widest text-slate-400 uppercase hover:text-slate-600"
             >
               Cancel
             </button>
@@ -940,7 +940,7 @@ function ImportCalendarModal({
               type="button"
               disabled={!file || isImporting}
               onClick={() => void onImport()}
-              className="text-[10px] font-black tracking-widest text-primary uppercase hover:underline disabled:cursor-not-allowed disabled:no-underline disabled:opacity-50"
+              className="text-[10px] font-bold tracking-widest text-primary uppercase hover:underline disabled:cursor-not-allowed disabled:no-underline disabled:opacity-50"
             >
               {isImporting ? "Importing..." : "Upload File"}
             </button>
@@ -984,10 +984,10 @@ function LinkedAnnouncementModal({
         >
           <div className="flex items-center justify-between border-b border-slate-100 p-6">
             <div>
-              <h3 className="text-xl font-black tracking-tight text-slate-900">
+              <h3 className="text-xl font-bold tracking-tight text-slate-900">
                 Linked Announcement
               </h3>
-              <p className="text-xs font-bold tracking-widest text-slate-500 uppercase">
+              <p className="text-xs font-semibold tracking-widest text-slate-500 uppercase">
                 {announcement.status}
               </p>
             </div>
@@ -1012,7 +1012,7 @@ function LinkedAnnouncementModal({
           <div className="flex items-center justify-end gap-3 border-t border-slate-100 p-6">
             <button
               onClick={onClose}
-              className="px-6 py-3 text-[10px] font-black tracking-widest text-slate-400 uppercase transition-all hover:text-slate-600"
+              className="px-6 py-3 text-[10px] font-bold tracking-widest text-slate-400 uppercase transition-all hover:text-slate-600"
             >
               Close
             </button>
@@ -1028,7 +1028,7 @@ function LinkedAnnouncementModal({
                     setIsSending(false)
                   }
                 }}
-                className="rounded-xl bg-primary px-8 py-3 text-[10px] font-black tracking-widest text-white uppercase shadow-lg shadow-primary/20 transition-all hover:shadow-xl active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-xl bg-primary px-8 py-3 text-[10px] font-bold tracking-widest text-white uppercase shadow-lg shadow-primary/20 transition-all hover:shadow-xl active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSending ? "Sending..." : "Send Draft"}
               </button>
@@ -1059,7 +1059,7 @@ function CalendarPdfTab({
     <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
         <div>
-          <h2 className="text-xl font-black text-slate-900">
+          <h2 className="text-xl font-bold text-slate-900">
             Calendar PDF
           </h2>
           <p className="text-sm text-slate-500">
@@ -1068,7 +1068,7 @@ function CalendarPdfTab({
           </p>
         </div>
 
-        <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/30 active:scale-95">
+        <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/30 active:scale-95">
           <UploadIcon />
           <span>{isUploading ? "Uploading..." : "Upload PDF"}</span>
           <input
@@ -1098,10 +1098,10 @@ function CalendarPdfTab({
         <div className="space-y-4 rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+              <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                 Active Document
               </p>
-              <p className="mt-1 text-sm font-bold text-slate-900">
+              <p className="mt-1 text-sm font-semibold text-slate-900">
                 {activeDocument.file_name || "Academic calendar PDF"}
               </p>
               <p className="mt-1 text-xs text-slate-500">
@@ -1118,7 +1118,7 @@ function CalendarPdfTab({
                   href={activePdfUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50"
+                  className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50"
                 >
                   <ExternalLink className="h-4 w-4" />
                   Open
@@ -1126,7 +1126,7 @@ function CalendarPdfTab({
                 <a
                   href={activePdfUrl}
                   download
-                  className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50"
+                  className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50"
                 >
                   <Download className="h-4 w-4" />
                   Download
@@ -1166,7 +1166,7 @@ function Field({
 }) {
   return (
     <label className="block space-y-2">
-      <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+      <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
         {label}
         {required ? (
           <span className="ml-1 text-red-500" aria-hidden="true">
@@ -1195,10 +1195,10 @@ function DetailCard({
         {icon}
       </div>
       <div>
-        <p className="text-[10px] leading-none font-black tracking-widest text-slate-400 uppercase">
+        <p className="text-[10px] leading-none font-bold tracking-widest text-slate-400 uppercase">
           {label}
         </p>
-        <p className="mt-2 text-sm font-bold text-slate-900">{value}</p>
+        <p className="mt-2 text-sm font-semibold text-slate-900">{value}</p>
       </div>
     </div>
   )
@@ -1207,7 +1207,7 @@ function DetailCard({
 function InfoBlock({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-      <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+      <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
         {label}
       </p>
       <p className="mt-2 text-sm leading-6 text-slate-700">{value}</p>

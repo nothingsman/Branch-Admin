@@ -154,7 +154,7 @@ export const Announcements: React.FC<AnnouncementsProps> = ({
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-xs font-black tracking-widest text-slate-500 uppercase">
+          <p className="text-xs font-bold tracking-widest text-slate-500 uppercase">
             Loading announcements
           </p>
         </div>
@@ -167,7 +167,7 @@ export const Announcements: React.FC<AnnouncementsProps> = ({
       <div className="flex h-full items-center justify-center bg-slate-50 p-6">
         <div className="max-w-md rounded-3xl border border-red-100 bg-red-50 p-6 text-center">
           <AlertCircle className="mx-auto mb-3 h-8 w-8 text-red-500" />
-          <p className="font-black text-red-700">
+          <p className="font-bold text-red-700">
             Failed to load announcements
           </p>
           <p className="mt-2 text-sm text-red-600">{error}</p>
@@ -182,7 +182,7 @@ export const Announcements: React.FC<AnnouncementsProps> = ({
         <div className="mx-auto max-w-6xl space-y-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <h1 className="text-2xl font-black tracking-tight text-slate-900">
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                 Announcements
               </h1>
               <p className="text-sm text-slate-500">
@@ -194,7 +194,7 @@ export const Announcements: React.FC<AnnouncementsProps> = ({
                 setEditingAnnouncement(null)
                 setComposerOpen(true)
               }}
-              className="flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-black text-white shadow-lg shadow-primary/20"
+              className="flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20"
             >
               <Plus className="h-4 w-4" />
               New Announcement
@@ -225,7 +225,7 @@ export const Announcements: React.FC<AnnouncementsProps> = ({
                     <button
                       key={filter}
                       onClick={() => setStatusFilter(filter)}
-                      className={`rounded-xl px-4 py-3 text-xs font-black tracking-widest uppercase ${
+                      className={`rounded-xl px-4 py-3 text-xs font-bold tracking-widest uppercase ${
                         statusFilter === filter
                           ? "bg-primary text-white"
                           : "border border-slate-200 bg-white text-slate-600"
@@ -260,7 +260,7 @@ export const Announcements: React.FC<AnnouncementsProps> = ({
                           urgent={announcement.is_urgent}
                         />
                       </div>
-                      <h2 className="mt-3 text-lg font-black text-slate-900">
+                      <h2 className="mt-3 text-lg font-bold text-slate-900">
                         {announcement.subject}
                       </h2>
                       <p className="mt-2 line-clamp-2 text-sm text-slate-500">
@@ -268,7 +268,7 @@ export const Announcements: React.FC<AnnouncementsProps> = ({
                       </p>
                     </div>
                     <div className="text-left md:text-right">
-                      <p className="text-sm font-bold text-slate-700">
+                      <p className="text-sm font-semibold text-slate-700">
                         {displayDate(announcement)}
                       </p>
                     </div>
@@ -302,7 +302,7 @@ export const Announcements: React.FC<AnnouncementsProps> = ({
             >
               <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
                 <div>
-                  <h2 className="text-base font-black text-slate-900">
+                  <h2 className="text-base font-bold text-slate-900">
                     Announcement Details
                   </h2>
                   <p className="mt-1 text-xs text-slate-500">
@@ -327,7 +327,7 @@ export const Announcements: React.FC<AnnouncementsProps> = ({
                       label={audienceLabel(selectedAnnouncement.target_roles)}
                     />
                   </div>
-                  <h3 className="mt-4 text-2xl font-black text-slate-900">
+                  <h3 className="mt-4 text-2xl font-bold text-slate-900">
                     {selectedAnnouncement.subject}
                   </h3>
                   <p className="mt-4 text-sm leading-6 whitespace-pre-wrap text-slate-600">
@@ -387,7 +387,7 @@ export const Announcements: React.FC<AnnouncementsProps> = ({
                         setEditingAnnouncement(selectedAnnouncement)
                         setComposerOpen(true)
                       }}
-                      className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700"
+                      className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700"
                     >
                       <Edit3 className="h-4 w-4" />
                       Edit
@@ -399,7 +399,7 @@ export const Announcements: React.FC<AnnouncementsProps> = ({
                       setSelectedAnnouncementId(null)
                       refetch()
                     }}
-                    className="flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-black text-white"
+                    className="flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-bold text-white"
                   >
                     <Trash2 className="h-4 w-4" />
                     Delete
@@ -674,7 +674,7 @@ function AnnouncementComposer({
       >
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
           <div>
-            <h2 className="text-lg font-black text-slate-900">
+            <h2 className="text-lg font-bold text-slate-900">
               {initialAnnouncement
                 ? "Edit Announcement"
                 : "Compose Announcement"}
@@ -777,7 +777,7 @@ function AnnouncementComposer({
                             toggleTargetSection(section.id, event.target.checked)
                           }
                         />
-                        <span className="text-sm font-bold text-slate-700">
+                        <span className="text-sm font-semibold text-slate-700">
                           Section {section.name}
                         </span>
                       </label>
@@ -837,7 +837,7 @@ function AnnouncementComposer({
                 setDraft({ ...draft, isUrgent: event.target.checked })
               }
             />
-            <span className="text-sm font-bold text-slate-700">
+            <span className="text-sm font-semibold text-slate-700">
               Mark as urgent
             </span>
           </label>
@@ -875,7 +875,7 @@ function AnnouncementComposer({
             type="button"
             onClick={() => submit("DRAFT")}
             disabled={isSubmitting || isAttachmentBusy}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 disabled:opacity-60"
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 disabled:opacity-60"
           >
             Save Draft
           </button>
@@ -884,7 +884,7 @@ function AnnouncementComposer({
               type="button"
               disabled={isSubmitting || isAttachmentBusy}
               onClick={() => submit("SCHEDULED")}
-              className="rounded-xl border border-primary/20 bg-primary/10 px-4 py-2.5 text-sm font-black text-primary disabled:opacity-60"
+              className="rounded-xl border border-primary/20 bg-primary/10 px-4 py-2.5 text-sm font-bold text-primary disabled:opacity-60"
             >
               <span className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
@@ -895,7 +895,7 @@ function AnnouncementComposer({
               type="button"
               disabled={isSubmitting || isAttachmentBusy}
               onClick={() => submit("SENT")}
-              className="rounded-xl bg-primary px-4 py-2.5 text-sm font-black text-white disabled:opacity-60"
+              className="rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60"
             >
               <span className="flex items-center gap-2">
                 <Send className="h-4 w-4" />
@@ -922,7 +922,7 @@ function Field({
 }) {
   return (
     <label className="block space-y-2">
-      <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+      <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
         {label}
         {required ? (
           <span className="ml-1 text-red-500" aria-hidden="true">
@@ -939,17 +939,17 @@ function Field({
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-      <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+      <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
         {label}
       </p>
-      <p className="mt-2 text-2xl font-black text-slate-900">{value}</p>
+      <p className="mt-2 text-2xl font-bold text-slate-900">{value}</p>
     </div>
   )
 }
 
 function AnnouncementBadge({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-[10px] font-black tracking-widest text-primary uppercase">
+    <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-[10px] font-bold tracking-widest text-primary uppercase">
       <Users className="h-3.5 w-3.5" />
       {label}
     </span>
@@ -965,7 +965,7 @@ function StatusBadge({
 }) {
   if (urgent) {
     return (
-      <span className="rounded-full bg-red-50 px-3 py-1 text-[10px] font-black tracking-widest text-red-700 uppercase">
+      <span className="rounded-full bg-red-50 px-3 py-1 text-[10px] font-bold tracking-widest text-red-700 uppercase">
         Urgent
       </span>
     )
@@ -980,7 +980,7 @@ function StatusBadge({
 
   return (
     <span
-      className={`rounded-full px-3 py-1 text-[10px] font-black tracking-widest uppercase ${styles}`}
+      className={`rounded-full px-3 py-1 text-[10px] font-bold tracking-widest uppercase ${styles}`}
     >
       {status}
     </span>
@@ -998,10 +998,10 @@ function EmptyState({ message }: { message: string }) {
 function DetailCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-      <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+      <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
         {label}
       </p>
-      <p className="mt-2 text-sm font-bold text-slate-700">{value}</p>
+      <p className="mt-2 text-sm font-semibold text-slate-700">{value}</p>
     </div>
   )
 }
@@ -1046,7 +1046,7 @@ function ResolvedMediaLink({
       href={resolvedUrl}
       target="_blank"
       rel="noreferrer"
-      className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm font-bold text-slate-700 transition hover:border-primary/20 hover:text-primary"
+      className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm font-semibold text-slate-700 transition hover:border-primary/20 hover:text-primary"
     >
       <span>{label}</span>
       <ExternalLink className="h-4 w-4" />

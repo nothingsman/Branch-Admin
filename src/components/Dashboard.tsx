@@ -129,12 +129,12 @@ export const Dashboard: React.FC = () => {
               </div>
               <div className="flex items-center gap-1 text-emerald-600">
                 <ArrowUpRight className="h-4 w-4" />
-                <span className="text-xs font-black">+2.4%</span>
+                <span className="text-xs font-bold">+2.4%</span>
               </div>
             </div>
             <div className="mt-4">
-              <p className="text-2xl font-black text-slate-900">92.8%</p>
-              <p className="text-xs font-bold tracking-wider text-slate-500 uppercase">
+              <p className="text-2xl font-bold text-slate-900">92.8%</p>
+              <p className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
                 Attendance Rate
               </p>
             </div>
@@ -150,13 +150,13 @@ export const Dashboard: React.FC = () => {
               <div className="rounded-2xl bg-red-50 p-2.5">
                 <AlertCircle className="h-5 w-5 text-red-600" />
               </div>
-              <div className="rounded-lg bg-red-600 px-2 py-1 text-[10px] font-black text-white uppercase">
+              <div className="rounded-lg bg-red-600 px-2 py-1 text-[10px] font-bold text-white uppercase">
                 Critical
               </div>
             </div>
             <div className="mt-4">
-              <p className="text-2xl font-black text-red-600">42</p>
-              <p className="text-xs font-bold tracking-wider text-slate-500 uppercase">
+              <p className="text-2xl font-bold text-red-600">42</p>
+              <p className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
                 Performance Risk
               </p>
             </div>
@@ -172,13 +172,13 @@ export const Dashboard: React.FC = () => {
               <div className="rounded-2xl bg-amber-50 p-2.5">
                 <CheckCircle2 className="h-5 w-5 text-amber-600" />
               </div>
-              <p className="text-[10px] font-bold text-amber-600 uppercase">
+              <p className="text-[10px] font-semibold text-amber-600 uppercase">
                 12 Pending
               </p>
             </div>
             <div className="mt-4">
-              <p className="text-2xl font-black text-slate-900">88%</p>
-              <p className="text-xs font-bold tracking-wider text-slate-500 uppercase">
+              <p className="text-2xl font-bold text-slate-900">88%</p>
+              <p className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
                 Teacher Compliance
               </p>
             </div>
@@ -194,13 +194,13 @@ export const Dashboard: React.FC = () => {
               <div className="rounded-2xl bg-primary/5 p-2.5">
                 <Link2 className="h-5 w-5 text-primary" />
               </div>
-              <p className="text-[10px] font-bold text-primary uppercase">
+              <p className="text-[10px] font-semibold text-primary uppercase">
                 Goal: 90%
               </p>
             </div>
             <div className="mt-4">
-              <p className="text-2xl font-black text-slate-900">85.4%</p>
-              <p className="text-xs font-bold tracking-wider text-slate-500 uppercase">
+              <p className="text-2xl font-bold text-slate-900">85.4%</p>
+              <p className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
                 Parent Linkage
               </p>
             </div>
@@ -210,7 +210,7 @@ export const Dashboard: React.FC = () => {
         {/* Analytics Charts */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
-            <h3 className="mb-6 flex items-center justify-between text-sm font-black tracking-wider text-slate-900 uppercase">
+            <h3 className="mb-6 flex items-center justify-between text-sm font-bold tracking-wider text-slate-900 uppercase">
               Weekly Attendance Trend
               <span className="text-[10px] font-medium text-slate-400 lowercase italic">
                 Last 7 days
@@ -265,7 +265,7 @@ export const Dashboard: React.FC = () => {
           </div>
 
           <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
-            <h3 className="mb-6 text-sm font-black tracking-wider text-slate-900 uppercase">
+            <h3 className="mb-6 text-sm font-bold tracking-wider text-slate-900 uppercase">
               Grade-Level Comparison
             </h3>
             <div className="h-[250px] min-h-[250px] w-full min-w-0">
@@ -311,11 +311,11 @@ export const Dashboard: React.FC = () => {
           {/* Critical Attention: Performance Risks */}
           <div className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm lg:col-span-2">
             <div className="flex items-center justify-between border-b border-slate-50 p-6">
-              <h3 className="flex items-center gap-2 text-sm font-black tracking-wider text-slate-900 uppercase">
+              <h3 className="flex items-center gap-2 text-sm font-bold tracking-wider text-slate-900 uppercase">
                 <TrendingDown className="h-4 w-4 text-red-600" />
                 Top Performance Risks
               </h3>
-              <button className="text-xs font-black text-slate-400 transition-colors hover:text-primary">
+              <button className="text-xs font-bold text-slate-400 transition-colors hover:text-primary">
                 View All
               </button>
             </div>
@@ -323,16 +323,16 @@ export const Dashboard: React.FC = () => {
               <table className="w-full border-collapse text-left">
                 <thead>
                   <tr className="bg-slate-50/50">
-                    <th className="px-6 py-4 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                    <th className="px-6 py-4 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                       Student
                     </th>
-                    <th className="px-6 py-4 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                    <th className="px-6 py-4 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                       Grade
                     </th>
-                    <th className="px-6 py-4 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                    <th className="px-6 py-4 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                       Trend
                     </th>
-                    <th className="px-6 py-4 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                    <th className="px-6 py-4 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                       Status
                     </th>
                   </tr>
@@ -343,18 +343,18 @@ export const Dashboard: React.FC = () => {
                       key={index}
                       className="transition-colors hover:bg-slate-50"
                     >
-                      <td className="px-6 py-4 font-bold text-slate-900">
+                      <td className="px-6 py-4 font-semibold text-slate-900">
                         {risk.name}
                       </td>
                       <td className="px-6 py-4 font-medium text-slate-500">
                         {risk.grade}
                       </td>
-                      <td className="px-6 py-4 font-black text-red-600">
+                      <td className="px-6 py-4 font-bold text-red-600">
                         {risk.drop}
                       </td>
                       <td className="px-6 py-4">
                         <span
-                          className={`rounded-lg px-2 py-1 text-[9px] font-black uppercase ${
+                          className={`rounded-lg px-2 py-1 text-[9px] font-bold uppercase ${
                             risk.status === "Critical"
                               ? "bg-red-50 text-red-600"
                               : "bg-amber-50 text-amber-600"
@@ -373,7 +373,7 @@ export const Dashboard: React.FC = () => {
           {/* Unlinked Students */}
           <div className="flex flex-col rounded-3xl border border-slate-100 bg-white shadow-sm">
             <div className="border-b border-slate-50 p-6">
-              <h3 className="flex items-center gap-2 text-sm font-black tracking-wider text-slate-900 uppercase">
+              <h3 className="flex items-center gap-2 text-sm font-bold tracking-wider text-slate-900 uppercase">
                 <Link2Off className="h-4 w-4 text-amber-500" />
                 Unlinked Students
               </h3>
@@ -389,22 +389,22 @@ export const Dashboard: React.FC = () => {
                       <Users className="h-4 w-4 text-slate-400" />
                     </div>
                     <div>
-                      <p className="text-xs font-black text-slate-900">
+                      <p className="text-xs font-bold text-slate-900">
                         {student.name}
                       </p>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase">
+                      <p className="text-[10px] font-semibold text-slate-400 uppercase">
                         {student.grade}
                       </p>
                     </div>
                   </div>
-                  <button className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[9px] font-black tracking-widest text-slate-600 uppercase transition-all hover:border-primary hover:bg-primary hover:text-white">
+                  <button className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[9px] font-bold tracking-widest text-slate-600 uppercase transition-all hover:border-primary hover:bg-primary hover:text-white">
                     Link
                   </button>
                 </div>
               ))}
             </div>
             <div className="bg-slate-50/50 p-4">
-              <button className="w-full rounded-xl border border-slate-200 bg-white py-3 text-[10px] font-black tracking-widest text-slate-400 uppercase transition-all hover:text-slate-600">
+              <button className="w-full rounded-xl border border-slate-200 bg-white py-3 text-[10px] font-bold tracking-widest text-slate-400 uppercase transition-all hover:text-slate-600">
                 Handle Bulk Linkage
               </button>
             </div>
@@ -415,7 +415,7 @@ export const Dashboard: React.FC = () => {
         <div className="grid grid-cols-1 gap-6 pb-12 md:grid-cols-2">
           {/* Calendar Quick-View */}
           <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
-            <h3 className="mb-6 flex items-center gap-2 text-sm font-black tracking-wider text-slate-900 uppercase">
+            <h3 className="mb-6 flex items-center gap-2 text-sm font-bold tracking-wider text-slate-900 uppercase">
               <Calendar className="h-4 w-4 text-primary" />
               Next Up
             </h3>
@@ -424,7 +424,7 @@ export const Dashboard: React.FC = () => {
                 <div key={index} className="flex gap-4">
                   <div className="h-12 w-1.5 shrink-0 rounded-full bg-primary" />
                   <div>
-                    <h4 className="text-sm font-bold text-slate-900">
+                    <h4 className="text-sm font-semibold text-slate-900">
                       {event.title}
                     </h4>
                     <p className="mt-0.5 text-xs font-medium text-slate-500">
@@ -438,7 +438,7 @@ export const Dashboard: React.FC = () => {
 
           {/* Recent Announcements */}
           <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
-            <h3 className="mb-6 flex items-center gap-2 text-sm font-black tracking-wider text-slate-900 uppercase">
+            <h3 className="mb-6 flex items-center gap-2 text-sm font-bold tracking-wider text-slate-900 uppercase">
               <Bell className="h-4 w-4 text-primary" />
               Recent Broadcasts
             </h3>
@@ -446,7 +446,7 @@ export const Dashboard: React.FC = () => {
               {recentAnnouncements.map((ann, index) => (
                 <div key={index}>
                   <div className="mb-2 flex items-center justify-between">
-                    <h4 className="text-xs font-black text-slate-900">
+                    <h4 className="text-xs font-bold text-slate-900">
                       {ann.title}
                     </h4>
                     <span className="text-[10px] font-medium text-slate-400 italic">
@@ -459,7 +459,7 @@ export const Dashboard: React.FC = () => {
                       style={{ width: `${ann.readRate}%` }}
                     />
                   </div>
-                  <p className="mt-2 text-[10px] font-bold tracking-widest text-slate-500 uppercase">
+                  <p className="mt-2 text-[10px] font-semibold tracking-widest text-slate-500 uppercase">
                     {ann.readRate}% Read Rate
                   </p>
                 </div>
@@ -480,7 +480,7 @@ export const Dashboard: React.FC = () => {
                 exit={{ opacity: 0, scale: 0, y: 20 }}
                 className="group flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 whitespace-nowrap shadow-xl transition-colors hover:bg-slate-50"
               >
-                <span className="text-xs font-black text-slate-700">
+                <span className="text-xs font-bold text-slate-700">
                   Add Student
                 </span>
                 <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
@@ -494,7 +494,7 @@ export const Dashboard: React.FC = () => {
                 transition={{ delay: 0.05 }}
                 className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 whitespace-nowrap shadow-xl transition-colors hover:bg-slate-50"
               >
-                <span className="text-xs font-black text-slate-700">
+                <span className="text-xs font-bold text-slate-700">
                   Invite Teacher
                 </span>
                 <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/5 text-primary">
@@ -508,7 +508,7 @@ export const Dashboard: React.FC = () => {
                 transition={{ delay: 0.1 }}
                 className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 whitespace-nowrap shadow-xl transition-colors hover:bg-slate-50"
               >
-                <span className="text-xs font-black text-slate-700">
+                <span className="text-xs font-bold text-slate-700">
                   Create Announcement
                 </span>
                 <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-50 text-slate-600">

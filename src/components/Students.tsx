@@ -796,7 +796,7 @@ export const Students: React.FC<StudentsProps> = ({
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50/30">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm font-bold tracking-widest text-slate-400 uppercase">
+          <p className="text-sm font-semibold tracking-widest text-slate-400 uppercase">
             Loading students...
           </p>
         </div>
@@ -809,7 +809,7 @@ export const Students: React.FC<StudentsProps> = ({
       <div className="flex h-full items-center justify-center bg-slate-50/30 p-8">
         <div className="max-w-md space-y-2 rounded-2xl border border-red-100 bg-red-50 p-6 text-center">
           <AlertCircle className="mx-auto h-8 w-8 text-red-400" />
-          <p className="text-sm font-bold text-red-600">
+          <p className="text-sm font-semibold text-red-600">
             Failed to load students
           </p>
           <p className="text-xs text-red-400">
@@ -826,9 +826,9 @@ export const Students: React.FC<StudentsProps> = ({
       <div className="sticky top-0 z-20 border-b border-slate-100 bg-white px-4 py-4 md:px-8 md:py-6">
         <div className="flex flex-col justify-between gap-4 md:gap-6 lg:flex-row lg:items-center">
           <div className="space-y-1">
-            <h1 className="flex items-center gap-2 text-xl font-black tracking-tight text-slate-900 md:gap-3 md:text-2xl">
+            <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight text-slate-900 md:gap-3 md:text-2xl">
               Students
-              <span className="rounded-full border border-primary/10 bg-primary/5 px-2 py-0.5 text-[10px] font-bold tracking-wider whitespace-nowrap text-primary uppercase">
+              <span className="rounded-full border border-primary/10 bg-primary/5 px-2 py-0.5 text-[10px] font-semibold tracking-wider whitespace-nowrap text-primary uppercase">
                 {academicYear}
               </span>
             </h1>
@@ -839,7 +839,7 @@ export const Students: React.FC<StudentsProps> = ({
           <div className="flex items-center gap-2 md:gap-3">
             <button
               onClick={() => setIsImportModalOpen(true)}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 shadow-sm transition-all hover:bg-slate-50 active:scale-95 md:px-4 md:py-2.5 md:text-sm lg:flex-none"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm transition-all hover:bg-slate-50 active:scale-95 md:px-4 md:py-2.5 md:text-sm lg:flex-none"
             >
               <FileText className="h-4 w-4 shrink-0" />
               <span className="truncate">Import</span>
@@ -849,7 +849,7 @@ export const Students: React.FC<StudentsProps> = ({
                 resetStudentForm()
                 setIsAddModalOpen(true)
               }}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-white shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/30 active:scale-95 md:px-4 md:py-2.5 md:text-sm lg:flex-none"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-white shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/30 active:scale-95 md:px-4 md:py-2.5 md:text-sm lg:flex-none"
             >
               <UserPlus className="h-4 w-4 shrink-0" />
               <span className="truncate">New Student</span>
@@ -895,10 +895,10 @@ export const Students: React.FC<StudentsProps> = ({
                 <stat.icon className="h-5 w-5" />
               </div>
               <div>
-                <p className="mb-1 text-[10px] leading-none font-black tracking-widest text-slate-400 uppercase">
+                <p className="mb-1 text-[10px] leading-none font-bold tracking-widest text-slate-400 uppercase">
                   {stat.label}
                 </p>
-                <p className="text-xl leading-none font-black text-slate-900">
+                <p className="text-xl leading-none font-bold text-slate-900">
                   {stat.value}
                 </p>
               </div>
@@ -914,7 +914,7 @@ export const Students: React.FC<StudentsProps> = ({
             <div className="no-scrollbar flex overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
               <button
                 onClick={() => setActiveTab("all")}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-[10px] font-bold whitespace-nowrap transition-all md:text-xs lg:flex-none ${
+                className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-[10px] font-semibold whitespace-nowrap transition-all md:text-xs lg:flex-none ${
                   activeTab === "all"
                     ? "bg-primary text-white shadow-md shadow-primary/10"
                     : "text-slate-500 hover:text-primary"
@@ -924,7 +924,7 @@ export const Students: React.FC<StudentsProps> = ({
               </button>
               <button
                 onClick={() => setActiveTab("linked")}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-[10px] font-bold whitespace-nowrap transition-all md:text-xs lg:flex-none ${
+                className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-[10px] font-semibold whitespace-nowrap transition-all md:text-xs lg:flex-none ${
                   activeTab === "linked"
                     ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/10"
                     : "text-slate-500 hover:text-emerald-500"
@@ -941,7 +941,7 @@ export const Students: React.FC<StudentsProps> = ({
               </button>
               <button
                 onClick={() => setActiveTab("unlinked")}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-[10px] font-bold whitespace-nowrap transition-all md:text-xs lg:flex-none ${
+                className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-[10px] font-semibold whitespace-nowrap transition-all md:text-xs lg:flex-none ${
                   activeTab === "unlinked"
                     ? "bg-amber-500 text-white shadow-md shadow-amber-500/10"
                     : "text-slate-500 hover:text-amber-500"
@@ -958,7 +958,7 @@ export const Students: React.FC<StudentsProps> = ({
               </button>
               <button
                 onClick={() => setActiveTab("unassigned")}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-[10px] font-bold whitespace-nowrap transition-all md:text-xs lg:flex-none ${
+                className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-[10px] font-semibold whitespace-nowrap transition-all md:text-xs lg:flex-none ${
                   activeTab === "unassigned"
                     ? "bg-rose-500 text-white shadow-md shadow-rose-500/10"
                     : "text-slate-500 hover:text-rose-500"
@@ -983,7 +983,7 @@ export const Students: React.FC<StudentsProps> = ({
               <select
                 value={gradeFilter}
                 onChange={(e) => setGradeFilter(e.target.value)}
-                className="flex-1 rounded-xl border border-slate-200 bg-white px-2 py-2 text-[10px] font-bold text-slate-600 outline-none focus:ring-2 focus:ring-primary/10 md:px-3 md:text-xs lg:flex-none"
+                className="flex-1 rounded-xl border border-slate-200 bg-white px-2 py-2 text-[10px] font-semibold text-slate-600 outline-none focus:ring-2 focus:ring-primary/10 md:px-3 md:text-xs lg:flex-none"
               >
                 <option value="All">All Grades</option>
                 {grades.map((g) => (
@@ -995,7 +995,7 @@ export const Students: React.FC<StudentsProps> = ({
               <select
                 value={sectionFilter}
                 onChange={(e) => setSectionFilter(e.target.value)}
-                className="flex-1 rounded-xl border border-slate-200 bg-white px-2 py-2 text-[10px] font-bold text-slate-600 outline-none focus:ring-2 focus:ring-primary/10 md:px-3 md:text-xs lg:flex-none"
+                className="flex-1 rounded-xl border border-slate-200 bg-white px-2 py-2 text-[10px] font-semibold text-slate-600 outline-none focus:ring-2 focus:ring-primary/10 md:px-3 md:text-xs lg:flex-none"
               >
                 <option value="All">All Sections</option>
                 {sectionNames.map((s) => (
@@ -1011,7 +1011,7 @@ export const Students: React.FC<StudentsProps> = ({
                   placeholder="Search students..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white py-2 pr-4 pl-10 text-[10px] font-bold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/10 md:text-xs"
+                  className="w-full rounded-xl border border-slate-200 bg-white py-2 pr-4 pl-10 text-[10px] font-semibold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/10 md:text-xs"
                 />
               </div>
               <button
@@ -1021,7 +1021,7 @@ export const Students: React.FC<StudentsProps> = ({
                     current === "name_asc" ? "name_desc" : "name_asc"
                   )
                 }
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[10px] font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 md:text-xs"
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[10px] font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 md:text-xs"
                 title="Toggle name sort order"
               >
                 <ArrowUpDown className="h-4 w-4" />
@@ -1033,7 +1033,7 @@ export const Students: React.FC<StudentsProps> = ({
           {/* Student Table */}
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             {isBackgroundRefreshing && (
-              <div className="flex items-center justify-end gap-2 border-b border-slate-100 bg-slate-50 px-6 py-3 text-xs font-bold text-slate-500">
+              <div className="flex items-center justify-end gap-2 border-b border-slate-100 bg-slate-50 px-6 py-3 text-xs font-semibold text-slate-500">
                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
                 Refreshing page...
               </div>
@@ -1042,19 +1042,19 @@ export const Students: React.FC<StudentsProps> = ({
               <table className="w-full border-collapse text-left">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50">
-                    <th className="px-6 py-4 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                    <th className="px-6 py-4 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                       Student
                     </th>
-                    <th className="px-6 py-4 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                    <th className="px-6 py-4 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                       Grade/Section
                     </th>
-                    <th className="px-6 py-4 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                    <th className="px-6 py-4 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                       Status
                     </th>
-                    <th className="px-6 py-4 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                    <th className="px-6 py-4 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                       Parent Link
                     </th>
-                    <th className="px-6 py-4 text-right text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                    <th className="px-6 py-4 text-right text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                       Actions
                     </th>
                   </tr>
@@ -1075,10 +1075,10 @@ export const Students: React.FC<StudentsProps> = ({
                                 iconClassName="w-5 h-5"
                               />
                               <div>
-                                <p className="text-sm font-black text-slate-900 transition-colors group-hover:text-primary">
+                                <p className="text-sm font-bold text-slate-900 transition-colors group-hover:text-primary">
                                   {student.name}
                                 </p>
-                                <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                                <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                                   {student.rollNo || student.id.slice(0, 8)}
                                 </p>
                               </div>
@@ -1086,11 +1086,11 @@ export const Students: React.FC<StudentsProps> = ({
                           </td>
                           <td className="px-6 py-4">
                             {student.sectionId ? (
-                              <span className="text-xs font-bold text-slate-700">
+                              <span className="text-xs font-semibold text-slate-700">
                                 {student.grade} - {student.section}
                               </span>
                             ) : (
-                              <span className="inline-flex rounded-full border border-rose-100 bg-rose-50 px-2.5 py-1 text-[10px] font-black tracking-widest text-rose-600 uppercase">
+                              <span className="inline-flex rounded-full border border-rose-100 bg-rose-50 px-2.5 py-1 text-[10px] font-bold tracking-widest text-rose-600 uppercase">
                                 Unassigned
                               </span>
                             )}
@@ -1106,7 +1106,7 @@ export const Students: React.FC<StudentsProps> = ({
                                       : "bg-slate-300"
                                 }`}
                               />
-                              <span className="text-xs font-bold text-slate-600">
+                              <span className="text-xs font-semibold text-slate-600">
                                 {student.registrationStatus}
                               </span>
                             </div>
@@ -1115,14 +1115,14 @@ export const Students: React.FC<StudentsProps> = ({
                             {student.parentId ? (
                               <div className="flex items-center gap-2 text-emerald-600">
                                 <Link2 className="h-4 w-4" />
-                                <span className="text-xs font-bold">
+                                <span className="text-xs font-semibold">
                                   Linked
                                 </span>
                               </div>
                             ) : (
                               <div className="flex items-center gap-2 text-amber-500">
                                 <Link2Off className="h-4 w-4" />
-                                <span className="text-xs font-bold">
+                                <span className="text-xs font-semibold">
                                   Unlinked
                                 </span>
                               </div>
@@ -1177,7 +1177,7 @@ export const Students: React.FC<StudentsProps> = ({
                             <Search className="h-10 w-10 text-slate-200" />
                           </div>
                           <div>
-                            <h3 className="text-lg font-black text-slate-900">
+                            <h3 className="text-lg font-bold text-slate-900">
                               No students found
                             </h3>
                             <p className="text-sm font-medium text-slate-500">
@@ -1205,7 +1205,7 @@ export const Students: React.FC<StudentsProps> = ({
                     setCurrentPage((page) => Math.max(1, page - 1))
                   }
                   disabled={!hasPreviousPage}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Previous
                 </button>
@@ -1213,7 +1213,7 @@ export const Students: React.FC<StudentsProps> = ({
                   type="button"
                   onClick={() => setCurrentPage((page) => page + 1)}
                   disabled={!hasNextPage}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Next
                 </button>
@@ -1243,7 +1243,7 @@ export const Students: React.FC<StudentsProps> = ({
             >
               <div className="flex items-center justify-between border-b border-slate-100 p-6">
                 <div
-                  className={`rounded-full border px-3 py-1 text-[10px] font-black tracking-widest uppercase ${
+                  className={`rounded-full border px-3 py-1 text-[10px] font-bold tracking-widest uppercase ${
                     selectedStudent.registrationStatus === "Registered"
                       ? "border-emerald-100 bg-emerald-50 text-emerald-600"
                       : "border-amber-100 bg-amber-50 text-amber-600"
@@ -1267,19 +1267,19 @@ export const Students: React.FC<StudentsProps> = ({
                     large
                   />
                   <div>
-                    <h2 className="text-2xl leading-tight font-black tracking-tight text-slate-900">
+                    <h2 className="text-2xl leading-tight font-bold tracking-tight text-slate-900">
                       {selectedStudent.name}
                     </h2>
-                    <p className="mt-1 text-xs font-black tracking-widest text-slate-400 uppercase">
+                    <p className="mt-1 text-xs font-bold tracking-widest text-slate-400 uppercase">
                       Roll: {selectedStudent.rollNo || "—"}
                     </p>
                   </div>
                 </div>
                 <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                  <p className="mb-2 text-[10px] leading-none font-black tracking-widest text-slate-400 uppercase">
+                  <p className="mb-2 text-[10px] leading-none font-bold tracking-widest text-slate-400 uppercase">
                     Academic Info
                   </p>
-                  <p className="text-sm font-bold text-slate-900">
+                  <p className="text-sm font-semibold text-slate-900">
                     {selectedStudent.sectionId
                       ? selectedStudent.grade
                       : "Unassigned"}
@@ -1291,7 +1291,7 @@ export const Students: React.FC<StudentsProps> = ({
                   </p>
                 </div>
                 <div className="space-y-4">
-                  <h4 className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                  <h4 className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                     Parental Connection
                   </h4>
                   {selectedStudent.parentId ? (
@@ -1300,7 +1300,7 @@ export const Students: React.FC<StudentsProps> = ({
                         <Link2 className="h-6 w-6 text-emerald-500" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-black text-emerald-600">
+                        <p className="text-sm font-bold text-emerald-600">
                           {selectedStudentParent
                             ? [
                                 selectedStudentParent.name,
@@ -1324,7 +1324,7 @@ export const Students: React.FC<StudentsProps> = ({
                         <Link2Off className="h-6 w-6 text-amber-500" />
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-black text-amber-600">
+                        <p className="text-sm font-bold text-amber-600">
                           No Parent Linked
                         </p>
                         <p className="mt-1 text-xs leading-none font-medium text-amber-500">
@@ -1341,7 +1341,7 @@ export const Students: React.FC<StudentsProps> = ({
                   )}
                 </div>
                 <div className="space-y-4 border-t border-slate-100 pt-6">
-                  <h4 className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                  <h4 className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                     Contact Methods
                   </h4>
                   <div className="space-y-2">
@@ -1363,7 +1363,7 @@ export const Students: React.FC<StudentsProps> = ({
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/5">
                           <Mail className="h-4 w-4 text-primary" />
                         </div>
-                        <span className="text-sm font-bold text-slate-700">
+                        <span className="text-sm font-semibold text-slate-700">
                           Send SMS to Parent
                         </span>
                       </div>
@@ -1374,7 +1374,7 @@ export const Students: React.FC<StudentsProps> = ({
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/5">
                           <Phone className="h-4 w-4 text-primary" />
                         </div>
-                        <span className="text-sm font-bold text-slate-700">
+                        <span className="text-sm font-semibold text-slate-700">
                           Call Emergency Contact
                         </span>
                       </div>
@@ -1386,7 +1386,7 @@ export const Students: React.FC<StudentsProps> = ({
               <div className="flex gap-3 border-t border-slate-100 p-6">
                 <button
                   onClick={() => setIsEditModalOpen(true)}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-100 bg-slate-50 py-3 text-[10px] font-black tracking-widest text-slate-400 uppercase transition-all hover:bg-slate-100 hover:text-slate-600"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-100 bg-slate-50 py-3 text-[10px] font-bold tracking-widest text-slate-400 uppercase transition-all hover:bg-slate-100 hover:text-slate-600"
                 >
                   <Edit3 className="h-4 w-4" />
                   Edit Profile
@@ -1395,7 +1395,7 @@ export const Students: React.FC<StudentsProps> = ({
                   <button
                     onClick={() => openAssignStudentModal(selectedStudent)}
                     disabled={!academicYearId}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-rose-500 py-3 text-[10px] font-black tracking-widest text-white uppercase shadow-lg shadow-rose-500/20 transition-all hover:shadow-xl active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-rose-500 py-3 text-[10px] font-bold tracking-widest text-white uppercase shadow-lg shadow-rose-500/20 transition-all hover:shadow-xl active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <GraduationCap className="h-4 w-4" />
                     Assign
@@ -1439,10 +1439,10 @@ export const Students: React.FC<StudentsProps> = ({
                     <Trash2 className="h-6 w-6 text-red-500" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black tracking-tight text-slate-900">
+                    <h3 className="text-xl font-bold tracking-tight text-slate-900">
                       Remove Student
                     </h3>
-                    <p className="text-xs font-bold tracking-widest text-red-500 uppercase">
+                    <p className="text-xs font-semibold tracking-widest text-red-500 uppercase">
                       This action is permanent
                     </p>
                   </div>
@@ -1463,14 +1463,14 @@ export const Students: React.FC<StudentsProps> = ({
                 <button
                   onClick={closeDeleteStudentModal}
                   disabled={isDeletingStudent}
-                  className="px-6 py-3 text-[10px] font-black tracking-widest text-slate-400 uppercase transition-all hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="px-6 py-3 text-[10px] font-bold tracking-widest text-slate-400 uppercase transition-all hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={() => void handleDeleteStudent()}
                   disabled={isDeletingStudent}
-                  className="flex min-w-36 items-center justify-center gap-2 rounded-xl bg-red-600 px-8 py-3 text-[10px] font-black tracking-widest text-white uppercase shadow-lg shadow-red-200 transition-all hover:bg-red-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex min-w-36 items-center justify-center gap-2 rounded-xl bg-red-600 px-8 py-3 text-[10px] font-bold tracking-widest text-white uppercase shadow-lg shadow-red-200 transition-all hover:bg-red-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isDeletingStudent ? (
                     <>
@@ -1513,10 +1513,10 @@ export const Students: React.FC<StudentsProps> = ({
                     <GraduationCap className="h-6 w-6 text-rose-500" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black tracking-tight text-slate-900">
+                    <h3 className="text-xl font-bold tracking-tight text-slate-900">
                       Assign Student
                     </h3>
-                    <p className="text-xs font-bold tracking-widest text-slate-500 uppercase">
+                    <p className="text-xs font-semibold tracking-widest text-slate-500 uppercase">
                       {studentToAssign.name}
                     </p>
                   </div>
@@ -1530,16 +1530,16 @@ export const Students: React.FC<StudentsProps> = ({
               </div>
               <div className="space-y-6 p-8">
                 <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                  <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                  <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                     Academic Year
                   </p>
-                  <p className="mt-2 text-sm font-bold text-slate-900">
+                  <p className="mt-2 text-sm font-semibold text-slate-900">
                     {academicYear}
                   </p>
                 </div>
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-2">
-                    <label className="text-[10px] leading-none font-black tracking-widest text-slate-400 uppercase">
+                    <label className="text-[10px] leading-none font-bold tracking-widest text-slate-400 uppercase">
                       Grade
                     </label>
                     <select
@@ -1551,7 +1551,7 @@ export const Students: React.FC<StudentsProps> = ({
                           rollNo: assignForm.rollNo,
                         })
                       }
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-rose-500/20"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-rose-500/20"
                     >
                       <option value="">Select grade</option>
                       {grades.map((grade) => (
@@ -1562,7 +1562,7 @@ export const Students: React.FC<StudentsProps> = ({
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] leading-none font-black tracking-widest text-slate-400 uppercase">
+                    <label className="text-[10px] leading-none font-bold tracking-widest text-slate-400 uppercase">
                       Roll No
                     </label>
                     <input
@@ -1575,12 +1575,12 @@ export const Students: React.FC<StudentsProps> = ({
                         }))
                       }
                       placeholder="Enter section roll number"
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-rose-500/20"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-rose-500/20"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] leading-none font-black tracking-widest text-slate-400 uppercase">
+                  <label className="text-[10px] leading-none font-bold tracking-widest text-slate-400 uppercase">
                     Section
                   </label>
                   <select
@@ -1592,7 +1592,7 @@ export const Students: React.FC<StudentsProps> = ({
                       }))
                     }
                     disabled={!assignForm.gradeId}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-rose-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-rose-500/20 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <option value="">Select section</option>
                     {assignSectionsForSelectedGrade.map((section) => (
@@ -1611,7 +1611,7 @@ export const Students: React.FC<StudentsProps> = ({
               <div className="flex items-center justify-end gap-4 border-t border-slate-100 p-8">
                 <button
                   onClick={closeAssignStudentModal}
-                  className="px-6 py-3 text-[10px] font-black tracking-widest text-slate-400 uppercase transition-all hover:text-slate-600"
+                  className="px-6 py-3 text-[10px] font-bold tracking-widest text-slate-400 uppercase transition-all hover:text-slate-600"
                 >
                   Cancel
                 </button>
@@ -1624,7 +1624,7 @@ export const Students: React.FC<StudentsProps> = ({
                     !assignForm.rollNo.trim()
                   }
                   onClick={() => void handleAssignStudent()}
-                  className="rounded-xl bg-rose-500 px-8 py-3 text-[10px] font-black tracking-widest text-white uppercase shadow-lg shadow-rose-500/20 transition-all hover:shadow-xl active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-xl bg-rose-500 px-8 py-3 text-[10px] font-bold tracking-widest text-white uppercase shadow-lg shadow-rose-500/20 transition-all hover:shadow-xl active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isAssigningStudent ? "Assigning..." : "Assign Student"}
                 </button>
@@ -1656,10 +1656,10 @@ export const Students: React.FC<StudentsProps> = ({
                     <Edit3 className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black tracking-tight text-slate-900">
+                    <h3 className="text-xl font-bold tracking-tight text-slate-900">
                       Edit Student
                     </h3>
-                    <p className="text-xs font-bold tracking-widest text-slate-500 uppercase">
+                    <p className="text-xs font-semibold tracking-widest text-slate-500 uppercase">
                       Updating {selectedStudent.name}
                     </p>
                   </div>
@@ -1674,35 +1674,35 @@ export const Students: React.FC<StudentsProps> = ({
               <div className="space-y-6 p-8">
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                    <label className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                       Full Name
                     </label>
                     <input
                       type="text"
                       defaultValue={selectedStudent.name}
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                    <label className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                       Roll No
                     </label>
                     <input
                       type="text"
                       defaultValue={selectedStudent.rollNo}
                       disabled
-                      className="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-bold text-slate-400 outline-none"
+                      className="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-400 outline-none"
                     />
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                    <label className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                       Grade
                     </label>
                     <select
                       defaultValue={selectedStudent.grade}
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
                     >
                       {grades.map((g) => (
                         <option key={g.id} value={g.name}>
@@ -1712,12 +1712,12 @@ export const Students: React.FC<StudentsProps> = ({
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                    <label className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                       Section
                     </label>
                     <select
                       defaultValue={selectedStudent.section}
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
                     >
                       {sectionNames.map((s) => (
                         <option key={s} value={s}>
@@ -1727,12 +1727,12 @@ export const Students: React.FC<StudentsProps> = ({
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                    <label className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                       Status
                     </label>
                     <select
                       defaultValue={selectedStudent.registrationStatus}
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
                     >
                       <option>Registered</option>
                       <option>Pending</option>
@@ -1744,13 +1744,13 @@ export const Students: React.FC<StudentsProps> = ({
               <div className="flex items-center justify-end gap-4 border-t border-slate-100 p-8">
                 <button
                   onClick={() => setIsEditModalOpen(false)}
-                  className="px-6 py-3 text-[10px] font-black tracking-widest text-slate-400 uppercase transition-all hover:text-slate-600"
+                  className="px-6 py-3 text-[10px] font-bold tracking-widest text-slate-400 uppercase transition-all hover:text-slate-600"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={() => setIsEditModalOpen(false)}
-                  className="rounded-xl bg-primary px-8 py-3 text-[10px] font-black tracking-widest text-white uppercase shadow-lg shadow-primary/20 transition-all hover:shadow-xl active:scale-95"
+                  className="rounded-xl bg-primary px-8 py-3 text-[10px] font-bold tracking-widest text-white uppercase shadow-lg shadow-primary/20 transition-all hover:shadow-xl active:scale-95"
                 >
                   Save Changes
                 </button>
@@ -1782,7 +1782,7 @@ export const Students: React.FC<StudentsProps> = ({
                   <Mail className="h-8 w-8 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-slate-900">
+                  <h3 className="text-xl font-bold text-slate-900">
                     Send SMS Notification
                   </h3>
                   <p className="text-sm font-medium text-slate-500">
@@ -1792,19 +1792,19 @@ export const Students: React.FC<StudentsProps> = ({
               </div>
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="ml-1 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                  <label className="ml-1 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                     Recipient Number
                   </label>
                   <input
                     type="tel"
                     value={smsPhone}
                     onChange={(e) => setSmsPhone(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
                     placeholder="+251 ..."
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="ml-1 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                  <label className="ml-1 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                     Message Body
                   </label>
                   <textarea
@@ -1819,13 +1819,13 @@ export const Students: React.FC<StudentsProps> = ({
               <div className="mt-8 flex gap-3">
                 <button
                   onClick={() => setIsSMSModalOpen(false)}
-                  className="flex-1 rounded-xl bg-slate-50 py-3.5 text-[10px] font-black tracking-widest text-slate-400 uppercase transition-all hover:bg-slate-100"
+                  className="flex-1 rounded-xl bg-slate-50 py-3.5 text-[10px] font-bold tracking-widest text-slate-400 uppercase transition-all hover:bg-slate-100"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={() => setIsSMSModalOpen(false)}
-                  className="flex-1 rounded-xl bg-primary py-3.5 text-[10px] font-black tracking-widest text-white uppercase shadow-lg shadow-primary/20 transition-all hover:shadow-xl active:scale-95"
+                  className="flex-1 rounded-xl bg-primary py-3.5 text-[10px] font-bold tracking-widest text-white uppercase shadow-lg shadow-primary/20 transition-all hover:shadow-xl active:scale-95"
                 >
                   Send SMS
                 </button>
@@ -1857,7 +1857,7 @@ export const Students: React.FC<StudentsProps> = ({
                   <Link2 className="h-8 w-8 text-amber-500" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-slate-900">
+                  <h3 className="text-xl font-bold text-slate-900">
                     Link Parent Account
                   </h3>
                   <p className="text-sm font-medium text-slate-500">
@@ -1867,7 +1867,7 @@ export const Students: React.FC<StudentsProps> = ({
               </div>
               <div className="mt-8 space-y-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                  <label className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                     Search Parent (Name or Phone)
                   </label>
                   <div className="relative">
@@ -1879,7 +1879,7 @@ export const Students: React.FC<StudentsProps> = ({
                       onChange={(event) =>
                         setParentSearchQuery(event.target.value)
                       }
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pr-4 pl-10 text-sm font-bold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pr-4 pl-10 text-sm font-semibold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
                 </div>
@@ -1918,13 +1918,13 @@ export const Students: React.FC<StudentsProps> = ({
                               <Users className="h-4 w-4 text-slate-400" />
                             </div>
                             <div className="min-w-0">
-                              <p className="truncate text-xs font-bold text-slate-900 uppercase">
+                              <p className="truncate text-xs font-semibold text-slate-900 uppercase">
                                 {parent.name}
                               </p>
                               <p className="text-[10px] text-slate-500">
                                 {parent.phone || "No phone"}
                               </p>
-                              <div className="mt-1 flex flex-wrap gap-2 text-[10px] font-bold uppercase">
+                              <div className="mt-1 flex flex-wrap gap-2 text-[10px] font-semibold uppercase">
                                 <span className="rounded-full bg-slate-200 px-2 py-0.5 text-slate-600">
                                   {linkStateLabel}
                                 </span>
@@ -1949,7 +1949,7 @@ export const Students: React.FC<StudentsProps> = ({
                               linkingParentId === parent.id ||
                               isAlreadyLinkedToCurrentStudent
                             }
-                            className="rounded-lg bg-primary px-3 py-1.5 text-[10px] font-black tracking-widest text-white uppercase shadow-sm transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="rounded-lg bg-primary px-3 py-1.5 text-[10px] font-bold tracking-widest text-white uppercase shadow-sm transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             {linkingParentId === parent.id
                               ? "Connecting..."
@@ -1969,7 +1969,7 @@ export const Students: React.FC<StudentsProps> = ({
               </div>
               <button
                 onClick={closeLinkParentModal}
-                className="mt-6 w-full py-3 text-[10px] font-black tracking-widest text-slate-400 uppercase transition-all hover:text-slate-600"
+                className="mt-6 w-full py-3 text-[10px] font-bold tracking-widest text-slate-400 uppercase transition-all hover:text-slate-600"
               >
                 Maybe Later
               </button>
@@ -2001,10 +2001,10 @@ export const Students: React.FC<StudentsProps> = ({
                     <UserPlus className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black tracking-tight text-slate-900">
+                    <h3 className="text-xl font-bold tracking-tight text-slate-900">
                       Manual Registration
                     </h3>
-                    <p className="text-xs font-bold text-slate-500">
+                    <p className="text-xs font-semibold text-slate-500">
                       Register a student into the system
                     </p>
                   </div>
@@ -2019,7 +2019,7 @@ export const Students: React.FC<StudentsProps> = ({
               <div className="space-y-6 p-8">
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] leading-none font-black tracking-widest text-slate-400 uppercase">
+                    <label className="text-[10px] leading-none font-bold tracking-widest text-slate-400 uppercase">
                       First Name
                     </label>
                     <input
@@ -2032,11 +2032,11 @@ export const Students: React.FC<StudentsProps> = ({
                           firstName: e.target.value,
                         }))
                       }
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] leading-none font-black tracking-widest text-slate-400 uppercase">
+                    <label className="text-[10px] leading-none font-bold tracking-widest text-slate-400 uppercase">
                       Last Name
                     </label>
                     <input
@@ -2049,13 +2049,13 @@ export const Students: React.FC<StudentsProps> = ({
                           lastName: e.target.value,
                         }))
                       }
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] leading-none font-black tracking-widest text-slate-400 uppercase">
+                    <label className="text-[10px] leading-none font-bold tracking-widest text-slate-400 uppercase">
                       Roll No
                     </label>
                     <input
@@ -2068,11 +2068,11 @@ export const Students: React.FC<StudentsProps> = ({
                           rollNo: e.target.value,
                         }))
                       }
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] leading-none font-black tracking-widest text-slate-400 uppercase">
+                    <label className="text-[10px] leading-none font-bold tracking-widest text-slate-400 uppercase">
                       Gender
                     </label>
                     <select
@@ -2083,7 +2083,7 @@ export const Students: React.FC<StudentsProps> = ({
                           gender: e.target.value as StudentGender,
                         }))
                       }
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
                     >
                       <option value="MALE">Male</option>
                       <option value="FEMALE">Female</option>
@@ -2093,7 +2093,7 @@ export const Students: React.FC<StudentsProps> = ({
                 </div>
                 <div className="grid grid-cols-3 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] leading-none font-black tracking-widest text-slate-400 uppercase">
+                    <label className="text-[10px] leading-none font-bold tracking-widest text-slate-400 uppercase">
                       Grade
                     </label>
                     <select
@@ -2105,7 +2105,7 @@ export const Students: React.FC<StudentsProps> = ({
                           sectionId: "",
                         }))
                       }
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
                     >
                       <option value="">Select grade</option>
                       {grades.map((g) => (
@@ -2116,7 +2116,7 @@ export const Students: React.FC<StudentsProps> = ({
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] leading-none font-black tracking-widest text-slate-400 uppercase">
+                    <label className="text-[10px] leading-none font-bold tracking-widest text-slate-400 uppercase">
                       Section
                     </label>
                     <select
@@ -2127,7 +2127,7 @@ export const Students: React.FC<StudentsProps> = ({
                           sectionId: e.target.value,
                         }))
                       }
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
                     >
                       <option value="">Select section</option>
                       {sectionsForSelectedGrade.map((section) => (
@@ -2138,7 +2138,7 @@ export const Students: React.FC<StudentsProps> = ({
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] leading-none font-black tracking-widest text-slate-400 uppercase">
+                    <label className="text-[10px] leading-none font-bold tracking-widest text-slate-400 uppercase">
                       Status
                     </label>
                     <select
@@ -2149,7 +2149,7 @@ export const Students: React.FC<StudentsProps> = ({
                           status: e.target.value as StudentStatus,
                         }))
                       }
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
                     >
                       <option value="ACTIVE">Registered</option>
                       <option value="INACTIVE">Pending</option>
@@ -2159,7 +2159,7 @@ export const Students: React.FC<StudentsProps> = ({
                 </div>
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] leading-none font-black tracking-widest text-slate-400 uppercase">
+                    <label className="text-[10px] leading-none font-bold tracking-widest text-slate-400 uppercase">
                       Date of Birth
                     </label>
                     <input
@@ -2171,11 +2171,11 @@ export const Students: React.FC<StudentsProps> = ({
                           dateOfBirth: e.target.value,
                         }))
                       }
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] leading-none font-black tracking-widest text-slate-400 uppercase">
+                    <label className="text-[10px] leading-none font-bold tracking-widest text-slate-400 uppercase">
                       Admission Date
                     </label>
                     <input
@@ -2187,7 +2187,7 @@ export const Students: React.FC<StudentsProps> = ({
                           admissionDate: e.target.value,
                         }))
                       }
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
                 </div>
@@ -2220,7 +2220,7 @@ export const Students: React.FC<StudentsProps> = ({
               <div className="flex items-center justify-end gap-4 border-t border-slate-100 p-8">
                 <button
                   onClick={() => void closeAddStudentModal()}
-                  className="px-6 py-3 text-[10px] font-black tracking-widest text-slate-400 uppercase transition-all hover:text-slate-600"
+                  className="px-6 py-3 text-[10px] font-bold tracking-widest text-slate-400 uppercase transition-all hover:text-slate-600"
                 >
                   Cancel
                 </button>
@@ -2279,7 +2279,7 @@ export const Students: React.FC<StudentsProps> = ({
                       setIsSubmittingStudent(false)
                     }
                   }}
-                  className="rounded-xl bg-primary px-8 py-3 text-[10px] font-black tracking-widest text-white uppercase shadow-lg shadow-primary/20 transition-all hover:shadow-xl active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-xl bg-primary px-8 py-3 text-[10px] font-bold tracking-widest text-white uppercase shadow-lg shadow-primary/20 transition-all hover:shadow-xl active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSubmittingStudent ? "Registering..." : "Register Student"}
                 </button>
@@ -2310,7 +2310,7 @@ export const Students: React.FC<StudentsProps> = ({
                 <FileText className="h-10 w-10 text-primary" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-black tracking-tight text-slate-900">
+                <h3 className="text-2xl font-bold tracking-tight text-slate-900">
                   Bulk Student Import
                 </h3>
                 <p className="text-sm font-medium text-slate-500">
@@ -2324,12 +2324,12 @@ export const Students: React.FC<StudentsProps> = ({
                       <ArrowUpDown className="h-6 w-6 text-slate-300 transition-colors group-hover:text-primary" />
                     </div>
                     <div>
-                      <p className="text-sm font-black tracking-tight text-slate-900">
+                      <p className="text-sm font-bold tracking-tight text-slate-900">
                         {importFile
                           ? importFile.name
                           : "Click or drag file to upload"}
                       </p>
-                      <p className="mt-1 text-xs font-bold tracking-widest text-slate-400 uppercase">
+                      <p className="mt-1 text-xs font-semibold tracking-widest text-slate-400 uppercase">
                         .xlsx, .csv supported
                       </p>
                     </div>
@@ -2351,7 +2351,7 @@ export const Students: React.FC<StudentsProps> = ({
               </p>
               <div className="grid gap-4 text-left md:grid-cols-2">
                 <div className="space-y-2">
-                  <label className="text-[10px] leading-none font-black tracking-widest text-slate-400 uppercase">
+                  <label className="text-[10px] leading-none font-bold tracking-widest text-slate-400 uppercase">
                     Grade
                   </label>
                   <select
@@ -2360,7 +2360,7 @@ export const Students: React.FC<StudentsProps> = ({
                       setImportGradeId(event.target.value)
                       setImportSectionId("")
                     }}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
                   >
                     <option value="">Select grade</option>
                     {grades.map((grade) => (
@@ -2371,14 +2371,14 @@ export const Students: React.FC<StudentsProps> = ({
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] leading-none font-black tracking-widest text-slate-400 uppercase">
+                  <label className="text-[10px] leading-none font-bold tracking-widest text-slate-400 uppercase">
                     Section
                   </label>
                   <select
                     value={importSectionId}
                     onChange={(event) => setImportSectionId(event.target.value)}
                     disabled={!importGradeId}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <option value="">Select section</option>
                     {importSectionsForSelectedGrade.map((section) => (
@@ -2392,12 +2392,12 @@ export const Students: React.FC<StudentsProps> = ({
               {(isImporting || importTaskId) && (
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-bold text-slate-700">
+                    <p className="text-sm font-semibold text-slate-700">
                       {importTaskId
                         ? `Import job ${importTaskId.slice(0, 8)}...`
                         : "Starting import..."}
                     </p>
-                    <span className="text-xs font-black tracking-widest text-primary uppercase">
+                    <span className="text-xs font-bold tracking-widest text-primary uppercase">
                       {importProgress}%
                     </span>
                   </div>
@@ -2421,7 +2421,7 @@ export const Students: React.FC<StudentsProps> = ({
               <div className="flex items-center justify-center gap-6 pt-4">
                 <button
                   onClick={closeImportModal}
-                  className="text-[10px] font-black tracking-widest text-slate-400 uppercase hover:text-slate-600"
+                  className="text-[10px] font-bold tracking-widest text-slate-400 uppercase hover:text-slate-600"
                 >
                   Cancel
                 </button>
@@ -2433,7 +2433,7 @@ export const Students: React.FC<StudentsProps> = ({
                     Boolean(importGradeId && !importSectionId)
                   }
                   onClick={() => void handleStudentImport()}
-                  className="text-[10px] font-black tracking-widest text-primary uppercase hover:underline disabled:cursor-not-allowed disabled:no-underline disabled:opacity-50"
+                  className="text-[10px] font-bold tracking-widest text-primary uppercase hover:underline disabled:cursor-not-allowed disabled:no-underline disabled:opacity-50"
                 >
                   {isImporting ? "Importing..." : "Upload File"}
                 </button>

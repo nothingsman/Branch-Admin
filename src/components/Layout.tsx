@@ -29,7 +29,7 @@ export const Layout: React.FC<LayoutProps> = ({
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false)
 
   return (
-    <div className="flex min-h-screen bg-surface">
+    <div className="flex min-h-screen bg-slate-100">
       <Sidebar
         activeModule={activeModule}
         setActiveModule={setActiveModule}

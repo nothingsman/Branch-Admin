@@ -330,7 +330,7 @@ export const Academia: React.FC<AcademiaProps> = ({
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-xs font-black tracking-widest text-slate-500 uppercase">
+          <p className="text-xs font-bold tracking-widest text-slate-500 uppercase">
             Loading academia
           </p>
         </div>
@@ -343,7 +343,7 @@ export const Academia: React.FC<AcademiaProps> = ({
       <div className="flex h-full items-center justify-center bg-slate-50 p-6">
         <div className="max-w-md rounded-3xl border border-red-100 bg-red-50 p-6 text-center">
           <AlertCircle className="mx-auto mb-3 h-8 w-8 text-red-500" />
-          <p className="font-black text-red-700">Failed to load academia</p>
+          <p className="font-bold text-red-700">Failed to load academia</p>
           <p className="mt-2 text-sm text-red-600">{error}</p>
         </div>
       </div>
@@ -356,33 +356,33 @@ export const Academia: React.FC<AcademiaProps> = ({
         <div className="flex flex-col gap-4">
           <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
             <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-primary px-4 py-2 text-sm font-black text-white shadow-md">
+              <div className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white shadow-md">
                 Academic year {academicYearLabel}
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setShowGradeModal(true)}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700"
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700"
               >
                 New Grade
               </button>
               <button
                 onClick={() => openSectionModal()}
                 disabled={!academicYearId || grades.length === 0}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700"
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700"
               >
                 New Section
               </button>
               <button
                 onClick={() => setShowSubjectModal(true)}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700"
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700"
               >
                 New Subject
               </button>
               <button
                 onClick={() => setShowRoleModal(true)}
-                className="rounded-xl bg-primary px-4 py-2.5 text-sm font-black text-white shadow-lg shadow-primary/20"
+                className="rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary/20"
               >
                 Assign Teacher
               </button>
@@ -428,7 +428,7 @@ export const Academia: React.FC<AcademiaProps> = ({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-black tracking-widest uppercase ${
+                className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-bold tracking-widest uppercase ${
                   activeTab === tab.id
                     ? "bg-white text-primary shadow-sm"
                     : "text-slate-500"
@@ -457,11 +457,11 @@ export const Academia: React.FC<AcademiaProps> = ({
                 >
                   <div className="mb-5 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-black text-slate-700">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-700">
                         {grade.level}
                       </div>
                       <div>
-                        <h2 className="text-lg font-black text-slate-900 uppercase">
+                        <h2 className="text-lg font-bold text-slate-900 uppercase">
                           {grade.name}
                         </h2>
                         <p className="text-xs font-medium tracking-widest text-slate-400 uppercase">
@@ -511,14 +511,14 @@ export const Academia: React.FC<AcademiaProps> = ({
                               <>
                                 <div className="flex items-start justify-between gap-3">
                                   <div>
-                                    <p className="text-[10px] font-black tracking-[0.28em] text-slate-400 uppercase">
+                                    <p className="text-[10px] font-bold tracking-[0.28em] text-slate-400 uppercase">
                                       Section
                                     </p>
-                                    <p className="mt-1 text-4xl leading-none font-black text-slate-900">
+                                    <p className="mt-1 text-4xl leading-none font-bold text-slate-900">
                                       {section.name}
                                     </p>
                                   </div>
-                                  <div className="flex items-center gap-1 text-xs font-bold text-slate-400">
+                                  <div className="flex items-center gap-1 text-xs font-semibold text-slate-400">
                                     <Users className="h-3.5 w-3.5" />
                                     <span>{studentCount}</span>
                                   </div>
@@ -532,7 +532,7 @@ export const Academia: React.FC<AcademiaProps> = ({
                                   }`}
                                 >
                                   <p
-                                    className={`text-[11px] font-black ${
+                                    className={`text-[11px] font-bold ${
                                       hasHomeroom
                                         ? "text-emerald-600"
                                         : "text-rose-500"
@@ -542,12 +542,12 @@ export const Academia: React.FC<AcademiaProps> = ({
                                       ? homeroomTeacherName
                                       : "No Homeroom"}
                                   </p>
-                                  <p className="mt-1 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
+                                  <p className="mt-1 text-[10px] font-semibold tracking-widest text-slate-400 uppercase">
                                     {hasHomeroom ? "Homeroom lead" : "HT lead"}
                                   </p>
                                 </div>
 
-                                <div className="mt-4 flex items-center justify-between text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                                <div className="mt-4 flex items-center justify-between text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                                   <span>{subjectCount} subjects</span>
                                   <span>
                                     {unassignedSubjectCount > 0
@@ -571,7 +571,7 @@ export const Academia: React.FC<AcademiaProps> = ({
                       <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm">
                         <Plus className="h-5 w-5" />
                       </div>
-                      <p className="text-[11px] font-black tracking-widest text-slate-500 uppercase">
+                      <p className="text-[11px] font-bold tracking-widest text-slate-500 uppercase">
                         Add Section
                       </p>
                     </button>
@@ -636,7 +636,7 @@ export const Academia: React.FC<AcademiaProps> = ({
                     className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 p-4"
                   >
                     <div>
-                      <p className="text-sm font-black text-slate-900">
+                      <p className="text-sm font-bold text-slate-900">
                         {subject.name}
                       </p>
                       <p className="mt-1 text-xs text-slate-500">
@@ -682,7 +682,7 @@ export const Academia: React.FC<AcademiaProps> = ({
             <div className="overflow-x-auto">
               <table className="w-full min-w-[760px] text-left">
                 <thead>
-                  <tr className="border-b border-slate-100 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                  <tr className="border-b border-slate-100 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                     <th className="px-4 py-3">Section</th>
                     <th className="px-4 py-3">Homeroom</th>
                     <th className="px-4 py-3">Subject Assignments</th>
@@ -696,7 +696,7 @@ export const Academia: React.FC<AcademiaProps> = ({
                       className="border-b border-slate-50"
                     >
                       <td className="px-4 py-4">
-                        <p className="text-sm font-black text-slate-900">
+                        <p className="text-sm font-bold text-slate-900">
                           {row.gradeName} • Section {row.section.name}
                         </p>
                       </td>
@@ -709,7 +709,7 @@ export const Academia: React.FC<AcademiaProps> = ({
                             row.subjectAssignments.map((assignment) => (
                               <span
                                 key={assignment.id}
-                                className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black tracking-widest text-slate-600 uppercase"
+                                className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-bold tracking-widest text-slate-600 uppercase"
                               >
                                 {assignment.subject_name} -{" "}
                                 {assignment.teacher_name}
@@ -725,7 +725,7 @@ export const Academia: React.FC<AcademiaProps> = ({
                       <td className="px-4 py-4 text-right">
                         <button
                           onClick={() => setShowRoleModal(true)}
-                          className="rounded-xl bg-primary px-3 py-2 text-xs font-black text-white"
+                          className="rounded-xl bg-primary px-3 py-2 text-xs font-bold text-white"
                         >
                           Manage
                         </button>
@@ -933,7 +933,7 @@ function SectionModal({
     <ModalFrame title="Create Section" onClose={onClose}>
       <div className="space-y-4">
         <label className="block space-y-2">
-          <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+          <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
             Grade
           </span>
           <select
@@ -1004,7 +1004,7 @@ function SubjectModal({
     >
       <div className="space-y-4">
         <div className="space-y-2">
-          <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+          <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
             Grades
           </span>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -1022,7 +1022,7 @@ function SubjectModal({
                         : [...current, grade.id]
                     )
                   }
-                  className={`rounded-2xl border px-4 py-3 text-left text-sm font-black transition ${
+                  className={`rounded-2xl border px-4 py-3 text-left text-sm font-bold transition ${
                     selected
                       ? "border-primary bg-primary text-white shadow-lg shadow-primary/20"
                       : "border-slate-200 bg-slate-50 text-slate-700 hover:border-primary/30 hover:bg-white"
@@ -1138,7 +1138,7 @@ function SectionDetailsDrawer({
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="rounded-full bg-primary px-3 py-1 text-[10px] font-black tracking-widest text-white uppercase">
+            <div className="rounded-full bg-primary px-3 py-1 text-[10px] font-bold tracking-widest text-white uppercase">
               {academicYearLabel}
             </div>
             <button
@@ -1157,10 +1157,10 @@ function SectionDetailsDrawer({
               <Users className="h-9 w-9" />
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="text-3xl font-black tracking-tight text-slate-900">
+              <h2 className="text-3xl font-bold tracking-tight text-slate-900">
                 {grade.name} • {section.name}
               </h2>
-              <div className="mt-3 flex gap-4 text-[11px] font-black tracking-widest uppercase">
+              <div className="mt-3 flex gap-4 text-[11px] font-bold tracking-widest uppercase">
                 <span className="border-b-2 border-emerald-300 pb-1 text-emerald-600">
                   Section Profile
                 </span>
@@ -1170,18 +1170,18 @@ function SectionDetailsDrawer({
           </div>
 
           <div className="mb-8">
-            <p className="mb-3 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+            <p className="mb-3 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
               Enrollment
             </p>
             <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+              <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                 Total Students
               </p>
               <div className="mt-2 flex items-end gap-2">
-                <span className="text-4xl leading-none font-black text-slate-900">
+                <span className="text-4xl leading-none font-bold text-slate-900">
                   {studentCount}
                 </span>
-                <span className="text-xs font-bold text-slate-400">
+                <span className="text-xs font-semibold text-slate-400">
                   enrolled
                 </span>
               </div>
@@ -1189,24 +1189,24 @@ function SectionDetailsDrawer({
           </div>
 
           <div className="mb-8">
-            <p className="mb-3 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+            <p className="mb-3 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
               Homeroom Staff
             </p>
             <div className="rounded-[1.75rem] border border-dashed border-slate-200 bg-slate-50/60 p-5">
               {homeroomAssignment ? (
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-sm font-black text-slate-900">
+                    <p className="text-sm font-bold text-slate-900">
                       {homeroomAssignment.teacher_name}
                     </p>
-                    <p className="mt-1 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                    <p className="mt-1 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                       Homeroom Lead
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={onAssignHomeroom}
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black tracking-widest text-slate-700 uppercase transition hover:border-primary/30 hover:text-primary"
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-bold tracking-widest text-slate-700 uppercase transition hover:border-primary/30 hover:text-primary"
                   >
                     Replace Lead
                   </button>
@@ -1217,7 +1217,7 @@ function SectionDetailsDrawer({
                     <Plus className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-[11px] font-black tracking-widest text-slate-500 uppercase">
+                    <p className="text-[11px] font-bold tracking-widest text-slate-500 uppercase">
                       Assign Lead
                     </p>
                     <p className="mt-1 text-sm text-slate-400">
@@ -1227,7 +1227,7 @@ function SectionDetailsDrawer({
                   <button
                     type="button"
                     onClick={onAssignHomeroom}
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black tracking-widest text-slate-700 uppercase transition hover:border-primary/30 hover:text-primary"
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-bold tracking-widest text-slate-700 uppercase transition hover:border-primary/30 hover:text-primary"
                   >
                     Assign Lead
                   </button>
@@ -1238,10 +1238,10 @@ function SectionDetailsDrawer({
 
           <div>
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+              <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                 Faculty Assignments
               </p>
-              <p className="text-[10px] font-black tracking-widest text-slate-300 uppercase">
+              <p className="text-[10px] font-bold tracking-widest text-slate-300 uppercase">
                 {assignments.length} roles active
               </p>
             </div>
@@ -1258,11 +1258,11 @@ function SectionDetailsDrawer({
                     key={subject.id}
                     className="flex items-center gap-4 rounded-[1.75rem] border border-slate-100 bg-white p-4 shadow-sm"
                   >
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-50 text-xs font-black text-slate-500">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-50 text-xs font-bold text-slate-500">
                       {subject.code}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-lg font-black text-slate-900">
+                      <p className="text-lg font-bold text-slate-900">
                         {subject.name}
                       </p>
                       <p className="mt-1 text-xs text-slate-400">
@@ -1272,7 +1272,7 @@ function SectionDetailsDrawer({
                     <button
                       type="button"
                       onClick={() => onAssignSubject(subject, assignment)}
-                      className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black tracking-widest text-slate-700 uppercase transition hover:border-primary/30 hover:text-primary"
+                      className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-bold tracking-widest text-slate-700 uppercase transition hover:border-primary/30 hover:text-primary"
                     >
                       {assignment ? "Change" : "Link Staff"}
                     </button>
@@ -1321,7 +1321,7 @@ function SubjectAssignmentModal({
       onClose={onClose}
     >
       <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-        <p className="text-sm font-black text-slate-900">
+        <p className="text-sm font-bold text-slate-900">
           {grade.name} • Section {section.name}
         </p>
         <p className="mt-1 text-xs text-slate-500">
@@ -1397,7 +1397,7 @@ function HomeroomAssignmentModal({
       onClose={onClose}
     >
       <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-        <p className="text-sm font-black text-slate-900">
+        <p className="text-sm font-bold text-slate-900">
           {grade.name} • Section {section.name}
         </p>
         <p className="mt-1 text-xs text-slate-500">
@@ -1490,7 +1490,7 @@ function RoleAssignmentModal({
             <button
               key={value}
               onClick={() => setMode(value)}
-              className={`flex-1 rounded-xl px-4 py-3 text-xs font-black tracking-widest uppercase ${
+              className={`flex-1 rounded-xl px-4 py-3 text-xs font-bold tracking-widest uppercase ${
                 mode === value
                   ? "bg-white text-primary shadow-sm"
                   : "text-slate-500"
@@ -1533,7 +1533,7 @@ function RoleAssignmentModal({
                 checked={isHomeroom}
                 onChange={(event) => setIsHomeroom(event.target.checked)}
               />
-              <span className="text-sm font-bold text-slate-700">
+              <span className="text-sm font-semibold text-slate-700">
                 Also create homeroom assignment
               </span>
             </label>
@@ -1628,7 +1628,7 @@ function DeleteModal({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700"
+          className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700"
         >
           Cancel
         </button>
@@ -1643,7 +1643,7 @@ function DeleteModal({
               setIsSubmitting(false)
             }
           }}
-          className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-black text-white"
+          className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white"
         >
           Delete
         </button>
@@ -1675,7 +1675,7 @@ function ModalFrame({
         className="w-full max-w-2xl rounded-3xl bg-white shadow-2xl"
       >
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
-          <h3 className="text-lg font-black text-slate-900">{title}</h3>
+          <h3 className="text-lg font-bold text-slate-900">{title}</h3>
           <button
             onClick={onClose}
             className="rounded-xl p-2 hover:bg-slate-50"
@@ -1705,7 +1705,7 @@ function ModalActions({
       <button
         type="button"
         onClick={onClose}
-        className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700"
+        className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700"
       >
         Cancel
       </button>
@@ -1713,7 +1713,7 @@ function ModalActions({
         type="button"
         disabled={disabled}
         onClick={onSubmit}
-        className="rounded-xl bg-primary px-4 py-2.5 text-sm font-black text-white disabled:opacity-60"
+        className="rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60"
       >
         {submitLabel}
       </button>
@@ -1734,7 +1734,7 @@ function SelectField({
 }) {
   return (
     <label className="block space-y-2">
-      <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+      <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
         {label}
       </span>
       <select
@@ -1795,7 +1795,7 @@ function InputField({
 }) {
   return (
     <label className="block space-y-2">
-      <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+      <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
         {label}
       </span>
       <input
@@ -1821,10 +1821,10 @@ function StatCard({
       <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-slate-100 bg-white text-primary shadow-sm">
         <Icon className="h-4 w-4" />
       </div>
-      <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+      <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
         {label}
       </p>
-      <p className="mt-1 text-2xl font-black text-slate-900">{value}</p>
+      <p className="mt-1 text-2xl font-bold text-slate-900">{value}</p>
     </div>
   )
 }

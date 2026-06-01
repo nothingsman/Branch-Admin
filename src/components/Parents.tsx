@@ -259,7 +259,7 @@ function buildParentFormState(parent: ApiParent): ParentFormState {
 
 function ParentAvatar({ name }: { name: string }) {
   return (
-    <div className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-xs font-black text-slate-500">
+    <div className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-xs font-bold text-slate-500">
       {getInitials(name)}
     </div>
   )
@@ -548,7 +548,7 @@ export const Parents: React.FC<ParentsProps> = ({
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-xs font-black tracking-widest text-slate-500 uppercase">
+          <p className="text-xs font-bold tracking-widest text-slate-500 uppercase">
             Loading parent directory
           </p>
         </div>
@@ -561,7 +561,7 @@ export const Parents: React.FC<ParentsProps> = ({
       <div className="flex h-full items-center justify-center bg-slate-50 p-6">
         <div className="max-w-md rounded-3xl border border-red-100 bg-red-50 p-6 text-center">
           <AlertCircle className="mx-auto mb-3 h-8 w-8 text-red-500" />
-          <p className="font-black text-red-700">Failed to load parents</p>
+          <p className="font-bold text-red-700">Failed to load parents</p>
           <p className="mt-2 text-sm text-red-600">
             {parentsError || studentsError || linksError}
           </p>
@@ -576,7 +576,7 @@ export const Parents: React.FC<ParentsProps> = ({
         <div className="flex flex-col gap-4">
           <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
             <div>
-              <h1 className="text-2xl font-black tracking-tight text-slate-900">
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                 Parents
               </h1>
               <p className="text-sm font-medium text-slate-500">
@@ -586,7 +586,7 @@ export const Parents: React.FC<ParentsProps> = ({
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => setShowImportModal(true)}
-                className="flex items-center gap-2 rounded-xl border border-accent/20 bg-accent/10 px-4 py-2.5 text-sm font-bold text-primary"
+                className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-2.5 text-sm font-semibold text-primary"
               >
                 <FileUp className="h-4 w-4" />
                 Bulk Import
@@ -595,14 +595,14 @@ export const Parents: React.FC<ParentsProps> = ({
                 type="button"
                 disabled
                 title="Bulk parent invitations are not available yet."
-                className="flex cursor-not-allowed items-center gap-2 rounded-xl bg-amber-200 px-4 py-2.5 text-sm font-bold text-white shadow-none"
+                className="flex cursor-not-allowed items-center gap-2 rounded-xl bg-amber-200 px-4 py-2.5 text-sm font-semibold text-white shadow-none"
               >
                 <Mail className="h-4 w-4" />
                 Bulk Invite Unavailable
               </button>
               <button
                 onClick={() => setShowInviteModal(true)}
-                className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary/20"
+                className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary/20"
               >
                 <Plus className="h-4 w-4" />
                 Invite Parent
@@ -639,7 +639,7 @@ export const Parents: React.FC<ParentsProps> = ({
                 <button
                   key={option.id}
                   onClick={() => setParentFilter(option.id)}
-                  className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold whitespace-nowrap transition-all lg:flex-none ${
+                  className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold whitespace-nowrap transition-all lg:flex-none ${
                     parentFilter === option.id
                       ? "bg-primary text-white shadow-md shadow-primary/10"
                       : "text-slate-500 hover:text-primary"
@@ -647,7 +647,7 @@ export const Parents: React.FC<ParentsProps> = ({
                 >
                   {option.label}
                   <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
                       parentFilter === option.id
                         ? "bg-white/20 text-white"
                         : "bg-slate-100 text-slate-500"
@@ -662,7 +662,7 @@ export const Parents: React.FC<ParentsProps> = ({
               <select
                 value={gradeFilter}
                 onChange={(event) => setGradeFilter(event.target.value)}
-                className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/10 lg:flex-none"
+                className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-primary/10 lg:flex-none"
               >
                 <option>All Grades</option>
                 {grades.map((grade) => (
@@ -704,7 +704,7 @@ export const Parents: React.FC<ParentsProps> = ({
                     onClick={async () => {
                       await navigator.clipboard.writeText(inviteActionLink)
                     }}
-                    className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-black tracking-wide text-emerald-700 transition hover:bg-emerald-50"
+                    className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-bold tracking-wide text-emerald-700 transition hover:bg-emerald-50"
                   >
                     Copy Invitation Link
                   </button>
@@ -719,14 +719,14 @@ export const Parents: React.FC<ParentsProps> = ({
         <div className="mx-auto max-w-5xl space-y-4">
           <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
             {isBackgroundRefreshing && (
-              <div className="mb-4 flex items-center justify-end gap-2 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-xs font-bold text-slate-500">
+              <div className="mb-4 flex items-center justify-end gap-2 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-500">
                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
                 Refreshing page...
               </div>
             )}
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-black tracking-widest text-slate-900 uppercase">
+                <h2 className="text-sm font-bold tracking-widest text-slate-900 uppercase">
                   Parent Directory
                 </h2>
                 <p className="text-xs font-medium text-slate-500">
@@ -753,7 +753,7 @@ export const Parents: React.FC<ParentsProps> = ({
                     <ParentAvatar name={parent.name} />
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="truncate text-sm font-black text-slate-900">
+                        <p className="truncate text-sm font-bold text-slate-900">
                           {buildParentLineage({
                             name: parent.name,
                             fatherName: parent.fatherName,
@@ -777,11 +777,11 @@ export const Parents: React.FC<ParentsProps> = ({
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-lg font-black text-slate-900">
+                      <p className="text-lg font-bold text-slate-900">
                         {parent.linkedStudentCount ??
                           parent.linkedStudents.length}
                       </p>
-                      <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                      <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                         linked students
                       </p>
                     </div>
@@ -821,7 +821,7 @@ export const Parents: React.FC<ParentsProps> = ({
                     setCurrentPage((page) => Math.max(1, page - 1))
                   }
                   disabled={!hasPreviousPage}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Previous
                 </button>
@@ -829,7 +829,7 @@ export const Parents: React.FC<ParentsProps> = ({
                   type="button"
                   onClick={() => setCurrentPage((page) => page + 1)}
                   disabled={!hasNextPage}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Next
                 </button>
@@ -980,10 +980,10 @@ function StatCard({
       <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-slate-100 bg-white text-primary shadow-sm">
         <Icon className="h-4 w-4" />
       </div>
-      <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
+      <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
         {label}
       </p>
-      <p className="mt-1 text-2xl font-black text-slate-900">{value}</p>
+      <p className="mt-1 text-2xl font-bold text-slate-900">{value}</p>
     </div>
   )
 }
@@ -1006,12 +1006,12 @@ function ParentStatusBadge({
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       <span
-        className={`rounded-full border px-2 py-0.5 text-[10px] font-black tracking-widest uppercase ${activeClasses}`}
+        className={`rounded-full border px-2 py-0.5 text-[10px] font-bold tracking-widest uppercase ${activeClasses}`}
       >
         {isActive ? "Active" : "Inactive"}
       </span>
       <span
-        className={`rounded-full border px-2 py-0.5 text-[10px] font-black tracking-widest uppercase ${linkClasses}`}
+        className={`rounded-full border px-2 py-0.5 text-[10px] font-bold tracking-widest uppercase ${linkClasses}`}
       >
         {isLinked ? "Linked" : "Unlinked"}
       </span>
@@ -1022,7 +1022,7 @@ function ParentStatusBadge({
 function EmptyState({ title, message }: { title: string; message: string }) {
   return (
     <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
-      <p className="font-black text-slate-700">{title}</p>
+      <p className="font-bold text-slate-700">{title}</p>
       <p className="mt-2 text-sm text-slate-500">{message}</p>
     </div>
   )
@@ -1111,18 +1111,18 @@ function ParentDetailDrawer({
             <ChevronLeft className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-3">
-            <span className="rounded-full bg-primary px-3 py-1 text-[10px] font-black tracking-widest text-white uppercase shadow-sm">
+            <span className="rounded-full bg-primary px-3 py-1 text-[10px] font-bold tracking-widest text-white uppercase shadow-sm">
               AY 2024-25
             </span>
             <button
               onClick={onEdit}
-              className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+              className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             >
               Edit
             </button>
             <button
               onClick={onLinkStudent}
-              className="rounded-2xl bg-primary px-5 py-3 text-sm font-black text-white shadow-lg shadow-primary/20 transition hover:shadow-xl hover:shadow-primary/30"
+              className="rounded-2xl bg-primary px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition hover:shadow-xl hover:shadow-primary/30"
             >
               Link Student
             </button>
@@ -1134,10 +1134,10 @@ function ParentDetailDrawer({
             <div className="flex items-start gap-4">
               <ParentAvatar name={parent.name} />
               <div className="min-w-0">
-                <h2 className="text-2xl font-black tracking-tight text-slate-900">
+                <h2 className="text-2xl font-bold tracking-tight text-slate-900">
                   {parentLineage}
                 </h2>
-                <div className="mt-3 flex flex-wrap items-center gap-3 text-sm font-semibold text-slate-500">
+                <div className="mt-3 flex flex-wrap items-center gap-3 text-sm font-medium text-slate-500">
                   <span className="flex items-center gap-2">
                     <Phone className="h-4 w-4 text-primary" />
                     {parent.phone || "Not provided"}
@@ -1161,7 +1161,7 @@ function ParentDetailDrawer({
           <div className="grid min-h-[320px] gap-0 md:grid-cols-[0.95fr_1.05fr]">
             <section className="border-b border-slate-100 px-6 py-6 md:border-r md:border-b-0">
               <div className="mb-5 flex items-center justify-between">
-                <h3 className="text-xs font-black tracking-[0.22em] text-slate-400 uppercase">
+                <h3 className="text-xs font-bold tracking-[0.22em] text-slate-400 uppercase">
                   Contact Info
                 </h3>
               </div>
@@ -1188,10 +1188,10 @@ function ParentDetailDrawer({
 
             <section className="px-6 py-6">
               <div className="mb-5 flex items-center justify-between">
-                <h3 className="text-xs font-black tracking-[0.22em] text-slate-400 uppercase">
+                <h3 className="text-xs font-bold tracking-[0.22em] text-slate-400 uppercase">
                   Linked Children
                 </h3>
-                <span className="text-xs font-black text-primary">
+                <span className="text-xs font-bold text-primary">
                   {linkedStudents.length} Total
                 </span>
               </div>
@@ -1206,7 +1206,7 @@ function ParentDetailDrawer({
                         <User className="h-5 w-5" />
                       </div>
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-black text-slate-900">
+                        <p className="truncate text-sm font-bold text-slate-900">
                           {student.name}
                         </p>
                       </div>
@@ -1234,7 +1234,7 @@ function ParentDetailDrawer({
           <div className="border-t border-slate-100 px-6 py-5">
             <button
               onClick={onInvite}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-black text-amber-700 transition hover:bg-amber-100"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-bold text-amber-700 transition hover:bg-amber-100"
             >
               <Send className="h-4 w-4" />
               Invite Parent
@@ -1256,7 +1256,7 @@ function DrawerInfoCard({
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
       <Icon className="h-4 w-4 text-primary" />
-      <span className="text-sm font-bold text-slate-700">{value}</span>
+      <span className="text-sm font-semibold text-slate-700">{value}</span>
     </div>
   )
 }
@@ -1284,7 +1284,7 @@ function ModalFrame({
         className="w-full max-w-xl rounded-3xl bg-white shadow-2xl"
       >
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
-          <h3 className="text-lg font-black text-slate-900">{title}</h3>
+          <h3 className="text-lg font-bold text-slate-900">{title}</h3>
           <button
             onClick={onClose}
             className="rounded-xl p-2 hover:bg-slate-50"
@@ -1449,7 +1449,7 @@ function ParentFormModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700"
+            className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700"
           >
             Cancel
           </button>
@@ -1462,7 +1462,7 @@ function ParentFormModal({
               !form.grandfatherName ||
               !form.phone
             }
-            className="rounded-xl bg-primary px-4 py-2.5 text-sm font-black text-white disabled:opacity-60"
+            className="rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60"
           >
             {isSubmitting
               ? title === "Invite Parent"
@@ -1520,14 +1520,14 @@ function LinkStudentModal({
             <Link2 className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-[11px] font-black tracking-[0.22em] text-slate-400 uppercase">
+            <p className="text-[11px] font-bold tracking-[0.22em] text-slate-400 uppercase">
               Select a student to link to {parent.name}
             </p>
           </div>
         </div>
 
         <div>
-          <label className="mb-2 block text-[10px] font-black tracking-widest text-slate-400 uppercase">
+          <label className="mb-2 block text-[10px] font-bold tracking-widest text-slate-400 uppercase">
             Search Student
           </label>
           <div className="relative">
@@ -1546,7 +1546,7 @@ function LinkStudentModal({
 
         <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50/60 p-4">
           {filteredStudents.length === 0 ? (
-            <div className="flex min-h-32 items-center justify-center text-center text-sm font-bold text-slate-500">
+            <div className="flex min-h-32 items-center justify-center text-center text-sm font-semibold text-slate-500">
               {searchQuery.trim().length === 0
                 ? "No students are available."
                 : "No students match your search."}
@@ -1579,19 +1579,19 @@ function LinkStudentModal({
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-sm font-black text-slate-900">
+                        <p className="text-sm font-bold text-slate-900">
                           {student.name}
                         </p>
                         <p className="mt-1 text-xs font-medium text-slate-500">
                           {student.grade || "No grade"} • Section{" "}
                           {student.section || "N/A"}
                         </p>
-                        <p className="mt-1 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
+                        <p className="mt-1 text-[10px] font-semibold tracking-widest text-slate-400 uppercase">
                           {student.rollNo || "No roll number"}
                         </p>
                       </div>
                       <span
-                        className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${
+                        className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
                           isAlreadyLinkedToCurrentParent
                             ? "bg-slate-200 text-slate-600"
                             : student.parentId
@@ -1626,7 +1626,7 @@ function LinkStudentModal({
             checked={isPrimaryContact}
             onChange={(event) => setIsPrimaryContact(event.target.checked)}
           />
-          <span className="text-sm font-bold text-slate-700">
+          <span className="text-sm font-semibold text-slate-700">
             Set as primary contact
           </span>
         </label>
@@ -1634,7 +1634,7 @@ function LinkStudentModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700"
+            className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700"
           >
             Cancel
           </button>
@@ -1649,7 +1649,7 @@ function LinkStudentModal({
                 setIsSubmitting(false)
               }
             }}
-            className="rounded-xl bg-primary px-4 py-2.5 text-sm font-black text-white disabled:opacity-60"
+            className="rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60"
           >
             {isSubmitting ? "Linking..." : "Confirm Link"}
           </button>
@@ -1683,7 +1683,7 @@ function ImportParentsModal({
           <FileText className="h-10 w-10 text-primary" />
         </div>
         <div className="space-y-2">
-          <h3 className="text-2xl font-black tracking-tight text-slate-900">
+          <h3 className="text-2xl font-bold tracking-tight text-slate-900">
             Bulk Parent Import
           </h3>
           <p className="text-sm font-medium text-slate-500">
@@ -1697,10 +1697,10 @@ function ImportParentsModal({
                 <ArrowUpDown className="h-6 w-6 text-slate-300 transition-colors group-hover:text-primary" />
               </div>
               <div>
-                <p className="text-sm font-black tracking-tight text-slate-900">
+                <p className="text-sm font-bold tracking-tight text-slate-900">
                   {file ? file.name : "Click or drag file to upload"}
                 </p>
-                <p className="mt-1 text-xs font-bold tracking-widest text-slate-400 uppercase">
+                <p className="mt-1 text-xs font-semibold tracking-widest text-slate-400 uppercase">
                   .xlsx, .csv supported
                 </p>
               </div>
@@ -1720,12 +1720,12 @@ function ImportParentsModal({
         {(isUploading || taskId) && (
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-bold text-slate-700">
+              <p className="text-sm font-semibold text-slate-700">
                 {taskId
                   ? `Import job ${taskId.slice(0, 8)}...`
                   : "Starting import..."}
               </p>
-              <span className="text-xs font-black tracking-widest text-primary uppercase">
+              <span className="text-xs font-bold tracking-widest text-primary uppercase">
                 {progress}%
               </span>
             </div>
@@ -1750,7 +1750,7 @@ function ImportParentsModal({
           <button
             type="button"
             onClick={onClose}
-            className="text-[10px] font-black tracking-widest text-slate-400 uppercase hover:text-slate-600"
+            className="text-[10px] font-bold tracking-widest text-slate-400 uppercase hover:text-slate-600"
           >
             Cancel
           </button>
@@ -1804,7 +1804,7 @@ function ImportParentsModal({
                 setIsUploading(false)
               }
             }}
-            className="text-[10px] font-black tracking-widest text-primary uppercase hover:underline disabled:cursor-not-allowed disabled:no-underline disabled:opacity-50"
+            className="text-[10px] font-bold tracking-widest text-primary uppercase hover:underline disabled:cursor-not-allowed disabled:no-underline disabled:opacity-50"
           >
             {isUploading ? "Importing..." : "Upload File"}
           </button>
@@ -1830,7 +1830,7 @@ function InputField({
   return (
     <label className="block space-y-2">
       <span
-        className={`text-[10px] font-black tracking-widest uppercase ${error ? "text-red-600" : "text-slate-400"}`}
+        className={`text-[10px] font-bold tracking-widest uppercase ${error ? "text-red-600" : "text-slate-400"}`}
       >
         {label}
       </span>

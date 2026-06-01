@@ -14,6 +14,8 @@ import {
   LogOut,
   X,
   ChevronDown,
+  Shield,
+  Hexagon,
 } from "lucide-react"
 import { motion, AnimatePresence } from "motion/react"
 import { ModuleId } from "../types"
@@ -90,39 +92,62 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <X className="h-5 w-5" />
         </button>
 
-        {/* School Context Section */}
-        <div className="border-b border-slate-200 px-5 py-7">
-          <div className="mb-4 text-center">
-            <p className="text-[10px] font-black tracking-[0.28em] text-slate-400 uppercase">
-              School
-            </p>
-            <h2 className="mt-2 text-base leading-tight font-black text-primary-navy">
-              {schoolName || "School"}
-            </h2>
-            <p className="mt-3 text-[10px] font-black tracking-[0.28em] text-slate-400 uppercase">
-              Branch
-            </p>
-              <p className="mt-2 text-sm font-bold text-slate-600">
-              {branchName || "Branch"}
-            </p>
+        {/* Branding & Institution Header — matches Teacher Dashboard style */}
+        <div className="px-4 sm:px-5 pt-5 sm:pt-7 pb-4 border-b border-slate-100 bg-linear-to-b from-white to-slate-50/30">
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2 px-2.5 py-1 bg-[#1A237E]/8 rounded-full border border-[#1A237E]/10">
+                <Shield
+                  size={10}
+                  className="text-[#1A237E]"
+                  fill="currentColor"
+                />
+                <span className="text-[9px] font-bold text-[#1A237E] uppercase tracking-[0.2em] leading-none">
+                  Kelem Platform
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-linear-to-br from-[#1A237E] to-[#3949AB] rounded-xl flex items-center justify-center shadow-md shadow-blue-900/15 shrink-0 ring-1 ring-white/20">
+                <Hexagon
+                  className="text-white fill-white/10"
+                  size={18}
+                  strokeWidth={2.5}
+                />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <h2 className="text-[12px] font-bold uppercase tracking-tight text-slate-800 truncate leading-tight">
+                  {schoolName || "School"}
+                </h2>
+                <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider">
+                  Administration Portal
+                </p>
+                {branchName && (
+                  <p className="text-[9px] font-medium text-slate-500 truncate">
+                    {branchName}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="w-full">
             <button
               type="button"
-              className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-colors hover:bg-slate-100"
+              className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-left shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-colors hover:bg-slate-100"
             >
-              <span className="text-sm font-bold text-primary-navy">
+              <span className="text-xs font-semibold text-[#1A237E]">
                 {academicYear}
               </span>
-              <ChevronDown className="h-4 w-4 text-slate-400" />
+              <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
             </button>
           </div>
         </div>
 
         {/* Navigation Modules */}
-        <nav className="flex-1 px-4 py-6">
-          <div className="space-y-2">
+        <nav className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3 sm:px-4 py-2">
+          <div className="space-y-1">
             {modules.map((module) => {
               const Icon = module.icon
               const isActive = activeModule === module.id
@@ -133,16 +158,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     setActiveModule(module.id)
                     onClose?.()
                   }}
-                  className={`group flex w-full items-center gap-4 rounded-2xl px-4 py-3.5 text-left transition-all ${
+                  className={`w-full flex items-center gap-3 min-h-[44px] px-3 sm:px-4 py-2 sm:py-3 rounded-lg transition-colors duration-200 ${
                     isActive
-                      ? "sidebar-link-active"
-                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                      ? "bg-primary text-white shadow-lg shadow-blue-900/20"
+                      : "text-slate-500 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
                   }`}
                 >
                   <Icon
-                    className={`h-5 w-5 ${isActive ? "text-white" : "text-slate-400 group-hover:text-slate-700"}`}
+                    size={18}
+                    strokeWidth={isActive ? 2.5 : 2}
+                    className={isActive ? "text-white" : "text-slate-400"}
                   />
-                  <span className="text-sm font-bold">{module.label}</span>
+                  <span className="text-sm font-semibold tracking-tight">{module.label}</span>
                 </button>
               )
             })}
@@ -175,7 +202,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               className="scrollbar-hide pointer-events-auto relative max-h-[90vh] w-full max-w-sm overflow-y-auto rounded-[2rem] bg-white p-6 shadow-2xl md:p-8"
             >
               <div className="mb-6 flex shrink-0 items-center justify-between md:mb-8">
-                <h3 className="text-lg font-black tracking-tight text-slate-900 uppercase">
+                <h3 className="text-lg font-bold tracking-tight text-slate-900 uppercase">
                   Edit Admin Profile
                 </h3>
                 <button
@@ -193,12 +220,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 <div className="w-full space-y-4">
                   <div className="space-y-1.5">
-                    <label className="pl-1 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                    <label className="pl-1 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                       Display Name
                     </label>
                     <input
                       autoFocus
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 transition-all outline-none focus:border-primary/30 focus:ring-4 focus:ring-primary/10"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition-all outline-none focus:border-primary/30 focus:ring-4 focus:ring-primary/10"
                       value={profile.name}
                       onChange={(e) =>
                         setProfile((prev) => ({
@@ -210,11 +237,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="pl-1 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                    <label className="pl-1 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                       Professional Role
                     </label>
                     <input
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 transition-all outline-none focus:border-primary/30 focus:ring-4 focus:ring-primary/10"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition-all outline-none focus:border-primary/30 focus:ring-4 focus:ring-primary/10"
                       value={profile.role}
                       onChange={(e) =>
                         setProfile((prev) => ({
@@ -227,12 +254,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </div>
                   <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-1.5">
-                      <label className="pl-1 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                      <label className="pl-1 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                         Email Address
                       </label>
                       <input
                         type="email"
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 transition-all outline-none focus:border-primary/30 focus:ring-4 focus:ring-primary/10"
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition-all outline-none focus:border-primary/30 focus:ring-4 focus:ring-primary/10"
                         value={profile.email}
                         onChange={(e) =>
                           setProfile((prev) => ({
@@ -244,12 +271,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="pl-1 text-[10px] font-black tracking-widest text-slate-400 uppercase">
+                      <label className="pl-1 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                         Phone Number
                       </label>
                       <input
                         type="tel"
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 transition-all outline-none focus:border-primary/30 focus:ring-4 focus:ring-primary/10"
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition-all outline-none focus:border-primary/30 focus:ring-4 focus:ring-primary/10"
                         value={profile.phone}
                         onChange={(e) =>
                           setProfile((prev) => ({
@@ -267,13 +294,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div className="flex shrink-0 gap-3">
                 <button
                   onClick={() => setIsEditingProfile(false)}
-                  className="flex-1 rounded-xl bg-slate-50 py-3.5 text-[10px] font-black tracking-widest text-slate-400 uppercase transition-all hover:bg-slate-100"
+                  className="flex-1 rounded-xl bg-slate-50 py-3.5 text-[10px] font-bold tracking-widest text-slate-400 uppercase transition-all hover:bg-slate-100"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={() => setIsEditingProfile(false)}
-                  className="flex-1 rounded-xl bg-primary py-3.5 text-[10px] font-black tracking-widest text-white uppercase shadow-lg shadow-primary/20 transition-all hover:shadow-xl active:scale-95"
+                  className="flex-1 rounded-xl bg-primary py-3.5 text-[10px] font-bold tracking-widest text-white uppercase shadow-lg shadow-primary/20 transition-all hover:shadow-xl active:scale-95"
                 >
                   Apply
                 </button>
@@ -324,7 +351,7 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
           <User className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="truncate text-sm leading-tight font-extrabold text-slate-900">
+          <h3 className="truncate text-sm leading-tight font-bold text-slate-900">
             {profile.name}
           </h3>
           <p className="truncate text-xs font-medium text-slate-500">
@@ -352,7 +379,7 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
                 setIsOpen(false)
                 onEditProfile()
               }}
-              className="flex w-full items-center gap-3 px-4 py-3.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50"
+              className="flex w-full items-center gap-3 px-4 py-3.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
             >
               <Edit3 className="h-4 w-4 text-slate-400" />
               <span>Profile</span>
@@ -360,7 +387,7 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
             <div className="mx-3 border-t border-slate-100" />
             <button
               onClick={onLogout}
-              className="flex w-full items-center gap-3 px-4 py-3.5 text-sm font-bold text-red-600 transition-colors hover:bg-red-50"
+              className="flex w-full items-center gap-3 px-4 py-3.5 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50"
             >
               <LogOut className="h-4 w-4" />
               <span>Logout</span>
