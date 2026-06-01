@@ -1353,7 +1353,7 @@ export const Students: React.FC<StudentsProps> = ({
                         setSmsStudent(selectedStudent)
                         setSmsPhone(parent?.phone || "")
                         setSmsMessage(
-                          `Hello from EduGov Academy. We have an update regarding ${selectedStudent.name}.`
+                           `Hello from Kelem Academy. We have an update regarding ${selectedStudent.name}.`
                         )
                         setIsSMSModalOpen(true)
                       }}

@@ -103,7 +103,7 @@ export default function CompleteTeacherInvitationPage() {
             </div>
             <div>
               <h2 className="bg-gradient-to-r from-primary to-accent bg-clip-text text-2xl leading-tight font-black tracking-tight text-transparent uppercase">
-                Kelem Co.
+                Kelem
               </h2>
               <p className="mt-1 text-xs font-bold tracking-widest text-muted-foreground uppercase">
                 Activate Teacher Account
@@ -144,7 +144,7 @@ export default function CompleteTeacherInvitationPage() {
                 )}
 
                 <p className="mb-6 text-center text-xs leading-relaxed font-medium text-slate-500">
-                  Welcome to Kelem EduGov. Set your secure password below to
+                  Welcome to Kelem. Set your secure password below to
                   activate your teacher account.
                 </p>
 

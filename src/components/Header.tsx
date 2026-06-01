@@ -199,7 +199,7 @@ export const Header: React.FC<HeaderProps> = ({
                           </label>
                           <input
                             type="text"
-                            defaultValue="EduGov Academy Central"
+                            defaultValue="Kelem Academy Central"
                             className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 transition-all outline-none focus:ring-4 focus:ring-primary/10"
                           />
                         </div>

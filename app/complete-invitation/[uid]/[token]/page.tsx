@@ -1,5 +1,5 @@
 /**
- * Premium, glassmorphic Complete Invitation component for Kelem EduGov Branch Admin.
+ * Premium, glassmorphic Complete Invitation component for Kelem Branch Admin.
  */
 
 "use client"
@@ -115,7 +115,7 @@ export default function CompleteInvitationPage() {
             </div>
             <div>
               <h2 className="bg-gradient-to-r from-primary to-accent bg-clip-text text-2xl leading-tight font-black tracking-tight text-transparent uppercase">
-                Kelem Co.
+                Kelem
               </h2>
               <p className="mt-1 text-xs font-bold tracking-widest text-muted-foreground uppercase">
                 Activate Your Account

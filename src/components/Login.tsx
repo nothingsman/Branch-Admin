@@ -1,5 +1,5 @@
 /**
- * Premium, glassmorphic Login component for Kelem EduGov Branch Admin.
+ * Premium, glassmorphic Login component for Kelem Branch Admin.
  */
 
 import React, { useState, useEffect } from "react"
@@ -181,7 +181,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             </div>
             <div>
               <h2 className="bg-gradient-to-r from-primary to-accent bg-clip-text text-2xl leading-tight font-black tracking-tight text-transparent uppercase">
-                Kelem Co.
+                Kelem
               </h2>
               <p className="mt-1 text-xs font-bold tracking-widest text-muted-foreground uppercase">
                 Branch Administrator Portal

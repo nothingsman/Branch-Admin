@@ -2,8 +2,8 @@ import type { Metadata } from "next"
 import "../src/index.css"
 
 export const metadata: Metadata = {
-  title: "kelem.co Branch admin",
-  description: "Branch administration dashboard for EduGov Academy",
+  title: "Kelem - Branch admin",
+  description: "Branch administration dashboard for Kelem Academy",
 }
 
 export default function RootLayout({

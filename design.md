@@ -1,7 +1,7 @@
-# EduGov Academy - Global Design Specification
+# Kelem Academy - Global Design Specification
 
 ## Overview
-EduGov Academy is a high-fidelity administrative suite designed for educational branch administrators. It provides a centralized, "Corporate-Modern" interface for managing all aspects of school operations, from staff and students to attendance and academic planning.
+Kelem Academy is a high-fidelity administrative suite designed for educational branch administrators. It provides a centralized, "Corporate-Modern" interface for managing all aspects of school operations, from staff and students to attendance and academic planning.
 
 ---
 
