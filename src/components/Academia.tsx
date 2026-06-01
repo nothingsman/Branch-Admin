@@ -483,7 +483,7 @@ export const Academia: React.FC<AcademiaProps> = ({
                     </button>
                   </div>
 
-                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                     {gradeSections.map(
                       ({
                         section,
@@ -491,86 +491,75 @@ export const Academia: React.FC<AcademiaProps> = ({
                         subjectCount,
                         unassignedSubjectCount,
                         homeroomTeacherName,
-                      }) => (
-                        <button
-                          key={section.id}
-                          type="button"
-                          onClick={() => setSelectedSectionId(section.id)}
-                          className={`group rounded-[1.75rem] border p-4 text-left transition-all ${
-                            selectedSectionId === section.id
-                              ? "border-primary bg-primary/[0.03] shadow-lg shadow-primary/10"
-                              : "border-slate-100 bg-white hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-md"
-                          }`}
-                        >
-                          {(() => {
-                            const hasHomeroom =
-                              homeroomTeacherName !==
-                              "No homeroom teacher assigned"
+                      }) => {
+                        const hasHomeroom =
+                          homeroomTeacherName !==
+                          "No homeroom teacher assigned"
 
-                            return (
-                              <>
-                                <div className="flex items-start justify-between gap-3">
-                                  <div>
-                                    <p className="text-[10px] font-bold tracking-[0.28em] text-slate-400 uppercase">
-                                      Section
-                                    </p>
-                                    <p className="mt-1 text-4xl leading-none font-bold text-slate-900">
-                                      {section.name}
-                                    </p>
-                                  </div>
-                                  <div className="flex items-center gap-1 text-xs font-semibold text-slate-400">
-                                    <Users className="h-3.5 w-3.5" />
-                                    <span>{studentCount}</span>
-                                  </div>
-                                </div>
+                        return (
+                          <button
+                            key={section.id}
+                            type="button"
+                            onClick={() => setSelectedSectionId(section.id)}
+                            className={`group rounded-xl border p-3 text-left transition-all ${
+                              selectedSectionId === section.id
+                                ? "border-primary bg-primary/[0.03] shadow-sm shadow-primary/10"
+                                : "border-slate-100 bg-white hover:border-slate-200 hover:shadow-sm"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-lg leading-none font-bold text-slate-900">
+                                {section.name}
+                              </p>
+                              <div className="flex shrink-0 items-center gap-1.5 rounded-md bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-500">
+                                <Users className="h-3 w-3" />
+                                {studentCount}
+                              </div>
+                            </div>
 
-                                <div
-                                  className={`mt-5 rounded-2xl px-3 py-2.5 ${
-                                    hasHomeroom
-                                      ? "border border-emerald-100 bg-emerald-50/80"
-                                      : "border border-rose-100 bg-rose-50/70"
-                                  }`}
-                                >
-                                  <p
-                                    className={`text-[11px] font-bold ${
-                                      hasHomeroom
-                                        ? "text-emerald-600"
-                                        : "text-rose-500"
-                                    }`}
-                                  >
-                                    {hasHomeroom
-                                      ? homeroomTeacherName
-                                      : "No Homeroom"}
-                                  </p>
-                                  <p className="mt-1 text-[10px] font-semibold tracking-widest text-slate-400 uppercase">
-                                    {hasHomeroom ? "Homeroom lead" : "HT lead"}
-                                  </p>
-                                </div>
+                            <div className="mt-2.5 flex items-center gap-2 text-xs">
+                              <span className="font-medium text-slate-500">
+                                {subjectCount} subjects
+                              </span>
+                              {unassignedSubjectCount > 0 && (
+                                <span className="font-semibold text-amber-600">
+                                  {unassignedSubjectCount} unassigned
+                                </span>
+                              )}
+                            </div>
 
-                                <div className="mt-4 flex items-center justify-between text-[10px] font-bold tracking-widest text-slate-400 uppercase">
-                                  <span>{subjectCount} subjects</span>
-                                  <span>
-                                    {unassignedSubjectCount > 0
-                                      ? `${unassignedSubjectCount} unassigned`
-                                      : "fully assigned"}
-                                  </span>
-                                </div>
-                              </>
-                            )
-                          })()}
-                        </button>
-                      )
+                            <div className="mt-2 flex items-center gap-1.5 text-xs">
+                              <div
+                                className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                                  hasHomeroom
+                                    ? "bg-emerald-500"
+                                    : "bg-rose-400"
+                                }`}
+                              />
+                              <span
+                                className={
+                                  hasHomeroom
+                                    ? "font-medium text-slate-600"
+                                    : "font-medium text-rose-500"
+                                }
+                              >
+                                {hasHomeroom
+                                  ? homeroomTeacherName
+                                  : "No homeroom"}
+                              </span>
+                            </div>
+                          </button>
+                        )
+                      }
                     )}
 
                     <button
                       type="button"
                       onClick={() => openSectionModal(grade.id)}
                       disabled={!academicYearId}
-                      className="flex min-h-[15.5rem] flex-col items-center justify-center rounded-[1.75rem] border border-dashed border-slate-200 bg-slate-50/70 text-center transition hover:border-primary/30 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+                      className="flex min-h-[7rem] flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/70 text-center transition hover:border-primary/30 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm">
-                        <Plus className="h-5 w-5" />
-                      </div>
+                      <Plus className="mb-1 h-4 w-4 text-slate-400" />
                       <p className="text-[11px] font-bold tracking-widest text-slate-500 uppercase">
                         Add Section
                       </p>
@@ -939,7 +928,7 @@ function SectionModal({
           <select
             value={gradeId}
             onChange={(event) => setGradeId(event.target.value)}
-            className="field"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition-all focus:border-primary/30 focus:ring-4 focus:ring-primary/10"
           >
             <option value="">Select grade</option>
             {grades.map((grade) => (
@@ -1666,7 +1655,7 @@ function ModalFrame({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/40 p-4"
+      className="fixed inset-0 z-[90] flex items-start justify-center overflow-y-auto bg-slate-950/40 p-4 pt-[5vh] pb-[5vh]"
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.96, y: 12 }}
@@ -1683,7 +1672,7 @@ function ModalFrame({
             <X className="h-5 w-5 text-slate-400" />
           </button>
         </div>
-        <div className="space-y-5 p-6">{children}</div>
+        <div className="max-h-[65vh] space-y-5 overflow-y-auto p-6">{children}</div>
       </motion.div>
     </motion.div>
   )
@@ -1740,7 +1729,7 @@ function SelectField({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="field"
+        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition-all focus:border-primary/30 focus:ring-4 focus:ring-primary/10"
       >
         <option value="">Select</option>
         {options.map((option) => (
@@ -1801,7 +1790,7 @@ function InputField({
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="field"
+        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-primary/30 focus:ring-4 focus:ring-primary/10"
       />
     </label>
   )

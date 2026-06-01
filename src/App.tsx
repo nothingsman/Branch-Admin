@@ -23,6 +23,7 @@ import {
   authApi,
   academiaApi,
   branchesApi,
+  getMediaDownloadUrl,
   ApiUser,
   AcademicYear,
   BranchAdminProfile,
@@ -41,6 +42,7 @@ export default function App() {
   )
   const [schoolName, setSchoolName] = useState<string | null>(null)
   const [branchName, setBranchName] = useState<string | null>(null)
+  const [logoUrl, setLogoUrl] = useState<string | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
 
@@ -86,23 +88,33 @@ export default function App() {
       const profile = await authApi.getBranchAdminProfile()
       if (profile) {
         setBranchProfile(profile)
-        const [branch, fetchedSchoolName] = await Promise.all([
+        const [branch, schoolInfo] = await Promise.all([
           branchesApi.getBranch(profile.branch),
-          branchesApi.getSchoolName(profile.branch),
+          branchesApi.getSchoolInfo(profile.branch),
           loadAcademicYears(profile.branch),
         ])
+
+        const fetchedSchoolName = schoolInfo?.school_name ?? null
         setSchoolName(
           fetchedSchoolName ?? profile.organization_name ?? branch.name ?? null
         )
         setBranchName(branch.name)
+
+        if (schoolInfo?.logo) {
+          const url = await getMediaDownloadUrl(schoolInfo.logo)
+          setLogoUrl(url)
+        } else {
+          setLogoUrl(null)
+        }
       } else {
         setSchoolName(null)
         setBranchName(null)
+        setLogoUrl(null)
       }
     } catch {
-      // non-fatal — branch context will be null
       setSchoolName(null)
       setBranchName(null)
+      setLogoUrl(null)
     }
   }
 
@@ -127,6 +139,7 @@ export default function App() {
     setBranchProfile(null)
     setSchoolName(null)
     setBranchName(null)
+    setLogoUrl(null)
     setAcademicYears([])
     setSelectedAcademicYear(null)
     setIsAuthenticated(false)
@@ -264,6 +277,7 @@ export default function App() {
       }
       schoolName={resolvedSchoolName}
       branchName={resolvedBranchName}
+      logoUrl={logoUrl}
       user={user}
       onLogout={handleLogout}
     >

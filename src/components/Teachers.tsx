@@ -37,6 +37,7 @@ import {
 } from "../hooks/useTeachers"
 import { useTeachers, useTeacherStatuses } from "../hooks/useTeachers"
 import { useApiQuery } from "../hooks/useApiQuery"
+import { PhoneField } from "./ui/PhoneField"
 
 interface TeachersProps {
   academicYear?: string
@@ -895,34 +896,39 @@ function InviteTeacherModal({
           activate their account.
         </div>
         <InputField
-          label="Teacher Name (Required)"
+          label="Teacher Name"
           value={name}
           onChange={setName}
+          required
         />
         <div className="grid gap-4 md:grid-cols-2">
           <InputField
-            label="Father Name (Required)"
+            label="Father Name"
             value={fatherName}
             onChange={setFatherName}
+            required
           />
           <InputField
-            label="Grandfather Name (Required)"
+            label="Grandfather Name"
             value={grandfatherName}
             onChange={setGrandfatherName}
+            required
           />
         </div>
         <InputField
-          label="Email (Required)"
+          label="Email"
           value={email}
           onChange={setEmail}
+          required
         />
-        <InputField
-          label="Phone Number (Required)"
+        <PhoneField
+          label="Phone Number"
           value={phoneNumber}
           onChange={setPhoneNumber}
+          required
         />
         <InputField
-          label="Specialization (Optional)"
+          label="Specialization"
           value={specialization}
           onChange={setSpecialization}
         />
@@ -1323,22 +1329,25 @@ function InputField({
   type = "text",
   value,
   onChange,
+  required,
 }: {
   label: string
   type?: string
   value: string
   onChange: (value: string) => void
+  required?: boolean
 }) {
   return (
     <label className="block space-y-2">
       <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
         {label}
+        {required && <span className="ml-1 text-red-500">*</span>}
       </span>
       <input
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="field"
+        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-primary/30 focus:ring-4 focus:ring-primary/10"
       />
     </label>
   )

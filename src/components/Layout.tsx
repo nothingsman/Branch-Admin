@@ -11,6 +11,7 @@ interface LayoutProps {
   academicYear: string
   schoolName?: string | null
   branchName?: string | null
+  logoUrl?: string | null
   user: ApiUser
   onLogout: () => void
   children: React.ReactNode
@@ -22,6 +23,7 @@ export const Layout: React.FC<LayoutProps> = ({
   academicYear,
   schoolName,
   branchName,
+  logoUrl,
   user,
   onLogout,
   children,
@@ -36,6 +38,7 @@ export const Layout: React.FC<LayoutProps> = ({
         academicYear={academicYear}
         schoolName={schoolName}
         branchName={branchName}
+        logoUrl={logoUrl}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         user={user}

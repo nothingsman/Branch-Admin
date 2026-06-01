@@ -38,6 +38,7 @@ import { useApiQuery } from "../hooks/useApiQuery"
 import { useGrades } from "../hooks/useGrades"
 import { useStudents } from "../hooks/useStudents"
 import { useParents } from "../hooks/useParents"
+import { PhoneField } from "./ui/PhoneField"
 
 interface ParentsProps {
   academicYear: string
@@ -715,9 +716,9 @@ export const Parents: React.FC<ParentsProps> = ({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 md:p-6">
+      <div className="flex-1 overflow-y-auto bg-slate-100/50 p-4 md:p-6">
         <div className="mx-auto max-w-5xl space-y-4">
-          <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
+          <section className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
             {isBackgroundRefreshing && (
               <div className="mb-4 flex items-center justify-end gap-2 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-500">
                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
@@ -1275,7 +1276,7 @@ function ModalFrame({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/40 p-4"
+      className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-slate-950/40 p-4 pt-[5vh] pb-[5vh]"
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.96, y: 12 }}
@@ -1292,7 +1293,7 @@ function ModalFrame({
             <X className="h-5 w-5 text-slate-400" />
           </button>
         </div>
-        <div className="p-6">{children}</div>
+        <div className="max-h-[70vh] overflow-y-auto p-6">{children}</div>
       </motion.div>
     </motion.div>
   )
@@ -1389,13 +1390,14 @@ function ParentFormModal({
           />
         </div>
         <div className="grid gap-4 md:grid-cols-2">
-          <InputField
-            label={`Phone Number${requiredSuffix}`}
+          <PhoneField
+            label="Phone Number"
             value={form.phone}
             onChange={(value) => setForm({ ...form, phone: value })}
             error={fieldErrors.phone}
+            required={isInviteMode}
           />
-          <InputField
+          <PhoneField
             label="Secondary Phone"
             value={form.secondaryPhone}
             onChange={(value) => setForm({ ...form, secondaryPhone: value })}
@@ -1432,7 +1434,7 @@ function ParentFormModal({
               setForm({ ...form, emergencyContactName: value })
             }
           />
-          <InputField
+          <PhoneField
             label="Emergency Contact Phone"
             value={form.emergencyContactPhone}
             onChange={(value) =>

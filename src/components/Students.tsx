@@ -24,6 +24,7 @@ import { MediaUploader, MediaUploaderState } from "./MediaUploader"
 import { deleteQueuedMedia } from "../lib/media/deleteQueuedMedia"
 import { resolveMediaUrl } from "../lib/media/resolveMediaUrl"
 import { Student, Parent } from "../types"
+import { PhoneField } from "./ui/PhoneField"
 import {
   ApiParentLink,
   ApiStudent,
@@ -1791,18 +1792,11 @@ export const Students: React.FC<StudentsProps> = ({
                 </div>
               </div>
               <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="ml-1 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
-                    Recipient Number
-                  </label>
-                  <input
-                    type="tel"
-                    value={smsPhone}
-                    onChange={(e) => setSmsPhone(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 transition-all outline-none focus:ring-2 focus:ring-primary/20"
-                    placeholder="+251 ..."
-                  />
-                </div>
+                <PhoneField
+                  label="Recipient Number"
+                  value={smsPhone}
+                  onChange={setSmsPhone}
+                />
                 <div className="space-y-1.5">
                   <label className="ml-1 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                     Message Body

@@ -12,6 +12,7 @@ import {
   CheckCircle,
 } from "lucide-react"
 import { authApi, ApiError, ApiUser } from "../lib/api"
+import { LegalModal, TermsOfService, PrivacyPolicy } from "./LegalModal"
 
 interface LoginProps {
   onLoginSuccess: (user: ApiUser) => void
@@ -25,6 +26,8 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, resetSuccess }) =>
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
+  const [showTerms, setShowTerms] = useState(false)
+  const [showPrivacy, setShowPrivacy] = useState(false)
 
   useEffect(() => {
     if (!error) return
@@ -325,12 +328,36 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, resetSuccess }) =>
               </button>
             </form>
 
-            <p className="text-xs text-slate-500 mt-6">
-              Need access? Contact your system administrator for credentials.
+            <p className="mt-6 text-center text-xs text-slate-500">
+              By clicking continue, you agree to our{" "}
+              <button
+                type="button"
+                onClick={() => setShowTerms(true)}
+                className="underline hover:text-slate-700 font-medium"
+              >
+                Terms of Service
+              </button>{" "}
+              and{" "}
+              <button
+                type="button"
+                onClick={() => setShowPrivacy(true)}
+                className="underline hover:text-slate-700 font-medium"
+              >
+                Privacy Policy
+              </button>
+              .
             </p>
           </motion.div>
         </div>
       </div>
+
+      <LegalModal isOpen={showTerms} onClose={() => setShowTerms(false)} title="Terms of Service">
+        <TermsOfService />
+      </LegalModal>
+
+      <LegalModal isOpen={showPrivacy} onClose={() => setShowPrivacy(false)} title="Privacy Policy">
+        <PrivacyPolicy />
+      </LegalModal>
     </div>
   )
 }

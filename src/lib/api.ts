@@ -1033,6 +1033,26 @@ export const authApi = {
   },
 }
 
+export interface SchoolInfoResponse {
+  branch_id: string
+  branch_name: string
+  school_id: string
+  logo: string
+  school_name: string
+}
+
+export async function getMediaDownloadUrl(mediaId: string): Promise<string | null> {
+  try {
+    const res = await request<{ download_url: string }>(
+      `/api/media/${mediaId}/url`,
+      { method: "GET" }
+    )
+    return res.download_url ?? null
+  } catch {
+    return null
+  }
+}
+
 export const branchesApi = {
   async getBranch(branchId: string): Promise<ApiBranch> {
     return request<ApiBranch>(`/api/branches/${branchId}/`, { method: "GET" })
@@ -1059,6 +1079,17 @@ export const branchesApi = {
     }
 
     return null
+  },
+
+  async getSchoolInfo(branchId: string): Promise<SchoolInfoResponse | null> {
+    try {
+      return await request<SchoolInfoResponse>(
+        `/api/branches/${branchId}/school-name/`,
+        { method: "GET" }
+      )
+    } catch {
+      return null
+    }
   },
 }
 
