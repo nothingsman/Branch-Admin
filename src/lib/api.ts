@@ -1338,7 +1338,7 @@ export const parentsApi = {
   }): Promise<PaginatedResponse<ApiParentLink>> {
     const q = new URLSearchParams()
     Object.entries(params).forEach(([k, v]) => {
-      if (v) q.set(k, v)
+      if (v !== undefined && v !== null && v !== "") q.set(k, String(v))
     })
     return request<PaginatedResponse<ApiParentLink>>(
       `/api/parent-links/?${q.toString()}`
@@ -1418,7 +1418,7 @@ export const teachersApi = {
   }): Promise<PaginatedResponse<ApiTeacherAssignment>> {
     const q = new URLSearchParams()
     Object.entries(params).forEach(([k, v]) => {
-      if (v) q.set(k, v)
+      if (v !== undefined && v !== null && v !== "") q.set(k, String(v))
     })
     return request<PaginatedResponse<ApiTeacherAssignment>>(
       `/api/teacher-assignments/?${q.toString()}`
@@ -1448,7 +1448,7 @@ export const teachersApi = {
   }): Promise<PaginatedResponse<ApiHomeroomAssignment>> {
     const q = new URLSearchParams()
     Object.entries(params).forEach(([k, v]) => {
-      if (v) q.set(k, v)
+      if (v !== undefined && v !== null && v !== "") q.set(k, String(v))
     })
     return request<PaginatedResponse<ApiHomeroomAssignment>>(
       `/api/homeroom-assignments/?${q.toString()}`
