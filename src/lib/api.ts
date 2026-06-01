@@ -1043,11 +1043,11 @@ export interface SchoolInfoResponse {
 
 export async function getMediaDownloadUrl(mediaId: string): Promise<string | null> {
   try {
-    const res = await request<{ download_url: string }>(
+    const res = await request<{ data: { download_url: string } }>(
       `/api/media/${mediaId}/url`,
       { method: "GET" }
     )
-    return res.download_url ?? null
+    return res.data?.download_url ?? null
   } catch {
     return null
   }
