@@ -14,7 +14,6 @@ import {
   LogOut,
   X,
   ChevronDown,
-  Shield,
   Hexagon,
   Settings,
   Contrast,
@@ -156,19 +155,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Branding & Institution Header — matches Teacher Dashboard style */}
         <div className="px-4 sm:px-5 pt-5 sm:pt-7 pb-4 border-b border-slate-100 bg-linear-to-b from-white to-slate-50/30">
           <div className="mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2 px-2.5 py-1 bg-[#1A237E]/8 rounded-full border border-[#1A237E]/10">
-                <Shield
-                  size={10}
-                  className="text-[#1A237E]"
-                  fill="currentColor"
-                />
-                <span className="text-[9px] font-bold text-[#1A237E] uppercase tracking-[0.2em] leading-none">
-                  Kelem Platform
-                </span>
-              </div>
-            </div>
-
             <div className="flex items-center gap-3">
               {logoUrl ? (
                 <img
