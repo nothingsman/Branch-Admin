@@ -344,7 +344,7 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
                       </div>
                       <div className="text-right">
                         <p className="text-lg font-bold text-slate-900">
-                          {item.status.attendance_rate.toFixed(1)}%
+                          {(item.status.attendance_rate || 0).toFixed(1)}%
                         </p>
                         <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                           {item.status.is_marked ? "Marked" : "Pending"}
@@ -420,7 +420,7 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
                     />
                     <SummaryMetric
                       label="Attendance"
-                      value={`${summary.attendance_rate.toFixed(1)}%`}
+                      value={`${(summary.attendance_rate || 0).toFixed(1)}%`}
                     />
                     <SummaryMetric
                       label="Late"
@@ -494,7 +494,7 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
                             {item.teacherName}
                           </td>
                           <td className="px-4 py-4 text-slate-600">
-                            {item.status.attendance_rate.toFixed(1)}%
+                            {(item.status.attendance_rate || 0).toFixed(1)}%
                           </td>
                           <td className="px-4 py-4">
                             <span
@@ -595,7 +595,7 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
                     Daily Attendance Rate
                   </p>
                   <p className="mt-2 text-3xl font-bold text-slate-900">
-                    {selectedSection.status.attendance_rate.toFixed(1)}%
+                    {(selectedSection.status.attendance_rate || 0).toFixed(1)}%
                   </p>
                 </div>
                 {sectionSummary && (
@@ -606,7 +606,7 @@ export const AttendanceDashboard: React.FC<AttendanceDashboardProps> = ({
                     <div className="mt-3 space-y-2 text-sm font-medium text-slate-600">
                       <p>
                         Average attendance:{" "}
-                        {sectionSummary.averageAttendance.toFixed(1)}%
+                        {(sectionSummary.averageAttendance || 0).toFixed(1)}%
                       </p>
                       <p>
                         Total recorded absences: {sectionSummary.totalAbsent}
@@ -636,7 +636,7 @@ function buildGradeBreakdown(
   const grouped = new Map<string, { total: number; count: number }>()
   for (const item of sectionsWithStatus) {
     const current = grouped.get(item.gradeName) ?? { total: 0, count: 0 }
-    current.total += item.status.attendance_rate
+    current.total += (item.status.attendance_rate || 0)
     current.count += 1
     grouped.set(item.gradeName, current)
   }
