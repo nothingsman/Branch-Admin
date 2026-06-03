@@ -203,6 +203,40 @@ function buildParentInvitePayload(
   }
 }
 
+function hasRequiredParentInviteFields(parent: ApiParent) {
+  return Boolean(
+    parent.user_details?.phone_number?.trim() &&
+      parent.user_details?.father_name?.trim() &&
+      parent.user_details?.grandfather_name?.trim()
+  )
+}
+
+function buildExistingParentInvitePayload(
+  parent: ApiParent,
+  branchId: string
+): ApiParentInvitePayload {
+  return {
+    name: parent.user_details?.name?.trim() ?? "",
+    email: normalizeOptionalValue(parent.user_details?.email ?? ""),
+    father_name: parent.user_details?.father_name?.trim() ?? "",
+    grandfather_name: parent.user_details?.grandfather_name?.trim() ?? "",
+    phone_number: parent.user_details?.phone_number?.trim() ?? "",
+    branch: branchId,
+    secondary_phone_number: normalizeOptionalValue(
+      parent.secondary_phone_number ?? ""
+    ),
+    occupation: normalizeOptionalValue(parent.occupation ?? ""),
+    work_address: normalizeOptionalValue(parent.work_address ?? ""),
+    relationship_notes: normalizeOptionalValue(parent.relationship_notes ?? ""),
+    emergency_contact_name: normalizeOptionalValue(
+      parent.emergency_contact_name ?? ""
+    ),
+    emergency_contact_phone: normalizeOptionalValue(
+      parent.emergency_contact_phone ?? ""
+    ),
+  }
+}
+
 async function fetchAllParentLinks(): Promise<ApiParentLink[]> {
   const links: ApiParentLink[] = []
   let page = 1
@@ -543,6 +577,36 @@ export const Parents: React.FC<ParentsProps> = ({
     }
   }
 
+  async function handleInviteParent(parentId: string) {
+    const parent = rawParents?.find((entry) => entry.id === parentId)
+    if (!parent || !branchId) return
+
+    if (!hasRequiredParentInviteFields(parent)) {
+      setInvitingParentId(parentId)
+      return
+    }
+
+    setInviteSubmittingParentId(parentId)
+    setInviteActionError(null)
+    setInviteActionMessage(null)
+    setInviteActionLink(null)
+    try {
+      const response = await parentsApi.invite(
+        buildExistingParentInvitePayload(parent, branchId)
+      )
+      setInviteActionMessage(
+        response.message ??
+          `Invitation sent to ${parent.user_details?.name?.trim() || "parent"}.`
+      )
+      setInviteActionLink(response.invitation_url ?? null)
+      refreshAll()
+    } catch (error) {
+      setInviteActionError(extractApiError(error))
+    } finally {
+      setInviteSubmittingParentId(null)
+    }
+  }
+
   if (isInitialLoading) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50">
@@ -788,9 +852,9 @@ export const Parents: React.FC<ParentsProps> = ({
                   </button>
                   {!parent.isActive && (
                     <button
-                      onClick={() => setInvitingParentId(parent.id)}
+                      onClick={() => void handleInviteParent(parent.id)}
                       disabled={inviteSubmittingParentId === parent.id}
-                      title="Review details and send parent SMS invitation"
+                      title="Send parent reinvite"
                       className="rounded-xl border border-amber-100 bg-amber-50 p-3 text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {inviteSubmittingParentId === parent.id ? (
@@ -849,7 +913,8 @@ export const Parents: React.FC<ParentsProps> = ({
             onClose={() => setSelectedParentId(null)}
             onEdit={() => setEditingParent(selectedParent)}
             onLinkStudent={() => setLinkingParentId(selectedParent.id)}
-            onInvite={() => setInvitingParentId(selectedParent.id)}
+            onInvite={() => void handleInviteParent(selectedParent.id)}
+            isInviteSubmitting={inviteSubmittingParentId === selectedParent.id}
             onUnlink={handleUnlinkStudent}
           />
         )}
@@ -870,7 +935,7 @@ export const Parents: React.FC<ParentsProps> = ({
             title={
               invitingParent.is_active
                 ? "Send Parent Invitation"
-                : "Review Parent Invitation"
+                : "Complete Parent Details to Reinvite"
             }
             initialValue={buildParentFormState(invitingParent)}
             onClose={() => setInvitingParentId(null)}
@@ -1035,6 +1100,7 @@ function ParentDetailDrawer({
   onEdit,
   onLinkStudent,
   onInvite,
+  isInviteSubmitting,
   onUnlink,
 }: {
   parent: Parent
@@ -1043,6 +1109,7 @@ function ParentDetailDrawer({
   onEdit: () => void
   onLinkStudent: () => void
   onInvite: () => void
+  isInviteSubmitting: boolean
   onUnlink: (studentId: string, parentId: string) => Promise<void>
 }) {
   const parentLineage = buildParentLineage(parent)
@@ -1234,10 +1301,15 @@ function ParentDetailDrawer({
           <div className="border-t border-slate-100 px-6 py-5">
             <button
               onClick={onInvite}
+              disabled={isInviteSubmitting}
               className="flex w-full items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-black text-amber-700 transition hover:bg-amber-100"
             >
-              <Send className="h-4 w-4" />
-              Invite Parent
+              {isInviteSubmitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              {isInviteSubmitting ? "Sending Invitation..." : "Invite Parent"}
             </button>
           </div>
         )}
