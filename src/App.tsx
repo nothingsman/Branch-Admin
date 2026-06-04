@@ -161,10 +161,10 @@ export default function App() {
   const organizationId = branchProfile?.organization ?? null
   const academicYearId = selectedAcademicYear?.id ?? null
 
-  const renderContent = () => {
+      const renderContent = () => {
     switch (activeModule) {
       case "dashboard":
-        return <Dashboard />
+        return <Dashboard branchId={branchId} />
 
       case "batchImport":
         return (
