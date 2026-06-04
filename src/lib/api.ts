@@ -226,6 +226,86 @@ export interface ApiBranch {
   updated_at: string
 }
 
+export interface BranchAnalyticsTotals {
+  active_students: number
+  active_teachers: number
+  active_branch_admins: number
+}
+
+export interface BranchPerformanceRisk {
+  at_risk_students: number
+  percent: number
+}
+
+export interface BranchAttendanceTrendWeeklyPoint {
+  year: number
+  week: number
+  attendance_rate: number
+}
+
+export interface BranchAttendanceTrendMonthlyPoint {
+  year: number
+  month: number
+  attendance_rate: number
+}
+
+export interface BranchAttendanceTrendAnnualPoint {
+  year: number
+  attendance_rate: number
+}
+
+export interface BranchAttendanceTrend {
+  weekly: BranchAttendanceTrendWeeklyPoint[]
+  monthly: BranchAttendanceTrendMonthlyPoint[]
+  annual: BranchAttendanceTrendAnnualPoint[]
+}
+
+export interface BranchGradePerformancePoint {
+  grade_id: string
+  grade_name: string
+  student_count: number
+  performance_score: number
+}
+
+export interface BranchAcademicPerformanceAnnualPoint {
+  year: number
+  average_percentage: number
+}
+
+export interface BranchAcademicPerformanceQuarterlyPoint {
+  year: number
+  quarter: number
+  average_percentage: number
+}
+
+export interface BranchAcademicPerformanceIndex {
+  annual: BranchAcademicPerformanceAnnualPoint[]
+  quarterly: BranchAcademicPerformanceQuarterlyPoint[]
+}
+
+export interface BranchAnalyticsResponse {
+  branch_id: string
+  totals: BranchAnalyticsTotals
+  attendance_rate: number
+  performance_risk: BranchPerformanceRisk
+  teacher_count: number
+  parent_linkage_percent: number
+  attendance_trend: BranchAttendanceTrend
+  per_grade: BranchGradePerformancePoint[]
+  academic_performance_index: BranchAcademicPerformanceIndex
+}
+
+export interface BranchTopPerformanceRiskStudent {
+  student_id: string
+  student_name: string
+  roll_no: string
+  grade_id: string | null
+  grade_name: string | null
+  risk_count: number
+  average_percentage: number
+  latest_risk_at: string
+}
+
 export interface JWTResponse {
   access: string
   refresh: string
@@ -316,6 +396,13 @@ export interface ApiStudent {
   academic_year_name: string | null
   branch_name: string
   organization_name: string
+  parent_details?: Array<{
+    id: string
+    user: string
+    full_name: string
+    relationship_type: string
+    is_primary_contact: boolean
+  }>
 }
 
 export interface ApiStudentWrite {
@@ -1056,6 +1143,23 @@ export async function getMediaDownloadUrl(mediaId: string): Promise<string | nul
 export const branchesApi = {
   async getBranch(branchId: string): Promise<ApiBranch> {
     return request<ApiBranch>(`/api/branches/${branchId}/`, { method: "GET" })
+  },
+
+  async getAnalytics(branchId: string): Promise<BranchAnalyticsResponse> {
+    return request<BranchAnalyticsResponse>(
+      `/api/branches/${branchId}/analytics/`,
+      { method: "GET" }
+    )
+  },
+
+  async getTopPerformanceRisks(
+    branchId: string,
+    limit = 10
+  ): Promise<BranchTopPerformanceRiskStudent[]> {
+    return request<BranchTopPerformanceRiskStudent[]>(
+      `/api/branches/${branchId}/top-performance-risks/?limit=${limit}`,
+      { method: "GET" }
+    )
   },
 
   async getSchoolName(branchId: string): Promise<string | null> {
